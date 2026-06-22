@@ -19,6 +19,15 @@
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
+html { scroll-behavior: smooth; }
+
+/* ---- Animaciones de la landing (DOMANI_DESIGN) ---- */
+@keyframes domSpin { from { transform: rotateY(0deg) } to { transform: rotateY(360deg) } }
+@keyframes domGlow { 0%,100% { opacity:.5; transform:translate(-50%,-50%) scale(1) } 50% { opacity:.92; transform:translate(-50%,-50%) scale(1.1) } }
+@keyframes domKen { 0% { transform: scale(1.05) } 100% { transform: scale(1.18) } }
+@keyframes domFloatY { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-16px) } }
+@keyframes domArrow { 0%,100% { transform: translateY(0); opacity:.4 } 50% { transform: translateY(8px); opacity:1 } }
+@keyframes domShine { 0% { background-position:-200% 0 } 100% { background-position:200% 0 } }
 body {
   background: radial-gradient(1200px 600px at 50% -10%, #1a1726 0%, var(--bg) 60%);
   color: var(--text);
@@ -206,3 +215,9 @@ th { color: var(--muted); font-weight: 500; }
 .bet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
 
 .pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; background: var(--panel-2); font-size: 0.75rem; color: var(--muted); }
+
+/* ---- Landing: tarjetas "Vías" (hover revela descripción + zoom) ---- */
+.via-card { cursor: pointer; }
+.via-card > div:first-child { transition: transform .6s ease; }
+.via-card:hover > div:first-child { transform: scale(1.06); }
+.via-card:hover .via-desc { opacity: 1 !important; }

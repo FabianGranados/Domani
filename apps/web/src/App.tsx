@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth/AuthProvider';
 import { Layout } from './components/Layout';
+import { LandingScreen } from './screens/LandingScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { HouseSelectScreen } from './screens/HouseSelectScreen';
@@ -22,12 +23,13 @@ export default function App() {
     );
   }
 
-  // 1. Sin sesión -> login / registro
+  // 1. Sin sesión -> landing pública (/) + login (/login)
   if (!session) {
     return (
       <Routes>
+        <Route path="/" element={<LandingScreen />} />
         <Route path="/login" element={<LoginScreen />} />
-        <Route path="*" element={<Navigate to="/login" replace />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     );
   }
