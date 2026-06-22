@@ -1,0 +1,208 @@
+/* ============================================================
+   DOMANI — estilos base (provisional).
+   La identidad visual final llega desde DOMANI_DESIGN.md.
+   Paleta temporal: noche profunda + dorado patricio.
+   ============================================================ */
+:root {
+  --bg: #0c0b10;
+  --panel: #15131c;
+  --panel-2: #1d1a26;
+  --line: #2a2636;
+  --text: #ece8f2;
+  --muted: #8d869c;
+  --gold: #c9a227;
+  --gold-soft: #e3c75a;
+  --green: #1f6f4a;
+  --red: #7b1e2b;
+  --radius: 14px;
+}
+
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: radial-gradient(1200px 600px at 50% -10%, #1a1726 0%, var(--bg) 60%);
+  color: var(--text);
+  font-family: 'Inter', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+.brand {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  letter-spacing: 0.28em;
+  color: var(--gold);
+  font-weight: 600;
+}
+.brand.sm { font-size: 1.2rem; letter-spacing: 0.3em; }
+.muted { color: var(--muted); }
+
+.splash {
+  height: 100%;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  gap: 0.5rem;
+}
+.splash .brand { font-size: 3.5rem; }
+
+/* ---------- Auth / centered cards ---------- */
+.center-wrap {
+  min-height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 2rem;
+}
+.card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 2rem;
+  width: 100%;
+  max-width: 440px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+.card h2 { margin-top: 0; font-family: 'Cormorant Garamond', Georgia, serif; }
+
+label { display: block; font-size: 0.85rem; color: var(--muted); margin: 0.8rem 0 0.3rem; }
+input[type='text'], input[type='email'], input[type='password'], input[type='number'] {
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 1rem;
+}
+.checkbox-row { display: flex; align-items: flex-start; gap: 0.6rem; margin: 1rem 0; }
+.checkbox-row input { margin-top: 0.2rem; }
+
+.btn {
+  display: inline-block;
+  width: 100%;
+  padding: 0.8rem 1rem;
+  margin-top: 1.2rem;
+  background: linear-gradient(180deg, var(--gold-soft), var(--gold));
+  color: #1a1405;
+  font-weight: 700;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn.secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--line);
+}
+.link-btn { background: none; border: none; color: var(--muted); cursor: pointer; }
+.error { color: #ff8a8a; font-size: 0.9rem; margin-top: 0.6rem; }
+.ok { color: #8ae0a8; font-size: 0.9rem; margin-top: 0.6rem; }
+
+/* ---------- App shell ---------- */
+.app-shell {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  grid-template-rows: 56px 1fr auto;
+  grid-template-areas: 'top top' 'nav main' 'nav footer';
+  min-height: 100%;
+}
+.topbar {
+  grid-area: top;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1.2rem;
+  border-bottom: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.25);
+}
+.topbar-right { display: flex; align-items: center; gap: 1rem; }
+.aurelios { color: var(--gold-soft); font-weight: 700; }
+
+.sidenav {
+  grid-area: nav;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 1rem 0.7rem;
+  border-right: 1px solid var(--line);
+}
+.navlink {
+  padding: 0.7rem 0.9rem;
+  border-radius: 10px;
+  color: var(--muted);
+  text-decoration: none;
+  font-size: 0.95rem;
+}
+.navlink:hover { background: var(--panel); color: var(--text); }
+.navlink.active { background: var(--panel-2); color: var(--gold-soft); }
+
+.content { grid-area: main; padding: 1.8rem; }
+.legal-footer {
+  grid-area: footer;
+  padding: 0.8rem 1.8rem;
+  font-size: 0.78rem;
+  color: var(--muted);
+  border-top: 1px solid var(--line);
+}
+
+/* ---------- Generic panels / grids ---------- */
+.page-title { font-family: 'Cormorant Garamond', Georgia, serif; font-size: 2rem; margin: 0 0 1.2rem; }
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.4rem;
+}
+.grid { display: grid; gap: 1rem; }
+.grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+.grid.cols-3 { grid-template-columns: repeat(3, 1fr); }
+
+/* ---------- Houses ---------- */
+.house-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 1.2rem;
+  cursor: pointer;
+  transition: transform 0.12s ease, border-color 0.12s ease;
+  border-top: 4px solid var(--accent, var(--gold));
+}
+.house-card:hover { transform: translateY(-3px); border-color: var(--gold); }
+.house-card h3 { margin: 0.2rem 0; font-family: 'Cormorant Garamond', Georgia, serif; }
+.house-card .city { color: var(--muted); font-size: 0.85rem; }
+.house-card .motto { font-style: italic; color: var(--gold-soft); margin: 0.6rem 0; }
+
+/* ---------- Tessera ---------- */
+.tessera {
+  max-width: 420px;
+  background: linear-gradient(160deg, #211b2e, #14111c);
+  border: 1px solid var(--gold);
+  border-radius: 18px;
+  padding: 1.6rem;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+}
+.tessera .row { display: flex; justify-content: space-between; padding: 0.45rem 0; border-bottom: 1px dashed var(--line); }
+.tessera .row:last-child { border-bottom: none; }
+
+/* ---------- Ledger table ---------- */
+table { width: 100%; border-collapse: collapse; }
+th, td { text-align: left; padding: 0.6rem 0.5rem; border-bottom: 1px solid var(--line); font-size: 0.9rem; }
+th { color: var(--muted); font-weight: 500; }
+.amount-pos { color: #8ae0a8; }
+.amount-neg { color: #ff8a8a; }
+
+/* ---------- Roulette ---------- */
+.roulette-result {
+  font-size: 3rem;
+  font-weight: 800;
+  text-align: center;
+  width: 110px; height: 110px; line-height: 110px;
+  margin: 1rem auto;
+  border-radius: 50%;
+  border: 3px solid var(--line);
+}
+.roulette-result.red { background: var(--red); }
+.roulette-result.black { background: #111; }
+.roulette-result.green { background: var(--green); }
+.bet-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.6rem; }
+
+.pill { display: inline-block; padding: 0.15rem 0.6rem; border-radius: 999px; background: var(--panel-2); font-size: 0.75rem; color: var(--muted); }

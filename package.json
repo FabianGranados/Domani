@@ -1,0 +1,22 @@
+{
+  "name": "domani",
+  "version": "0.1.0",
+  "private": true,
+  "description": "DOMANI — sociedad de juego de ficción (MVP 1). Aurelios, Casas, El Círculo. Cero dinero real.",
+  "packageManager": "pnpm@10.0.0",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @domani/web dev",
+    "build": "pnpm -r build",
+    "lint": "pnpm -r lint",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3"
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": ["esbuild", "workerd"]
+  }
+}

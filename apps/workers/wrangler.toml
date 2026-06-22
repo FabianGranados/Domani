@@ -1,0 +1,14 @@
+name = "domani-bots"
+main = "src/index.ts"
+compatibility_date = "2024-09-25"
+
+# Cron: actividad simulada del lobby (Capa 2 del lobby vivo).
+# Cada 15 min los bots mueven Influencia y "actividad reciente".
+[triggers]
+crons = ["*/15 * * * *"]
+
+# Secrets (configurar con: wrangler secret put <NAME>):
+#   SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY   <- privada, nunca al frontend
+[vars]
+# valores no sensibles aquí

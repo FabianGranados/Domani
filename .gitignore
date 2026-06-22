@@ -1,0 +1,29 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# build
+dist/
+build/
+.wrangler/
+.vite/
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# editor / os
+.DS_Store
+.vscode/
+.idea/
+
+# supabase local
+supabase/.branches/
+supabase/.temp/
