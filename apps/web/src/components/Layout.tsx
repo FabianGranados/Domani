@@ -2,9 +2,11 @@ import { NavLink } from 'react-router-dom';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { getWallet } from '../lib/api';
+import { Isologo } from './Isologo';
 
 const NAV = [
-  { to: '/', label: 'Tessera', end: true },
+  { to: '/', label: 'El Salón', end: true },
+  { to: '/tessera', label: 'Tessera' },
   { to: '/wallet', label: 'Billetera' },
   { to: '/academia', label: 'La Academia' },
   { to: '/ruleta', label: 'Ruleta' },
@@ -22,7 +24,10 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <span className="brand sm">DOMANI</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Isologo size={34} glow={false} />
+          <span className="brand sm">DOMANI</span>
+        </div>
         <div className="topbar-right">
           <span className="aurelios" title="Aurelios (moneda de fantasía)">
             ⟡ {balance ?? '—'} <span className="muted">Aurelios</span>
@@ -50,8 +55,8 @@ export function Layout({ children }: { children: ReactNode }) {
       <main className="content">{children}</main>
 
       <footer className="legal-footer">
-        Solo +18 · Los Aurelios son una moneda de fantasía sin valor monetario.
-        No se compran ni se canjean por dinero real.
+        Solo +18 · Los Aurelios son fichas virtuales sin valor monetario. No se compran
+        ni se canjean por dinero real.
       </footer>
     </div>
   );

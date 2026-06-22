@@ -28,6 +28,7 @@ html { scroll-behavior: smooth; }
 @keyframes domFloatY { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-16px) } }
 @keyframes domArrow { 0%,100% { transform: translateY(0); opacity:.4 } 50% { transform: translateY(8px); opacity:1 } }
 @keyframes domShine { 0% { background-position:-200% 0 } 100% { background-position:200% 0 } }
+@keyframes domShimmer { 0% { transform: translateX(-120%) skewX(-16deg) } 60%,100% { transform: translateX(260%) skewX(-16deg) } }
 body {
   background: radial-gradient(1200px 600px at 50% -10%, #1a1726 0%, var(--bg) 60%);
   color: var(--text);
