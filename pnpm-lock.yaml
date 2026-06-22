@@ -48,6 +48,9 @@ importers:
       vite:
         specifier: ^5.4.6
         version: 5.4.21(@types/node@22.20.0)
+      wrangler:
+        specifier: ^3.78.0
+        version: 3.114.17(@cloudflare/workers-types@4.20260621.1)
 
   apps/workers:
     dependencies:
