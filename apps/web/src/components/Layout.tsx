@@ -8,8 +8,8 @@ const NAV = [
   { to: '/', label: 'El Salón', end: true },
   { to: '/tessera', label: 'Tessera' },
   { to: '/wallet', label: 'Billetera' },
+  { to: '/casino', label: 'El Casino' },
   { to: '/academia', label: 'La Academia' },
-  { to: '/ruleta', label: 'Ruleta' },
   { to: '/lobby', label: 'El Círculo' },
 ];
 

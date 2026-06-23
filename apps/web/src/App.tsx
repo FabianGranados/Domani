@@ -5,6 +5,7 @@ import { LandingScreen } from './screens/LandingScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { SalonScreen } from './screens/SalonScreen';
+import { CasinoScreen } from './screens/CasinoScreen';
 import { TesseraScreen } from './screens/TesseraScreen';
 import { WalletScreen } from './screens/WalletScreen';
 import { AcademyScreen } from './screens/AcademyScreen';
@@ -52,6 +53,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<SalonScreen />} />
         <Route path="/tessera" element={<TesseraScreen />} />
+        <Route path="/casino" element={<CasinoScreen />} />
         <Route path="/wallet" element={<WalletScreen />} />
         <Route path="/academia" element={<AcademyScreen />} />
         <Route path="/ruleta" element={<RouletteScreen />} />

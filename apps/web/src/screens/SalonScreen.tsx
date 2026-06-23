@@ -29,7 +29,7 @@ const RANKS = [
 ];
 
 const SALAS = [
-  { key: 'casino', title: 'El Casino', img: '/assets/via-casino.webp', desc: 'Texas Hold’em, Ruleta y Blackjack.', to: '/ruleta', ready: true },
+  { key: 'casino', title: 'El Casino', img: '/assets/via-casino.webp', desc: 'Texas Hold’em, Ruleta y Blackjack.', to: '/casino', ready: true },
   { key: 'academia', title: 'La Academia', img: '/assets/via-academia.webp', desc: 'Concurso de cultura general.', to: '/academia', ready: true },
   { key: 'destreza', title: 'Destreza', img: '/assets/via-destreza.webp', desc: 'Ajedrez, damas y dominó.', to: null, ready: false },
   { key: 'mercado', title: 'El Mercado', img: '/assets/via-mercado.webp', desc: 'Compra casa, taxi, bus o invierte en oro.', to: null, ready: false },
