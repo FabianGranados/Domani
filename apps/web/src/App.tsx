@@ -17,7 +17,9 @@ export default function App() {
   if (loading) {
     return (
       <div className="splash">
-        <h1 className="brand">DOMANI</h1>
+        <div className="splash-coin">
+          <img src="/assets/aurelio.webp" alt="DOMANI" />
+        </div>
         <p className="muted">Abriendo las puertas del Círculo…</p>
       </div>
     );
