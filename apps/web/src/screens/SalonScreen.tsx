@@ -9,13 +9,13 @@ const GOLD_GRAD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
 
 const HOUSE_ORDER = ['bacata', 'empire', 'plata', 'morro', 'roma', 'osaka', 'aztlan'];
 const HOUSE_IMG: Record<string, string> = {
-  bacata: '/assets/casa-bacata.png',
-  empire: '/assets/casa-empire.png',
-  plata: '/assets/casa-plata.png',
-  morro: '/assets/casa-morro.png',
-  roma: '/assets/casa-roma.png',
-  osaka: '/assets/casa-osaka.png',
-  aztlan: '/assets/casa-aztlan.png',
+  bacata: '/assets/casa-bacata.webp',
+  empire: '/assets/casa-empire.webp',
+  plata: '/assets/casa-plata.webp',
+  morro: '/assets/casa-morro.webp',
+  roma: '/assets/casa-roma.webp',
+  osaka: '/assets/casa-osaka.webp',
+  aztlan: '/assets/casa-aztlan.webp',
 };
 
 const RANKS = [
@@ -28,10 +28,10 @@ const RANKS = [
 ];
 
 const SALAS = [
-  { key: 'casino', title: 'El Casino', img: '/assets/via-casino.png', desc: 'Texas Hold’em, Ruleta y Blackjack.', to: '/ruleta', ready: true },
-  { key: 'academia', title: 'La Academia', img: '/assets/via-academia.png', desc: 'Concurso de cultura general.', to: '/academia', ready: true },
-  { key: 'destreza', title: 'Destreza', img: '/assets/via-destreza.png', desc: 'Ajedrez, damas y dominó.', to: null, ready: false },
-  { key: 'mercado', title: 'El Mercado', img: '/assets/via-mercado.png', desc: 'Compra casa, taxi, bus o invierte en oro.', to: null, ready: false },
+  { key: 'casino', title: 'El Casino', img: '/assets/via-casino.webp', desc: 'Texas Hold’em, Ruleta y Blackjack.', to: '/ruleta', ready: true },
+  { key: 'academia', title: 'La Academia', img: '/assets/via-academia.webp', desc: 'Concurso de cultura general.', to: '/academia', ready: true },
+  { key: 'destreza', title: 'Destreza', img: '/assets/via-destreza.webp', desc: 'Ajedrez, damas y dominó.', to: null, ready: false },
+  { key: 'mercado', title: 'El Mercado', img: '/assets/via-mercado.webp', desc: 'Compra casa, taxi, bus o invierte en oro.', to: null, ready: false },
 ];
 
 export function SalonScreen() {
@@ -111,7 +111,7 @@ export function SalonScreen() {
         }}
       >
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: 28 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '14px 28px' }}>
             <Stat label="Aurelios" value={`⟡ ${balance ?? '—'}`} gold />
             <Stat label="Influencia" value={String(profile?.influence ?? 0)} />
             <Stat label="Rango" value={RANKS[rankIdx].label} />

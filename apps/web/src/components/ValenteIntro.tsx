@@ -63,7 +63,7 @@ export function ValenteIntro({ onClose }: { onClose: () => void }) {
       >
         {/* Valente */}
         <img
-          src="/assets/valente_cut.png"
+          src="/assets/valente_cut.webp"
           alt="Domenico Valente"
           style={{
             width: 'clamp(140px, 26vw, 240px)',

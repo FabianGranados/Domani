@@ -11,28 +11,28 @@ const VIAS = [
   {
     eyebrow: 'Las Casas',
     title: 'Los Casinos',
-    img: '/assets/via-casino.png',
+    img: '/assets/via-casino.webp',
     pos: 'center 18%',
     desc: 'Entra a los casinos de cada Casa: póker, blackjack y las mesas clásicas. Apuesta, gana y llena tu billetera de Aurelios.',
   },
   {
     eyebrow: 'Pura estrategia',
     title: 'Juegos de destreza',
-    img: '/assets/via-destreza.png',
+    img: '/assets/via-destreza.webp',
     pos: 'center',
     desc: 'Ajedrez, damas, parqués y más. Aquí no manda el azar: manda tu cabeza. Demuestra tu talento y llévate el bote.',
   },
   {
     eyebrow: 'El concurso',
     title: 'La Academia',
-    img: '/assets/via-academia.png',
+    img: '/assets/via-academia.webp',
     pos: 'center 12%',
     desc: 'Nuestro concurso de cultura general, al estilo «¿Quién quiere ser millonario?». Responde bien y gana montañas de Aurelios.',
   },
   {
     eyebrow: 'No solo juegas, inviertes',
     title: 'El Mercado',
-    img: '/assets/via-mercado.png',
+    img: '/assets/via-mercado.webp',
     pos: 'center',
     desc: 'Compra y vende propiedades y activos. En Domani no solo se juega: también se invierte. Haz crecer tu billetera cada día.',
   },
@@ -42,9 +42,12 @@ export function LandingScreen() {
   useEffect(() => {
     // Video de fondo: muted + loop + autoplay configurado por JS.
     const vid = document.getElementById('dom-intro-video') as HTMLVideoElement | null;
-    if (vid) {
+    // Solo en escritorio cargamos/reproducimos el video pesado.
+    // En móvil se queda la imagen "poster" (sin descargar los ~13MB).
+    if (vid && window.innerWidth > 768) {
       vid.muted = true;
       vid.loop = true;
+      vid.preload = 'auto';
       const tryPlay = () => {
         const p = vid.play();
         if (p && p.catch) p.catch(() => {});
@@ -173,7 +176,7 @@ export function LandingScreen() {
             style={{
               position: 'absolute',
               inset: 0,
-              background: "url('/assets/hero.png') 72% center/cover no-repeat",
+              background: "url('/assets/hero.webp') 72% center/cover no-repeat",
               backgroundColor: '#0c0d11',
               animation: 'domKen 22s ease-in-out infinite alternate',
             }}
@@ -322,7 +325,8 @@ export function LandingScreen() {
           muted
           loop
           playsInline
-          preload="auto"
+          preload="none"
+          poster="/assets/hero.webp"
           style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
         >
           <source src="/assets/domani-intro.mp4" type="video/mp4" />
@@ -476,7 +480,7 @@ export function LandingScreen() {
 
       {/* PROMESA */}
       <section style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', minHeight: '92vh', padding: '120px clamp(32px,7vw,112px)' }}>
-        <div style={{ position: 'absolute', inset: 0, background: "url('/assets/promesa-bg.png') center/cover no-repeat", backgroundColor: '#0a0a0c', animation: 'domKen 24s ease-in-out infinite alternate' }} />
+        <div style={{ position: 'absolute', inset: 0, background: "url('/assets/promesa-bg.webp') center/cover no-repeat", backgroundColor: '#0a0a0c', animation: 'domKen 24s ease-in-out infinite alternate' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(90deg, rgba(8,8,10,.93) 0%, rgba(8,8,10,.82) 30%, rgba(8,8,10,.42) 58%, rgba(8,8,10,.2) 80%, rgba(8,8,10,.55) 100%)' }} />
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.5) 0%, transparent 24%, transparent 70%, rgba(8,8,10,.88) 100%)' }} />
         <div data-reveal style={{ opacity: 0, transform: 'translateY(34px)', transition: 'opacity .9s ease, transform .9s ease', position: 'relative', zIndex: 2, maxWidth: 560 }}>
@@ -500,7 +504,7 @@ export function LandingScreen() {
       <section style={{ position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 70, padding: '120px 60px', background: 'linear-gradient(180deg,#0a0a0c,#0c0d11)', flexWrap: 'wrap' }}>
         <div data-reveal style={{ opacity: 0, transform: 'translateY(30px)', transition: 'opacity 1s ease, transform 1s ease', position: 'relative', display: 'flex', justifyContent: 'center', minWidth: 300 }}>
           <div style={{ position: 'absolute', left: '50%', top: '48%', transform: 'translate(-50%,-50%)', width: 380, height: 380, borderRadius: '50%', background: 'radial-gradient(circle, rgba(201,163,91,.16), transparent 66%)' }} />
-          <img src="/assets/valente_cut.png" alt="Domenico Valente" style={{ position: 'relative', height: 480, width: 'auto', maxWidth: '100%', display: 'block', filter: 'drop-shadow(0 28px 38px rgba(0,0,0,.6))', animation: 'domFloatY 7s ease-in-out infinite' }} />
+          <img src="/assets/valente_cut.webp" alt="Domenico Valente" style={{ position: 'relative', height: 480, width: 'auto', maxWidth: '100%', display: 'block', filter: 'drop-shadow(0 28px 38px rgba(0,0,0,.6))', animation: 'domFloatY 7s ease-in-out infinite' }} />
         </div>
         <div data-reveal style={{ opacity: 0, transform: 'translateY(30px)', transition: 'opacity 1s ease .15s, transform 1s ease .15s', flex: 1, minWidth: 320, maxWidth: 480 }}>
           <div style={{ fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e', marginBottom: 20 }}>El anfitrión</div>
@@ -515,8 +519,8 @@ export function LandingScreen() {
       {/* CTA FINAL */}
       <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', overflow: 'hidden', padding: '120px 24px' }}>
         <picture style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
-          <source media="(max-width:768px)" srcSet="/assets/entrada-a.png" />
-          <img src="/assets/entrada-b.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', animation: 'domKen 26s ease-in-out infinite alternate' }} />
+          <source media="(max-width:768px)" srcSet="/assets/entrada-a.webp" />
+          <img src="/assets/entrada-b.webp" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', animation: 'domKen 26s ease-in-out infinite alternate' }} />
         </picture>
         <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'radial-gradient(54% 60% at 50% 48%, rgba(8,8,10,.74), rgba(8,8,10,.36) 72%, transparent 100%)' }} />
         <div style={{ position: 'absolute', inset: 0, zIndex: 1, background: 'linear-gradient(180deg, rgba(8,8,10,.72) 0%, transparent 26%, transparent 52%, rgba(8,8,10,.97) 100%)' }} />
