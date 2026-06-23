@@ -42,9 +42,9 @@ export function LandingScreen() {
   useEffect(() => {
     // Video de fondo: muted + loop + autoplay configurado por JS.
     const vid = document.getElementById('dom-intro-video') as HTMLVideoElement | null;
-    // Solo en escritorio cargamos/reproducimos el video pesado.
-    // En móvil se queda la imagen "poster" (sin descargar los ~13MB).
-    if (vid && window.innerWidth > 768) {
+    // Video liviano (~3MB): autoplay en todos los dispositivos. Mientras
+    // carga se ve el poster, así nunca queda en negro.
+    if (vid) {
       vid.muted = true;
       vid.loop = true;
       vid.preload = 'auto';
@@ -207,8 +207,10 @@ export function LandingScreen() {
             display: 'flex',
             flexDirection: 'column',
             alignItems: 'flex-start',
+            width: '100%',
             maxWidth: 600,
-            paddingLeft: 'clamp(24px,5vw,48px)',
+            boxSizing: 'border-box',
+            padding: '0 clamp(20px,5vw,48px)',
           }}
         >
           <div style={{ marginBottom: 24 }}>
@@ -217,10 +219,12 @@ export function LandingScreen() {
           <div
             style={{
               fontSize: 11,
-              letterSpacing: '.36em',
+              letterSpacing: '.22em',
               textTransform: 'uppercase',
               color: '#9c7a3e',
               marginBottom: 30,
+              maxWidth: '100%',
+              lineHeight: 1.6,
             }}
           >
             Club privado internacional de juegos
@@ -228,11 +232,11 @@ export function LandingScreen() {
           <div
             style={{
               fontFamily: 'Marcellus,serif',
-              fontSize: 'clamp(60px,12vw,104px)',
-              letterSpacing: '.28em',
+              fontSize: 'clamp(44px,11vw,104px)',
+              letterSpacing: 'clamp(.12em,2.5vw,.28em)',
               color: '#ece6d6',
-              paddingLeft: '.28em',
               lineHeight: 0.94,
+              maxWidth: '100%',
               textShadow: '0 6px 50px rgba(0,0,0,.6)',
             }}
           >
@@ -416,14 +420,17 @@ export function LandingScreen() {
         </div>
 
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 22 }}>
+          <div style={{ display: 'flex', gap: 18, overflowX: 'auto', paddingBottom: 10, scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
             {VIAS.map((v) => (
               <div
                 key={v.title}
                 className="via-card"
                 style={{
                   position: 'relative',
+                  flex: '0 0 auto',
+                  width: 'clamp(220px, 72vw, 260px)',
                   aspectRatio: '3/4',
+                  scrollSnapAlign: 'start',
                   borderRadius: 18,
                   overflow: 'hidden',
                   border: '1px solid rgba(201,163,91,.22)',
