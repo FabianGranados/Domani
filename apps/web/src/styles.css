@@ -329,7 +329,7 @@ th { color: var(--muted); font-weight: 500; }
 .carousel-arrow:hover { opacity: 1; transform: translateY(-50%) scale(1.07); }
 .carousel-arrow.left { left: -10px; }
 .carousel-arrow.right { right: -10px; }
-@media (max-width: 760px) {
+@media (max-width: 1024px) {
   .carousel-arrow { display: none; }
 }
 
@@ -373,7 +373,7 @@ th { color: var(--muted); font-weight: 500; }
 /* ============================================================
    RESPONSIVE — móvil
    ============================================================ */
-@media (max-width: 760px) {
+@media (max-width: 1024px) {
   /* App shell: la barra lateral pasa a barra horizontal arriba */
   .app-shell {
     grid-template-columns: minmax(0, 1fr);
