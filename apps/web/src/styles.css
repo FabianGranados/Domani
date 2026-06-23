@@ -349,26 +349,23 @@ th { color: var(--muted); font-weight: 500; }
 .valente-inner {
   position: relative;
   width: 100%;
-  max-width: 720px;
+  max-width: 460px;
   display: flex;
-  align-items: flex-end;
-  gap: 8px;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
 }
 .valente-img {
-  width: clamp(120px, 24vw, 240px);
+  width: clamp(140px, 40vw, 200px);
   height: auto;
-  flex: 0 0 auto;
-  align-self: flex-end;
-  filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.7));
+  margin-bottom: -10px;
+  position: relative;
+  z-index: 1;
+  filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.7));
 }
 .valente-bubble {
-  flex: 1;
-  min-width: 0; /* clave: permite encoger en pantallas angostas */
-}
-@media (max-width: 600px) {
-  .valente-inner { flex-direction: column; align-items: center; gap: 0; }
-  .valente-img { width: 120px; margin-bottom: -8px; }
-  .valente-bubble { width: 100%; margin-bottom: 0 !important; }
+  width: 100%;
+  min-width: 0;
 }
 
 /* ============================================================
