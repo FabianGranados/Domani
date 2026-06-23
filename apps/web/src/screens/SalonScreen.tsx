@@ -103,7 +103,8 @@ export function SalonScreen() {
       </div>
 
       {/* ===== Tarjetas premium (Tessera · Billetera/Renta · Ascenso) ===== */}
-      <div style={cardsRow}>
+      <div style={{ marginTop: '1.4rem' }}>
+        <Carousel>
         {/* GOLD — Tessera */}
         <div style={premiumCard('gold')}>
           <div style={sheen} />
@@ -170,6 +171,7 @@ export function SalonScreen() {
             </div>
           </div>
         </div>
+        </Carousel>
       </div>
 
       {/* ===== SALAS ===== */}
@@ -208,45 +210,30 @@ export function SalonScreen() {
       </div>
 
       {challengeHouse && (
-        <div
-          className="panel"
-          style={{ display: 'flex', alignItems: 'center', gap: 14, borderColor: 'rgba(201,163,91,.45)', background: 'linear-gradient(135deg, rgba(201,163,91,.12), rgba(255,255,255,.02))', marginBottom: '1.2rem' }}
-        >
-          <img src={HOUSE_IMG[challengeHouse.code]} alt="" style={{ width: 52, height: 52, objectFit: 'contain' }} />
+        <div style={desafioBanner}>
+          <img src="/assets/emblema-aurelio.webp" alt="" style={{ width: 40, height: 40, objectFit: 'contain', flex: '0 0 auto' }} />
           <div>
-            <div style={{ fontSize: 10, letterSpacing: '.24em', textTransform: 'uppercase', color: '#9c7a3e' }}>Desafío del día</div>
-            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 20, color: '#f3eddd' }}>
-              Hoy le toca a <span style={{ color: '#ecd9a5' }}>{challengeHouse.name}</span>
+            <div style={{ fontSize: 10, letterSpacing: '.26em', textTransform: 'uppercase', color: '#9c7a3e' }}>Desafío del día</div>
+            <div style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 19, color: '#f3eddd' }}>
+              Hoy reparte Aurelios la <span style={{ color: '#ecd9a5' }}>{challengeHouse.name}</span>
             </div>
-            <div className="muted" style={{ fontSize: 13 }}>Próximamente podrás jugarlo para sumar Aurelios a tu Casa.</div>
           </div>
+          <span style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(232,226,212,.45)', whiteSpace: 'nowrap' }}>Próximamente</span>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(190px,1fr))', gap: 16 }}>
+      <Carousel>
         {houses.map((h) => {
           const isMine = profile?.house_id === h.id;
           return (
-            <div
-              key={h.id}
-              style={{
-                position: 'relative',
-                borderRadius: 16,
-                overflow: 'hidden',
-                border: isMine ? '1px solid rgba(201,163,91,.8)' : '1px solid rgba(255,255,255,.08)',
-                background: 'linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015))',
-                boxShadow: isMine ? '0 16px 40px -20px rgba(201,163,91,.5)' : '0 14px 34px -24px rgba(0,0,0,.8)',
-                display: 'flex',
-                flexDirection: 'column',
-              }}
-            >
-              <div style={{ aspectRatio: '1/1', backgroundImage: `url('${HOUSE_IMG[h.code]}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c' }} />
-              <div style={{ padding: '14px 14px 16px', textAlign: 'center' }}>
-                <div style={{ fontSize: 10, letterSpacing: '.2em', textTransform: 'uppercase', color: '#9c7a3e' }}>{h.city}</div>
-                <div style={{ fontFamily: 'Marcellus,serif', fontSize: 19, color: '#f3eddd', margin: '2px 0 8px' }}>{h.name.replace(/^Casa /, '')}</div>
-                {isMine ? (
-                  <div style={{ ...btnBase, background: 'rgba(201,163,91,.16)', color: '#ecd9a5', border: '1px solid rgba(201,163,91,.5)' }}>✓ Tu Casa</div>
-                ) : (
+            <div key={h.id} style={houseCard(isMine)}>
+              <div style={{ position: 'absolute', inset: 0, backgroundImage: `url('${HOUSE_IMG[h.code]}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c' }} />
+              <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.1) 0%, rgba(8,8,10,.45) 48%, rgba(8,8,10,.96) 100%)' }} />
+              {isMine && <span style={tuCasaBadge}>✓ Tu Casa</span>}
+              <div style={{ position: 'relative', zIndex: 1, marginTop: 'auto', padding: 16, width: '100%' }}>
+                <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' }}>{h.city}</div>
+                <div style={{ fontFamily: 'Marcellus,serif', fontSize: 21, color: '#f3eddd', margin: '2px 0 10px' }}>{h.name.replace(/^Casa /, '')}</div>
+                {!isMine && (
                   <button onClick={() => pickHouse(h.code)} disabled={!!houseBusy} style={{ ...btnBase, ...btnGoldStyle, opacity: houseBusy ? 0.6 : 1 }}>
                     {houseBusy === h.code ? 'Uniéndote…' : 'Luchar por ella'}
                   </button>
@@ -255,7 +242,7 @@ export function SalonScreen() {
             </div>
           );
         })}
-      </div>
+      </Carousel>
     </div>
   );
 }
@@ -270,6 +257,44 @@ const comingSoon: React.CSSProperties = { position: 'absolute', top: 12, right: 
 const btnBase: React.CSSProperties = { display: 'block', width: '100%', padding: '10px', borderRadius: 10, fontSize: 13.5, fontWeight: 700, textAlign: 'center', cursor: 'pointer', fontFamily: "'Hanken Grotesk',sans-serif" };
 const btnGoldStyle: React.CSSProperties = { background: GOLD_GRAD, color: '#2c2415', border: 'none' };
 
+const desafioBanner: React.CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 14,
+  padding: '14px 18px',
+  borderRadius: 14,
+  border: '1px solid rgba(201,163,91,.4)',
+  background: 'linear-gradient(135deg, rgba(201,163,91,.10), rgba(255,255,255,.02))',
+  marginBottom: '1.2rem',
+};
+function houseCard(isMine: boolean): React.CSSProperties {
+  return {
+    position: 'relative',
+    flex: '0 0 auto',
+    width: 'clamp(180px, 62vw, 215px)',
+    aspectRatio: '3 / 4',
+    borderRadius: 16,
+    overflow: 'hidden',
+    display: 'flex',
+    scrollSnapAlign: 'start',
+    border: isMine ? '1px solid rgba(201,163,91,.85)' : '1px solid rgba(255,255,255,.08)',
+    boxShadow: isMine ? '0 16px 40px -20px rgba(201,163,91,.5)' : '0 16px 40px -24px rgba(0,0,0,.85)',
+  };
+}
+const tuCasaBadge: React.CSSProperties = {
+  position: 'absolute',
+  top: 10,
+  right: 10,
+  zIndex: 2,
+  fontSize: 10,
+  fontWeight: 700,
+  letterSpacing: '.04em',
+  color: '#2c2415',
+  background: GOLD_GRAD,
+  padding: '4px 10px',
+  borderRadius: 999,
+};
+
 // ---- tarjetas premium (estilo tarjeta de crédito) ----
 type Metal = 'gold' | 'silver' | 'obsidian';
 const METAL_BG: Record<Metal, string> = {
@@ -279,19 +304,13 @@ const METAL_BG: Record<Metal, string> = {
 };
 const METAL_INK: Record<Metal, string> = { gold: '#2c2412', silver: '#23282e', obsidian: '#ece6d6' };
 
-const cardsRow: React.CSSProperties = {
-  display: 'flex',
-  gap: 16,
-  flexWrap: 'wrap',
-  marginTop: '1.4rem',
-};
 function premiumCard(metal: Metal): React.CSSProperties {
   return {
     position: 'relative',
     overflow: 'hidden',
-    flex: '1 1 280px',
-    minWidth: 260,
-    maxWidth: 360,
+    flex: '0 0 auto',
+    width: 'clamp(280px, 82vw, 320px)',
+    scrollSnapAlign: 'start',
     aspectRatio: '1.62 / 1',
     borderRadius: 16,
     padding: 20,
