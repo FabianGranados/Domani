@@ -139,10 +139,12 @@ input[type='text'], input[type='email'], input[type='password'], input[type='num
 /* ---------- App shell ---------- */
 .app-shell {
   display: grid;
-  grid-template-columns: 1fr;
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 56px 1fr auto;
   grid-template-areas: 'top' 'main' 'footer';
   min-height: 100%;
+  max-width: 100%;
+  overflow-x: hidden;
 }
 .topbar {
   grid-area: top;
@@ -214,7 +216,7 @@ input[type='text'], input[type='email'], input[type='password'], input[type='num
 .navlink:hover { background: var(--panel); color: var(--text); }
 .navlink.active { background: var(--panel-2); color: var(--gold-soft); }
 
-.content { grid-area: main; padding: 1.8rem; }
+.content { grid-area: main; padding: 1.8rem; min-width: 0; overflow-x: hidden; }
 .legal-footer {
   grid-area: footer;
   padding: 0.8rem 1.8rem;
@@ -374,7 +376,7 @@ th { color: var(--muted); font-weight: 500; }
 @media (max-width: 760px) {
   /* App shell: la barra lateral pasa a barra horizontal arriba */
   .app-shell {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
     grid-template-rows: 52px auto 1fr auto;
     grid-template-areas: 'top' 'nav' 'main' 'footer';
   }
