@@ -38,46 +38,15 @@ export function ValenteIntro({ onClose }: { onClose: () => void }) {
   }
 
   return (
-    <div
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 100,
-        display: 'grid',
-        placeItems: 'center',
-        padding: 20,
-        background: 'radial-gradient(60% 60% at 50% 40%, rgba(8,8,10,.82), rgba(8,8,10,.96))',
-        backdropFilter: 'blur(3px)',
-        fontFamily: "'Hanken Grotesk',sans-serif",
-      }}
-    >
-      <div
-        style={{
-          position: 'relative',
-          width: '100%',
-          maxWidth: 720,
-          display: 'flex',
-          alignItems: 'flex-end',
-          gap: 8,
-        }}
-      >
+    <div className="valente-overlay">
+      <div className="valente-inner">
         {/* Valente */}
-        <img
-          src="/assets/valente_cut.webp"
-          alt="Domenico Valente"
-          style={{
-            width: 'clamp(140px, 26vw, 240px)',
-            height: 'auto',
-            filter: 'drop-shadow(0 24px 34px rgba(0,0,0,.7))',
-            flex: '0 0 auto',
-            alignSelf: 'flex-end',
-          }}
-        />
+        <img className="valente-img" src="/assets/valente_cut.webp" alt="Domenico Valente" />
 
         {/* Mensaje */}
         <div
+          className="valente-bubble"
           style={{
-            flex: 1,
             background: 'linear-gradient(180deg, rgba(33,27,46,.96), rgba(20,17,28,.96))',
             border: '1px solid rgba(201,163,91,.35)',
             borderRadius: 18,

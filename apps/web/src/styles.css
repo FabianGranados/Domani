@@ -19,6 +19,7 @@
 
 * { box-sizing: border-box; }
 html, body, #root { height: 100%; margin: 0; }
+body { overflow-x: hidden; }
 html { scroll-behavior: smooth; }
 
 /* ---- Animaciones de la landing (DOMANI_DESIGN) ---- */
@@ -328,6 +329,46 @@ th { color: var(--muted); font-weight: 500; }
 .carousel-arrow.right { right: -10px; }
 @media (max-width: 760px) {
   .carousel-arrow { display: none; }
+}
+
+/* ---- Modal de Valente (responsive) ---- */
+.valente-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  background: radial-gradient(60% 60% at 50% 40%, rgba(8, 8, 10, 0.82), rgba(8, 8, 10, 0.96));
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  font-family: 'Hanken Grotesk', sans-serif;
+}
+.valente-inner {
+  position: relative;
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+.valente-img {
+  width: clamp(120px, 24vw, 240px);
+  height: auto;
+  flex: 0 0 auto;
+  align-self: flex-end;
+  filter: drop-shadow(0 24px 34px rgba(0, 0, 0, 0.7));
+}
+.valente-bubble {
+  flex: 1;
+  min-width: 0; /* clave: permite encoger en pantallas angostas */
+}
+@media (max-width: 600px) {
+  .valente-inner { flex-direction: column; align-items: center; gap: 0; }
+  .valente-img { width: 120px; margin-bottom: -8px; }
+  .valente-bubble { width: 100%; margin-bottom: 0 !important; }
 }
 
 /* ============================================================
