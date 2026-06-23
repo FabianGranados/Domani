@@ -110,9 +110,9 @@ input[type='text'], input[type='email'], input[type='password'], input[type='num
 /* ---------- App shell ---------- */
 .app-shell {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 1fr;
   grid-template-rows: 56px 1fr auto;
-  grid-template-areas: 'top top' 'nav main' 'nav footer';
+  grid-template-areas: 'top' 'main' 'footer';
   min-height: 100%;
 }
 .topbar {
@@ -127,21 +127,57 @@ input[type='text'], input[type='email'], input[type='password'], input[type='num
 .topbar-right { display: flex; align-items: center; gap: 1rem; }
 .aurelios { color: var(--gold-soft); font-weight: 700; }
 
+/* Menú glass: colapsado por defecto, se revela al pasar el mouse (escritorio) */
 .sidenav {
-  grid-area: nav;
+  position: fixed;
+  top: 56px;
+  left: 0;
+  bottom: 0;
+  z-index: 40;
+  width: 16px;
   display: flex;
   flex-direction: column;
   gap: 0.2rem;
-  padding: 1rem 0.7rem;
+  padding: 1.2rem 0;
+  overflow: hidden;
+  background: transparent;
   border-right: 1px solid var(--line);
+  transition: width 0.28s cubic-bezier(0.2, 0.7, 0.2, 1), background 0.28s ease,
+    padding 0.28s ease, box-shadow 0.28s ease, border-color 0.28s ease;
 }
+.sidenav::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: linear-gradient(180deg, #a8843f, #ecd28e, #a8843f);
+  opacity: 0.55;
+  transition: opacity 0.25s ease;
+}
+.sidenav:hover {
+  width: 230px;
+  padding: 1.2rem 0.7rem;
+  background: rgba(20, 17, 28, 0.55);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border-right: 1px solid rgba(201, 163, 91, 0.28);
+  box-shadow: 24px 0 60px -24px rgba(0, 0, 0, 0.8);
+}
+.sidenav:hover::before { opacity: 0; }
 .navlink {
   padding: 0.7rem 0.9rem;
   border-radius: 10px;
   color: var(--muted);
   text-decoration: none;
   font-size: 0.95rem;
+  white-space: nowrap;
+  opacity: 0;
+  transform: translateX(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.12s ease, color 0.12s ease;
 }
+.sidenav:hover .navlink { opacity: 1; transform: none; }
 .navlink:hover { background: var(--panel); color: var(--text); }
 .navlink.active { background: var(--panel-2); color: var(--gold-soft); }
 
@@ -234,14 +270,24 @@ th { color: var(--muted); font-weight: 500; }
     grid-template-areas: 'top' 'nav' 'main' 'footer';
   }
   .sidenav {
+    position: static;
+    grid-area: nav;
+    width: auto;
     flex-direction: row;
     gap: 0.3rem;
     overflow-x: auto;
+    overflow-y: hidden;
+    background: rgba(0, 0, 0, 0.25);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+    box-shadow: none;
     border-right: none;
     border-bottom: 1px solid var(--line);
     padding: 0.5rem 0.6rem;
     -webkit-overflow-scrolling: touch;
   }
+  .sidenav::before { display: none; }
+  .sidenav .navlink { opacity: 1; transform: none; }
   .navlink { white-space: nowrap; padding: 0.5rem 0.7rem; font-size: 0.9rem; }
   .content { padding: 1.1rem; }
   .topbar { padding: 0 0.9rem; }
