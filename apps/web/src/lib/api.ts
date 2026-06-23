@@ -124,6 +124,18 @@ export async function spinRouletteFree(
   return (data as RouletteSpinResult[])[0];
 }
 
+// --- Póker: buy-in / cash-out en Aurelios ---
+export async function pokerBuyin(amount: number): Promise<number> {
+  const { data, error } = await supabase.rpc('poker_buyin', { p_amount: amount });
+  if (error) throw error;
+  return data as number;
+}
+export async function pokerCashout(amount: number): Promise<number> {
+  const { data, error } = await supabase.rpc('poker_cashout', { p_amount: amount });
+  if (error) throw error;
+  return data as number;
+}
+
 // --- Lobby vivo: jugadores (incluye bots is_bot=true) para "que se sienta lleno"
 export interface LobbyPlayer {
   id: string;

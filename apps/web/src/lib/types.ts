@@ -466,6 +466,8 @@ export type Database = {
         Args: { p_results: Json; p_session_id: string }
         Returns: undefined
       }
+      poker_buyin: { Args: { p_amount: number }; Returns: number }
+      poker_cashout: { Args: { p_amount: number }; Returns: number }
       spin_roulette_free: {
         Args: { p_bet_type: string; p_bet_value?: number }
         Returns: {
