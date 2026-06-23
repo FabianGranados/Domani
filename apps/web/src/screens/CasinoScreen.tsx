@@ -17,8 +17,8 @@ const GAMES = [
     name: 'Texas Hold’em',
     img: '/assets/mesa-poker.webp',
     desc: 'El clásico del Círculo. Lee a tus rivales y llévate el bote.',
-    to: null,
-    ready: false,
+    to: '/poker',
+    ready: true,
   },
   {
     key: 'blackjack',
