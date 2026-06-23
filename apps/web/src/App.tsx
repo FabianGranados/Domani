@@ -18,7 +18,7 @@ export default function App() {
     return (
       <div className="splash">
         <div className="splash-coin">
-          <img src="/assets/aurelio.webp" alt="DOMANI" />
+          <img src="/assets/aurelio-coin.webp" alt="DOMANI" />
         </div>
         <p className="muted">Abriendo las puertas del Círculo…</p>
       </div>
