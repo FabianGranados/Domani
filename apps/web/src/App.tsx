@@ -4,7 +4,6 @@ import { Layout } from './components/Layout';
 import { LandingScreen } from './screens/LandingScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
-import { HouseSelectScreen } from './screens/HouseSelectScreen';
 import { SalonScreen } from './screens/SalonScreen';
 import { TesseraScreen } from './screens/TesseraScreen';
 import { WalletScreen } from './screens/WalletScreen';
@@ -45,17 +44,7 @@ export default function App() {
     );
   }
 
-  // 3. Con perfil pero sin Casa -> elección de Casa
-  if (!profile.house_id) {
-    return (
-      <Routes>
-        <Route path="/casa" element={<HouseSelectScreen />} />
-        <Route path="*" element={<Navigate to="/casa" replace />} />
-      </Routes>
-    );
-  }
-
-  // 4. App completa
+  // 3. Con perfil -> app completa (la Casa se elige dentro del Salón, no es obligatoria)
   return (
     <Layout>
       <Routes>
