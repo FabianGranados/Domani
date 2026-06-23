@@ -4,6 +4,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { chooseHouse, claimRenta, getWallet, listHouses } from '../lib/api';
 import type { House } from '../lib/types';
 import { ValenteIntro, valenteSeen } from '../components/ValenteIntro';
+import { Carousel } from '../components/Carousel';
 
 const GOLD_GRAD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
 
@@ -176,7 +177,7 @@ export function SalonScreen() {
         <h2 style={sectionTitle}>Las Salas</h2>
         <span className="muted" style={{ fontSize: 13 }}>¿Dónde juegas esta noche? →</span>
       </div>
-      <div style={carousel}>
+      <Carousel>
         {SALAS.map((s) => {
           const card = (
             <div style={{ ...salaCard, opacity: s.ready ? 1 : 0.72 }}>
@@ -195,7 +196,7 @@ export function SalonScreen() {
             <div key={s.key} style={{ scrollSnapAlign: 'start' }}>{card}</div>
           );
         })}
-      </div>
+      </Carousel>
 
       {/* ===== CASAS ===== */}
       <div style={{ margin: '2.8rem 0 0.6rem' }}>
@@ -262,7 +263,6 @@ export function SalonScreen() {
 // ---- estilos ----
 const sectionTitle: React.CSSProperties = { fontFamily: "'Cormorant Garamond',serif", fontSize: 30, margin: 0, color: '#ece6d6' };
 const ghostBtn: React.CSSProperties = { padding: '10px 18px', borderRadius: 11, border: '1px solid rgba(201,163,91,.45)', background: 'rgba(8,8,10,.35)', color: '#d8b96b', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: "'Hanken Grotesk',sans-serif" };
-const carousel: React.CSSProperties = { display: 'flex', gap: 16, overflowX: 'auto', paddingBottom: 8, scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' };
 const salaCard: React.CSSProperties = { position: 'relative', flex: '0 0 auto', width: 270, height: 320, borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(201,163,91,.2)', boxShadow: '0 18px 40px -22px rgba(0,0,0,.8)' };
 const salaImg: React.CSSProperties = { position: 'absolute', inset: 0, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c' };
 const salaScrim: React.CSSProperties = { position: 'absolute', inset: 0, background: 'linear-gradient(180deg, transparent 35%, rgba(8,8,10,.92) 100%)' };

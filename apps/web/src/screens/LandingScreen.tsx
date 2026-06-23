@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Isologo } from '../components/Isologo';
+import { Carousel } from '../components/Carousel';
 
 // Landing pública de DOMANI (puerta del club). Recreada del diseño hi-fi.
 // Negro + oro · Marcellus / Cormorant / Hanken. CTAs -> /login.
@@ -420,7 +421,7 @@ export function LandingScreen() {
         </div>
 
         <div style={{ maxWidth: 1280, margin: '0 auto' }}>
-          <div style={{ display: 'flex', gap: 18, overflowX: 'auto', paddingBottom: 10, scrollSnapType: 'x mandatory', WebkitOverflowScrolling: 'touch' }}>
+          <Carousel>
             {VIAS.map((v) => (
               <div
                 key={v.title}
@@ -455,7 +456,7 @@ export function LandingScreen() {
                 </div>
               </div>
             ))}
-          </div>
+          </Carousel>
         </div>
       </section>
 
