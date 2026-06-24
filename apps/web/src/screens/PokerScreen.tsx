@@ -50,7 +50,7 @@ const POT_X = 50, POT_Y = 58; // centro del bote sobre el fieltro
 // variante ESTABLE derivada del id de la mesa (mismo nivel => mesas distintas
 // pueden verse distinto, pero la misma mesa siempre se ve igual).
 const DEFAULT_FELT = '/assets/tables/basica.webp';
-const LEGACY_FELT = '/assets/poker-table.webp';
+const TURN_SECONDS = 20; // tiempo del turno del humano antes de auto check/fold
 // Familias de fieltro por nivel: nombre base + nº de variantes (1 = sin sufijo).
 const FELT_FAMILY: Record<StakeTierId, { base: string; count: number }> = {
   micro: { base: 'basica', count: 1 },
@@ -72,11 +72,10 @@ function feltForTable(table: PokerTable | null): string {
   const variant = 1 + (feltHash(table.id) % fam.count);
   return `/assets/tables/${fam.base}-${variant}.webp`;
 }
-// onError encadenado: fieltro elegido -> basica -> paño antiguo (sin bucle).
+// onError: si falla el fieltro elegido, cae a 'basica' (sin paño antiguo).
 function feltOnError(e: React.SyntheticEvent<HTMLImageElement>) {
   const img = e.currentTarget;
-  if (img.src.endsWith(LEGACY_FELT)) return;           // último respaldo
-  if (img.src.endsWith(DEFAULT_FELT)) { img.src = LEGACY_FELT; return; }
+  if (img.src.endsWith(DEFAULT_FELT)) return; // ya estamos en el respaldo
   img.src = DEFAULT_FELT;
 }
 // El crupier reparte desde la bandeja de fichas, borde superior-central del fieltro.
@@ -239,6 +238,21 @@ export function PokerScreen() {
       }, 800 + Math.random() * 650);
       return () => clearTimeout(t);
     }
+  }, [game, dealing]);
+
+  // Turno del humano: si no actúa a tiempo, se auto-resuelve (check o fold)
+  // para que la mesa no se quede congelada esperándolo.
+  useEffect(() => {
+    if (!game || game.handOver || dealing) return;
+    if (game.players[game.toAct].id !== 'you') return;
+    const t = setTimeout(() => {
+      setGame((g) => {
+        if (!g || g.handOver || g.players[g.toAct].id !== 'you') return g;
+        const a = legalActions(g);
+        return applyAction(g, a.canCheck ? { type: 'check' } : { type: 'fold' });
+      });
+    }, TURN_SECONDS * 1000);
+    return () => clearTimeout(t);
   }, [game, dealing]);
 
   // Reparto: al iniciar cada mano, el crupier (arriba-centro) reparte cada
@@ -1232,7 +1246,7 @@ function TimerRing() {
   return (
     <svg width={62} height={62} viewBox="0 0 92 92" style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%) rotate(-90deg)', pointerEvents: 'none' }}>
       <circle cx="46" cy="46" r="42" fill="none" stroke="rgba(255,255,255,.1)" strokeWidth="3" />
-      <circle cx="46" cy="46" r="42" fill="none" stroke="#ecd9a5" strokeWidth="3" strokeLinecap="round" strokeDasharray="264" style={{ animation: 'domTimer 18s linear infinite' }} />
+      <circle cx="46" cy="46" r="42" fill="none" stroke="#ecd9a5" strokeWidth="3" strokeLinecap="round" strokeDasharray="264" style={{ animation: `domTimer ${TURN_SECONDS}s linear forwards` }} />
     </svg>
   );
 }
