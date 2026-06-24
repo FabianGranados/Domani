@@ -12,6 +12,7 @@ import {
   STAKE_LADDER, tablesForHouse, seatedCount,
   type PokerTable, type StakeTierId,
 } from '../lib/pokerTables';
+import { Carousel } from '../components/Carousel';
 
 // Stakes por defecto (sin mesa elegida): nivel "Media" de la escalera.
 const DEFAULT_TIER = STAKE_LADDER.find((t) => t.id === 'media')!;
@@ -51,6 +52,13 @@ const POT_X = 50, POT_Y = 58; // centro del bote sobre el fieltro
 // pueden verse distinto, pero la misma mesa siempre se ve igual).
 const DEFAULT_FELT = '/assets/tables/basica.webp';
 const TURN_SECONDS = 20; // tiempo del turno del humano antes de auto check/fold
+// Imágenes de cada Casa (ciudad) para la galería de casinos del lobby.
+const HOUSE_IMG: Record<string, string> = {
+  bacata: '/assets/casa-bacata.webp', empire: '/assets/casa-empire.webp',
+  plata: '/assets/casa-plata.webp', morro: '/assets/casa-morro.webp',
+  roma: '/assets/casa-roma.webp', osaka: '/assets/casa-osaka.webp',
+  aztlan: '/assets/casa-aztlan.webp',
+};
 // Familias de fieltro por nivel: nombre base + nº de variantes (1 = sin sufijo).
 const FELT_FAMILY: Record<StakeTierId, { base: string; count: number }> = {
   micro: { base: 'basica', count: 1 },
@@ -986,32 +994,35 @@ function PokerLobby({ houses, wallet, lobbyHouse, setLobbyHouse, busy, error, on
             <span className="aurelios">⟡ {wallet?.toLocaleString() ?? '—'}</span>
           </p>
           {houses.length === 0 && <p className="muted">Cargando casinos…</p>}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14, marginTop: 18 }}>
-            {houses.map((h) => {
-              const c = h.color_primary ?? '#c9a35b';
-              return (
-                <button key={h.id} onClick={() => setLobbyHouse(h)}
-                  style={{
-                    textAlign: 'left', cursor: 'pointer', padding: '18px 18px 16px', borderRadius: 16,
-                    background: `linear-gradient(160deg, ${c}1f, rgba(255,255,255,.015))`,
-                    border: `1px solid ${c}66`, boxShadow: `0 18px 40px -26px ${c}, inset 0 0 0 1px rgba(255,255,255,.02)`,
-                    color: '#ece6d6', display: 'flex', flexDirection: 'column', gap: 10,
+          <div style={{ marginTop: 20 }}>
+            <Carousel>
+              {houses.map((h) => {
+                const c = h.color_primary ?? '#c9a35b';
+                return (
+                  <div key={h.id} style={{
+                    position: 'relative', flex: '0 0 auto', scrollSnapAlign: 'start',
+                    width: 'clamp(190px, 64vw, 230px)', aspectRatio: '3 / 4',
+                    borderRadius: 16, overflow: 'hidden', display: 'flex',
+                    border: `1px solid ${c}55`, boxShadow: '0 16px 40px -22px rgba(0,0,0,.85)',
                   }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 46, height: 46, borderRadius: 13, flex: '0 0 auto', display: 'grid', placeItems: 'center', fontFamily: 'Marcellus,serif', fontSize: 22, color: '#fff', background: `linear-gradient(160deg, ${c}, ${c}99)`, boxShadow: `0 0 16px -2px ${c}` }}>{shortName(h).charAt(0)}</div>
-                    <div>
-                      <div style={{ fontFamily: 'Marcellus,serif', fontSize: 19 }}>{shortName(h)}</div>
-                      <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.5)' }}>{h.city}</div>
+                    <div style={{ position: 'absolute', inset: 0, backgroundImage: `url('${HOUSE_IMG[h.code] ?? ''}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c' }} />
+                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.05) 0%, rgba(8,8,10,.5) 50%, rgba(8,8,10,.97) 100%)' }} />
+                    <div style={{ position: 'relative', zIndex: 1, marginTop: 'auto', padding: 16, width: '100%' }}>
+                      <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' }}>{h.city}</div>
+                      <div style={{ fontFamily: 'Marcellus,serif', fontSize: 21, color: '#f3eddd', margin: '2px 0 4px' }}>{shortName(h)}</div>
+                      {h.motto && <div style={{ fontSize: 11, fontStyle: 'italic', color: 'rgba(232,226,212,.62)', lineHeight: 1.4, marginBottom: 11, fontFamily: "'Cormorant Garamond',serif", display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>“{h.motto}”</div>}
+                      <button onClick={() => setLobbyHouse(h)} style={{
+                        display: 'block', width: '100%', padding: '11px', borderRadius: 11, border: 'none', cursor: 'pointer',
+                        fontWeight: 700, fontSize: 13.5, color: '#2c2415', fontFamily: "'Hanken Grotesk',sans-serif",
+                        background: 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)', boxShadow: '0 12px 26px -14px rgba(201,163,91,.6)',
+                      }}>
+                        Entrar al salón
+                      </button>
                     </div>
                   </div>
-                  {h.motto && <div style={{ fontSize: 12, fontStyle: 'italic', color: 'rgba(232,226,212,.6)', lineHeight: 1.45, fontFamily: "'Cormorant Garamond',serif" }}>“{h.motto}”</div>}
-                  <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <span style={{ fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', color: c }}>Ver mesas</span>
-                    <span style={{ color: c, fontSize: 18 }}>›</span>
-                  </div>
-                </button>
-              );
-            })}
+                );
+              })}
+            </Carousel>
           </div>
         </div>
       </div>
