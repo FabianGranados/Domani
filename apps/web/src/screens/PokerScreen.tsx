@@ -39,6 +39,8 @@ const POS: SeatPos[] = [
 ];
 const RINGS = ['#5fc795', ...BOTS.map((b) => b.ring)];
 const POT_X = 50, POT_Y = 63; // centro del bote sobre el fieltro
+// El crupier reparte desde el borde superior-central del fieltro (no es el botón "D").
+const DEALER_X = 50, DEALER_Y = 6;
 
 // Mesas que llegarán (teaser dentro del menú de mesa). Por ahora no jugables.
 const FUTURE_TABLES: { flag: string; name: string; sub: string }[] = [
@@ -72,6 +74,19 @@ function useIsPortrait() {
 
 interface HistItem { n: number; title: string; sub: string; delta: number; youWon: boolean }
 
+// Carta animada (reparto crupier->asiento o descarte asiento->crupier).
+interface FlyingCard {
+  id: string;
+  fromX: number; fromY: number;  // % del stage
+  toX: number; toY: number;      // % del stage
+  delay: number;                 // ms antes de arrancar
+  flight: number;                // ms de vuelo
+  face: Card | null;             // null = boca abajo todo el vuelo
+  flip?: boolean;                // anima un volteo (rotateY) al final
+  flipReverse?: boolean;         // voltea de cara->dorso (descarte del héroe)
+  ci?: number;
+}
+
 export function PokerScreen() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
@@ -90,6 +105,11 @@ export function PokerScreen() {
   const [railOpen, setRailOpen] = useState(true);
   const [dealing, setDealing] = useState(false);
   const [handKey, setHandKey] = useState(0);
+  // Cartas volando: reparto (crupier -> asiento) y descarte/fold (asiento -> crupier).
+  const [dealCards, setDealCards] = useState<FlyingCard[]>([]);
+  const [muckCards, setMuckCards] = useState<FlyingCard[]>([]);
+  const foldedRef = useRef<boolean[]>([]);
+  const muckSeqRef = useRef(0);
   const isMobile = useIsMobile();
   const isPortrait = useIsPortrait();
   const cashedRef = useRef(false);
@@ -154,7 +174,7 @@ export function PokerScreen() {
 
   // Bots juegan en automático
   useEffect(() => {
-    if (!game || game.handOver) return;
+    if (!game || game.handOver || dealing) return;
     const cur = game.players[game.toAct];
     if (cur.isBot && !cur.folded && !cur.allIn) {
       const t = setTimeout(() => {
@@ -162,15 +182,93 @@ export function PokerScreen() {
       }, 800 + Math.random() * 650);
       return () => clearTimeout(t);
     }
-  }, [game]);
+  }, [game, dealing]);
 
-  // Reparto: al iniciar cada mano, animar las cartas un instante
+  // Reparto: al iniciar cada mano, el crupier (arriba-centro) reparte cada
+  // carta hacia su asiento, en orden real (CP primero, en sentido horario,
+  // y luego una segunda vuelta). Las del héroe se voltean boca arriba al caer.
   useEffect(() => {
-    if (handKey === 0) return;
+    if (handKey === 0 || !game) return;
+    // Reinicia el seguimiento de folds para la nueva mano (los sin fichas ya van folded).
+    foldedRef.current = game.players.map((p) => p.folded);
+    setMuckCards([]);
+
+    const reduce = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const np = game.players.length;
+    // Orden de reparto desde el dealer+1 (ciega pequeña), solo jugadores activos.
+    const order: number[] = [];
+    for (let k = 1; k <= np; k++) {
+      const idx = (game.dealer + k) % np;
+      if (!game.players[idx].folded) order.push(idx);
+    }
+    const STEP = reduce ? 0 : 60;        // ms entre cartas
+    const FLIGHT = reduce ? 0 : 420;     // duración del vuelo
+    const FLIP = reduce ? 0 : 460;       // duración del volteo del héroe
+    const cards: FlyingCard[] = [];
+    let n = 0;
+    for (let ci = 0; ci < 2; ci++) {
+      for (const idx of order) {
+        const isHero = idx === 0;
+        cards.push({
+          id: `deal-${handKey}-${idx}-${ci}`,
+          fromX: DEALER_X, fromY: DEALER_Y,
+          toX: POS[idx].x, toY: POS[idx].y,
+          delay: n * STEP,
+          flight: FLIGHT,
+          face: isHero && game.players[0].hole[ci] ? game.players[0].hole[ci] : null,
+          flip: isHero,
+          ci,
+        });
+        n += 1;
+      }
+    }
     setDealing(true);
-    const t = setTimeout(() => setDealing(false), 1300);
-    return () => clearTimeout(t);
-  }, [handKey]);
+    setDealCards(cards);
+    const total = (n > 0 ? (n - 1) * STEP : 0) + FLIGHT + FLIP + 80;
+    const tDone = setTimeout(() => setDealing(false), total);
+    const tClear = setTimeout(() => setDealCards([]), total + 60);
+    return () => { clearTimeout(tDone); clearTimeout(tClear); };
+  }, [handKey]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Descarte (muck): cuando alguien se retira, sus 2 cartas vuelan al crupier y
+  // se desvanecen. Detectamos la transición folded false->true por asiento.
+  useEffect(() => {
+    if (!game) return;
+    const prev = foldedRef.current;
+    const reduce = typeof window !== 'undefined'
+      && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const added: FlyingCard[] = [];
+    game.players.forEach((p, idx) => {
+      const wasFolded = prev[idx] ?? false;
+      if (p.folded && !wasFolded) {
+        // No animar los que arrancan sin fichas (ya folded al repartir).
+        const seq = muckSeqRef.current++;
+        const isHero = idx === 0;
+        for (let ci = 0; ci < 2; ci++) {
+          added.push({
+            id: `muck-${seq}-${idx}-${ci}`,
+            fromX: POS[idx].x, fromY: POS[idx].y,
+            toX: DEALER_X, toY: DEALER_Y,
+            delay: ci * (reduce ? 0 : 70),
+            flight: reduce ? 0 : 480,
+            face: isHero && p.hole[ci] ? p.hole[ci] : null,
+            flip: isHero,        // héroe voltea boca abajo al irse
+            flipReverse: isHero, // (de cara a dorso)
+            ci,
+          });
+        }
+      }
+    });
+    foldedRef.current = game.players.map((p) => p.folded);
+    if (added.length) {
+      setMuckCards((m) => [...m, ...added]);
+      const total = (reduce ? 0 : 70) + (reduce ? 0 : 480) + 120;
+      const ids = new Set(added.map((c) => c.id));
+      const t = setTimeout(() => setMuckCards((m) => m.filter((c) => !ids.has(c.id))), total);
+      return () => clearTimeout(t);
+    }
+  }, [game]);
 
   // Mantener la pantalla encendida mientras juegas (como un video).
   // Screen Wake Lock API; se re-adquiere al volver a la pestaña.
@@ -270,20 +368,36 @@ export function PokerScreen() {
   const rAmt = Math.min(maxR, Math.max(minR, raiseAmt));
   const setPreset = (frac: number) => setRaiseAmt(Math.min(maxR, Math.max(minR, Math.round(game.currentBet + (game.pot + (la?.callAmount ?? 0)) * frac))));
 
-  // Animación de reparto: cada carta "sale" del centro hacia su asiento,
-  // escalonada en el orden de reparto (a partir de la ciega pequeña).
-  const nPlayers = game.players.length;
-  function dealStyle(idx: number, ci: number): React.CSSProperties | undefined {
-    if (!dealing) return undefined;
-    const orderPos = (idx - game!.dealer - 1 + nPlayers) % nPlayers;
-    const delay = (ci * nPlayers + orderPos) * 55;
-    const dx = (POT_X - POS[idx].x) * 1.4;
-    const dy = (POT_Y - POS[idx].y) * 1.4;
-    return { display: 'inline-block', animation: `domDeal .3s ease both ${delay}ms`, ['--dx' as string]: `${dx}px`, ['--dy' as string]: `${dy}px` } as React.CSSProperties;
+  // Durante el reparto, las cartas "estáticas" del asiento se ocultan: el
+  // movimiento real lo hace la capa de cartas volando (dealCards). Cuando el
+  // reparto termina, aparecen normalmente (rivales = dorso, héroe = cara).
+  const holeCardStyle: React.CSSProperties | undefined = dealing ? { opacity: 0 } : undefined;
+
+  // Capa de cartas volando (reparto + descarte), reutilizable en ambos
+  // escenarios (móvil y escritorio). El stage es position:relative, así que
+  // los % de left/top mapean igual que POS.
+  function renderTableExtras(deckSize: number, cardW: number) {
+    return (
+      <>
+        {/* mazo del crupier (arriba-centro) — sutil, presente toda la mano */}
+        <DealerDeck size={deckSize} />
+        {/* cartas volando: reparto */}
+        {dealCards.map((c) => <FlyCard key={c.id} c={c} w={cardW} />)}
+        {/* cartas volando: descarte al muck */}
+        {muckCards.map((c) => <FlyCard key={c.id} c={c} w={cardW} fade />)}
+      </>
+    );
   }
 
   // Controles (compartidos entre escritorio y móvil)
   function renderControls() {
+    if (dealing) {
+      return (
+        <div style={{ textAlign: 'center', width: '100%', color: 'rgba(232,226,212,.55)', fontSize: 14, fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic', letterSpacing: '.04em' }}>
+          Repartiendo…
+        </div>
+      );
+    }
     if (game!.handOver) {
       return (
         <div style={{ textAlign: 'center', width: '100%' }}>
@@ -500,6 +614,9 @@ export function PokerScreen() {
             {/* fichas volando al ganador */}
             {fly && <FlyChips key={fly.key} toX={fly.x} toY={fly.y} fromX={fly.fromX} fromY={fly.fromY} amount={fly.amount} />}
 
+            {/* mazo del crupier + cartas volando (reparto / descarte) */}
+            {renderTableExtras(14, 20)}
+
             {/* asientos rivales (1..8) */}
             {game.players.map((p, idx) => {
               if (idx === 0) return null;
@@ -512,8 +629,8 @@ export function PokerScreen() {
                   {p.hole.length > 0 && (
                     <div style={{ display: 'flex', justifyContent: 'center', gap: -7, marginBottom: -6, position: 'relative', zIndex: 1 }}>
                       {showCards
-                        ? p.hole.map((c, i) => <span key={i} style={dealStyle(idx, i)}><CardFace c={c} w={22} tilt={i === 0 ? -8 : 8} /></span>)
-                        : p.hole.map((_, i) => <span key={i} style={dealStyle(idx, i)}><CardBack w={18} tilt={i === 0 ? -8 : 8} /></span>)}
+                        ? p.hole.map((c, i) => <span key={i} style={holeCardStyle}><CardFace c={c} w={22} tilt={i === 0 ? -8 : 8} /></span>)
+                        : p.hole.map((_, i) => <span key={i} style={holeCardStyle}><CardBack w={18} tilt={i === 0 ? -8 : 8} /></span>)}
                     </div>
                   )}
                   <div style={{ position: 'relative', width: 40, height: 40, margin: '0 auto', zIndex: 2 }}>
@@ -543,7 +660,7 @@ export function PokerScreen() {
             {/* héroe: solo cartas, abajo-centro (sin círculo) + botón dealer */}
             <div style={{ position: 'absolute', left: `${POS[0].x}%`, top: `${POS[0].y}%`, transform: 'translate(-50%,-50%)', zIndex: 5, textAlign: 'center' }}>
               <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
-                {you.hole.map((c, i) => <span key={i} style={dealStyle(0, i)}><CardFace c={c} w={48} tilt={i === 0 ? -5 : 5} /></span>)}
+                {you.hole.map((c, i) => <span key={i} style={holeCardStyle}><CardFace c={c} w={48} tilt={i === 0 ? -5 : 5} /></span>)}
               </div>
               {game.dealer === 0 && <span style={{ ...dealerBtn, position: 'static', display: 'inline-grid', marginTop: 4, width: 16, height: 16, fontSize: 8.5 }}>D</span>}
             </div>
@@ -570,7 +687,11 @@ export function PokerScreen() {
 
           {/* zona central: temporizador + sizing (o estado) */}
           <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 10, overflow: 'hidden' }}>
-            {game.handOver ? (
+            {dealing ? (
+              <div style={{ textAlign: 'center', color: 'rgba(232,226,212,.55)', fontStyle: 'italic', fontFamily: "'Cormorant Garamond',serif", fontSize: 16, letterSpacing: '.04em' }}>
+                Repartiendo…
+              </div>
+            ) : game.handOver ? (
               <div style={{ textAlign: 'center', color: '#ecd9a5', fontFamily: "'Cormorant Garamond',serif", fontSize: 17, lineHeight: 1.3 }}>
                 {game.winners.some((w) => w.id === 'you')
                   ? `Te llevas el bote +⟡${game.winners.find((w) => w.id === 'you')!.amount.toLocaleString()}`
@@ -606,8 +727,8 @@ export function PokerScreen() {
             )}
           </div>
 
-          {/* acciones (siempre visibles abajo) */}
-          {!game.handOver && yourTurn && la ? (
+          {/* acciones (siempre visibles abajo; ocultas durante el reparto) */}
+          {!dealing && !game.handOver && yourTurn && la ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flexShrink: 0 }}>
               {la.canRaise && (
                 <button onClick={() => setGame(applyAction(game!, { type: 'raise', to: rAmt }))} style={{ ...actRaise, padding: '14px 8px' }}>
@@ -696,6 +817,9 @@ export function PokerScreen() {
           {/* fichas volando al ganador */}
           {fly && <FlyChips key={fly.key} toX={fly.x} toY={fly.y} fromX={fly.fromX} fromY={fly.fromY} amount={fly.amount} />}
 
+          {/* mazo del crupier + cartas volando (reparto / descarte) */}
+          {renderTableExtras(17, 30)}
+
           {/* asientos */}
           {game.players.map((p, idx) => {
             const pos = POS[idx];
@@ -707,7 +831,7 @@ export function PokerScreen() {
               <div key={p.id} style={{ position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%,-50%)', width: 100, textAlign: 'center', opacity: p.folded ? 0.4 : 1, zIndex: 4 }}>
                 {/* cartas */}
                 {p.hole.length > 0 && (
-                  <div style={{ display: 'flex', justifyContent: 'center', gap: me ? 6 : -10, marginBottom: -8, position: 'relative', zIndex: 1 }}>
+                  <div style={{ display: 'flex', justifyContent: 'center', gap: me ? 6 : -10, marginBottom: -8, position: 'relative', zIndex: 1, ...holeCardStyle }}>
                     {showCards
                       ? p.hole.map((c, i) => <CardFace key={i} c={c} w={me ? 46 : 30} tilt={me ? (i === 0 ? -5 : 5) : (i === 0 ? -8 : 8)} />)
                       : p.hole.map((_, i) => <CardBack key={i} tilt={i === 0 ? -8 : 8} />)}
@@ -825,6 +949,71 @@ function FlyChips({ toX, toY, fromX, fromY, amount }: { toX: number; toY: number
     }}>
       <ChipStack amount={amount} size={24} />
       <span style={{ fontWeight: 700, fontSize: 13, color: '#ecd9a5', textShadow: '0 0 12px rgba(201,163,91,.6)' }}>+{amount.toLocaleString()}</span>
+    </div>
+  );
+}
+
+// Mazo del crupier: una pila sutil de 3 dorsos apilados arriba-centro.
+function DealerDeck({ size = 16 }: { size?: number }) {
+  const h = Math.round((size * 42) / 30);
+  return (
+    <div style={{ position: 'absolute', left: `${DEALER_X}%`, top: `${DEALER_Y}%`, transform: 'translate(-50%,-50%)', zIndex: 1, pointerEvents: 'none', width: size + 6, height: h + 6 }}>
+      {[0, 1, 2].map((i) => (
+        <div key={i} style={{ position: 'absolute', left: i * 1.6, top: -i * 1.6, opacity: 0.9 }}>
+          <CardBack w={size} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// Carta volando (reparto o descarte). Usa transiciones de left/top en % para
+// que la trayectoria sea exacta a cualquier tamaño de pantalla (como FlyChips).
+function FlyCard({ c, w, fade }: { c: FlyingCard; w: number; fade?: boolean }) {
+  const [go, setGo] = useState(false);
+  useEffect(() => {
+    const r = requestAnimationFrame(() => requestAnimationFrame(() => setGo(true)));
+    return () => cancelAnimationFrame(r);
+  }, []);
+  const easing = 'cubic-bezier(.4,0,.2,1)';
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: `${go ? c.toX : c.fromX}%`,
+        top: `${go ? c.toY : c.fromY}%`,
+        transform: 'translate(-50%,-50%)',
+        zIndex: 7, pointerEvents: 'none',
+        transition: `left ${c.flight}ms ${easing} ${c.delay}ms, top ${c.flight}ms ${easing} ${c.delay}ms, opacity ${c.flight}ms ease ${c.delay}ms`,
+        opacity: fade ? (go ? 0 : 0.95) : 1,
+      }}
+    >
+      {c.flip && c.face
+        ? <FlipCard c={c.face} w={w} reverse={!!c.flipReverse} flipped={go} delayMs={c.delay + Math.max(0, c.flight - 140)} />
+        : (c.face ? <CardFace c={c.face} w={w} /> : <CardBack w={Math.round(w * 0.86)} />)}
+    </div>
+  );
+}
+
+// Carta con dos caras para un volteo rotateY real. flipped controla la rotación.
+//  - reparto (reverse=false): dorso (0deg) -> cara (180deg)
+//  - descarte (reverse=true): cara (0deg) -> dorso (180deg)
+function FlipCard({ c, w, reverse, flipped, delayMs }: { c: Card; w: number; reverse: boolean; flipped: boolean; delayMs: number }) {
+  const h = Math.round((w * 76) / 54);
+  const faceA = reverse
+    ? <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', display: 'grid', placeItems: 'center' }}><CardFace c={c} w={w} /></div>
+    : <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', display: 'grid', placeItems: 'center' }}><CardBack w={Math.round(w * 0.86)} /></div>;
+  const faceB = reverse
+    ? <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', display: 'grid', placeItems: 'center' }}><CardBack w={Math.round(w * 0.86)} /></div>
+    : <div style={{ position: 'absolute', inset: 0, backfaceVisibility: 'hidden', transform: 'rotateY(180deg)', display: 'grid', placeItems: 'center' }}><CardFace c={c} w={w} /></div>;
+  return (
+    <div style={{
+      position: 'relative', width: w, height: h, transformStyle: 'preserve-3d',
+      transition: `transform 380ms ease ${delayMs}ms`,
+      transform: flipped ? 'rotateY(180deg)' : 'rotateY(0deg)',
+    }}>
+      {faceA}
+      {faceB}
     </div>
   );
 }
