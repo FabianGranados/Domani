@@ -40,6 +40,13 @@ const POS: SeatPos[] = [
 const RINGS = ['#5fc795', ...BOTS.map((b) => b.ring)];
 const POT_X = 50, POT_Y = 63; // centro del bote sobre el fieltro
 
+// Mesas que llegarán (teaser dentro del menú de mesa). Por ahora no jugables.
+const FUTURE_TABLES: { flag: string; name: string; sub: string }[] = [
+  { flag: '🇯🇵', name: 'Salón de Tokio', sub: 'Ciegas altas · rivales de Japón' },
+  { flag: '🇧🇷', name: 'Mesa de Río', sub: 'Rápida · rivales de Brasil' },
+  { flag: '👑', name: 'Mesa VIP', sub: 'Solo por invitación' },
+];
+
 
 function useIsMobile() {
   const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches);
@@ -80,6 +87,7 @@ export function PokerScreen() {
   const [history, setHistory] = useState<HistItem[]>([]);
   const [fly, setFly] = useState<{ x: number; y: number; fromX: number; fromY: number; amount: number; key: number } | null>(null);
   const [drawer, setDrawer] = useState(false);
+  const [railOpen, setRailOpen] = useState(true);
   const isMobile = useIsMobile();
   const isPortrait = useIsPortrait();
   const cashedRef = useRef(false);
@@ -180,7 +188,8 @@ export function PokerScreen() {
   // ---------- Lobby (buy-in) ----------
   if (phase === 'lobby') {
     return (
-      <div style={{ maxWidth: 460, margin: '0 auto' }}>
+      <div style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 18px', background: 'radial-gradient(120% 80% at 50% 30%, rgba(47,160,106,.10), transparent 60%), linear-gradient(180deg,#0d0e12,#0a0a0d)' }}>
+      <div style={{ maxWidth: 460, width: '100%', margin: '0 auto' }}>
         <div style={{ fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e' }}>El Casino · Mesa</div>
         <h1 className="page-title" style={{ margin: '6px 0 1rem' }}>Texas Hold’em</h1>
         <div className="panel" style={{ borderColor: 'rgba(201,163,91,.35)' }}>
@@ -201,6 +210,7 @@ export function PokerScreen() {
           <button className="btn" onClick={sentarse} disabled={busy} style={{ marginTop: 16 }}>{busy ? 'Sentándote…' : 'Sentarse a la mesa'}</button>
           <button onClick={() => navigate('/casino')} style={{ width: '100%', marginTop: 10, background: 'none', border: 'none', color: 'rgba(232,226,212,.5)', cursor: 'pointer' }}>← Volver al Casino</button>
         </div>
+      </div>
       </div>
     );
   }
@@ -274,6 +284,48 @@ export function PokerScreen() {
       <div style={{ textAlign: 'center', width: '100%', color: 'rgba(232,226,212,.5)', fontSize: 14, fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic' }}>
         {game!.players[game!.toAct].name} está pensando…
       </div>
+    );
+  }
+
+  // Menú de mesa: salir fácil + cambiar de mesa (próximamente). Sin ruido.
+  function renderTableMenu(close: () => void) {
+    return (
+      <>
+        <div style={{ fontSize: 10, letterSpacing: '.28em', textTransform: 'uppercase', color: '#9c7a3e' }}>Mesas</div>
+
+        {/* mesa actual */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 15px', borderRadius: 14, background: 'rgba(47,160,106,.08)', border: '1px solid rgba(47,160,106,.32)' }}>
+          <div style={{ width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', fontFamily: 'Marcellus,serif', fontSize: 18, color: '#eafff4', background: 'linear-gradient(160deg,#2fa06a,#16613f)' }}>{houseName.charAt(0)}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: 'Marcellus,serif', fontSize: 16, color: '#ece6d6' }}>Mesa de {houseName}</div>
+            <div style={{ fontSize: 11, color: 'rgba(232,226,212,.55)' }}>Texas Hold’em · Ciegas {SB}/{BB}</div>
+          </div>
+          <span style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#5fc795', border: '1px solid rgba(47,160,106,.4)', borderRadius: 999, padding: '4px 9px' }}>En juego</span>
+        </div>
+
+        {/* próximamente */}
+        <div style={{ fontSize: 11, color: 'rgba(232,226,212,.4)', marginTop: 2 }}>Muy pronto podrás cambiarte a mesas con rivales de todo el mundo:</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+          {FUTURE_TABLES.map((t) => (
+            <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 15px', borderRadius: 14, background: 'rgba(255,255,255,.02)', border: '1px solid rgba(255,255,255,.06)', opacity: 0.65 }}>
+              <div style={{ width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', fontSize: 20, background: 'rgba(255,255,255,.04)' }}>{t.flag}</div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontFamily: 'Marcellus,serif', fontSize: 16, color: 'rgba(236,230,214,.85)' }}>{t.name}</div>
+                <div style={{ fontSize: 11, color: 'rgba(232,226,212,.4)' }}>{t.sub}</div>
+              </div>
+              <span style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#bfa164', border: '1px solid rgba(201,163,91,.3)', borderRadius: 999, padding: '4px 9px' }}>Pronto</span>
+            </div>
+          ))}
+        </div>
+
+        {/* salir */}
+        <button onClick={() => { close(); levantarse(); }} style={{ marginTop: 6, padding: '15px', borderRadius: 13, border: '1px solid rgba(177,73,99,.4)', background: 'rgba(177,73,99,.12)', color: '#f0c7d0', cursor: 'pointer', fontSize: 15, fontWeight: 600, letterSpacing: '.02em' }}>
+          Salir de la mesa
+        </button>
+        <button onClick={close} style={{ padding: '11px', borderRadius: 11, border: '1px solid rgba(255,255,255,.1)', background: 'none', color: 'rgba(232,226,212,.55)', cursor: 'pointer', fontSize: 13 }}>
+          Volver al juego
+        </button>
+      </>
     );
   }
 
@@ -423,15 +475,19 @@ export function PokerScreen() {
             })}
           </div>
 
-          {/* barra superior flotante: salir · stock · menú */}
-          <div style={{ position: 'absolute', top: 8, left: 10, right: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 6, pointerEvents: 'none' }}>
-            <button onClick={levantarse} style={{ ...circleBtn, width: 30, height: 30, fontSize: 16, background: 'rgba(8,8,10,.7)', backdropFilter: 'blur(4px)', cursor: 'pointer', pointerEvents: 'auto' }}>‹</button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, pointerEvents: 'auto' }}>
-              <div style={{ ...chipPill, padding: '6px 13px', background: 'rgba(8,8,10,.7)', backdropFilter: 'blur(4px)' }}>
-                <Chip kind="gold" size={16} />
-                <span style={{ fontWeight: 700, fontSize: 14, color: '#ecd9a5' }}>{you.stack.toLocaleString()}</span>
+          {/* barra superior flotante: salir (claro) · stock · menú de mesa */}
+          <div style={{ position: 'absolute', top: 10, left: 12, right: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 6, pointerEvents: 'none' }}>
+            <button onClick={levantarse} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 15px 8px 11px', borderRadius: 999, border: '1px solid rgba(255,255,255,.16)', background: 'rgba(8,8,10,.72)', backdropFilter: 'blur(6px)', color: '#ece6d6', fontSize: 13, fontWeight: 500, cursor: 'pointer', pointerEvents: 'auto', boxShadow: '0 6px 18px -8px rgba(0,0,0,.8)' }}>
+              <span style={{ fontSize: 17, lineHeight: 0, marginTop: -1 }}>‹</span> Salir
+            </button>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, pointerEvents: 'auto' }}>
+              <div style={{ ...chipPill, padding: '7px 15px', background: 'rgba(8,8,10,.72)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px -8px rgba(0,0,0,.8)' }}>
+                <Chip kind="gold" size={17} />
+                <span style={{ fontWeight: 700, fontSize: 15, color: '#ecd9a5' }}>{you.stack.toLocaleString()}</span>
               </div>
-              <button onClick={() => setDrawer(true)} style={{ ...circleBtn, width: 30, height: 30, fontSize: 14, background: 'rgba(8,8,10,.7)', backdropFilter: 'blur(4px)', cursor: 'pointer' }}>☰</button>
+              <button onClick={() => setDrawer(true)} aria-label="Menú de mesa" style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid rgba(201,163,91,.45)', background: 'rgba(8,8,10,.72)', backdropFilter: 'blur(6px)', cursor: 'pointer', display: 'grid', placeItems: 'center', gap: 3, boxShadow: '0 6px 18px -8px rgba(0,0,0,.8)' }}>
+                <span style={{ display: 'block', width: 16, height: 1.6, background: '#ecd9a5', borderRadius: 2, boxShadow: '0 5px 0 #ecd9a5, 0 -5px 0 #ecd9a5' }} />
+              </button>
             </div>
           </div>
         </div>
@@ -441,13 +497,12 @@ export function PokerScreen() {
           {renderControls()}
         </div>
 
-        {/* panel inferior desplegable: perfil + historial */}
+        {/* menú de mesa desplegable: salir · cambiar de mesa (próximamente) */}
         {drawer && (
           <div onClick={() => setDrawer(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.55)', backdropFilter: 'blur(2px)', zIndex: 50, display: 'flex', alignItems: 'flex-end' }}>
-            <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxHeight: '82%', background: 'linear-gradient(180deg,#13141d,#0b0b10)', borderTop: '1px solid rgba(201,163,91,.22)', borderRadius: '18px 18px 0 0', padding: '10px 18px 20px', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', animation: 'domSheetUp .28s cubic-bezier(.3,1,.4,1) both' }}>
-              <div style={{ width: 38, height: 4, borderRadius: 2, background: 'rgba(255,255,255,.18)', margin: '0 auto 4px', flexShrink: 0 }} />
-              {renderPanel()}
-              <button onClick={() => setDrawer(false)} style={{ marginTop: 4, padding: '11px', borderRadius: 11, border: '1px solid rgba(255,255,255,.12)', background: 'rgba(255,255,255,.04)', color: 'rgba(232,226,212,.7)', cursor: 'pointer', fontSize: 13, flexShrink: 0 }}>Cerrar</button>
+            <div onClick={(e) => e.stopPropagation()} style={{ width: '100%', maxHeight: '86%', background: 'linear-gradient(180deg,#13141d,#0b0b10)', borderTop: '1px solid rgba(201,163,91,.22)', borderRadius: '18px 18px 0 0', padding: '10px 18px calc(20px + env(safe-area-inset-bottom))', display: 'flex', flexDirection: 'column', gap: 14, overflowY: 'auto', animation: 'domSheetUp .28s cubic-bezier(.3,1,.4,1) both' }}>
+              <div style={{ width: 38, height: 4, borderRadius: 2, background: 'rgba(255,255,255,.18)', margin: '0 auto 2px', flexShrink: 0 }} />
+              {renderTableMenu(() => setDrawer(false))}
             </div>
           </div>
         )}
@@ -471,9 +526,15 @@ export function PokerScreen() {
           </div>
           <div style={{ fontSize: 11, color: 'rgba(232,226,212,.45)', borderLeft: '1px solid rgba(255,255,255,.1)', paddingLeft: 13 }}>Ciegas {SB} / {BB}</div>
         </div>
-        <div style={chipPill}>
-          <Chip kind="gold" size={18} />
-          <span style={{ fontWeight: 600, fontSize: 14, color: '#ecd9a5' }}>{you.stack.toLocaleString()}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={chipPill}>
+            <Chip kind="gold" size={18} />
+            <span style={{ fontWeight: 600, fontSize: 14, color: '#ecd9a5' }}>{you.stack.toLocaleString()}</span>
+          </div>
+          <button onClick={() => setRailOpen((v) => !v)} title={railOpen ? 'Ocultar panel' : 'Mostrar panel'}
+            style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '8px 13px', borderRadius: 999, border: '1px solid rgba(255,255,255,.12)', background: railOpen ? 'rgba(255,255,255,.04)' : 'rgba(201,163,91,.1)', color: 'rgba(232,226,212,.7)', cursor: 'pointer', fontSize: 12 }}>
+            {railOpen ? 'Ocultar panel' : 'Mostrar panel'}
+          </button>
         </div>
       </div>
 
@@ -558,8 +619,8 @@ export function PokerScreen() {
           })}
         </div>
 
-        {/* --- PANEL DERECHO --- */}
-        <div style={rail}>{renderPanel()}</div>
+        {/* --- PANEL DERECHO (ocultable) --- */}
+        {railOpen && <div style={rail}>{renderPanel()}</div>}
       </div>
 
       {/* ===== Controles ===== */}
