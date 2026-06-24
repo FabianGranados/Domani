@@ -10,7 +10,7 @@ import {
 import type { House } from '../lib/types';
 import {
   STAKE_LADDER, tablesForHouse, seatedCount,
-  type PokerTable,
+  type PokerTable, type StakeTierId,
 } from '../lib/pokerTables';
 
 // Stakes por defecto (sin mesa elegida): nivel "Media" de la escalera.
@@ -33,31 +33,54 @@ const BOTS: { name: string; ring: string; style: Player['style'] }[] = [
 // {x,y} = avatar sobre el riel; {bx,by} = fichas apostadas sobre el fieltro.
 interface SeatPos { x: number; y: number; bx: number; by: number }
 const POS: SeatPos[] = [
-  { x: 50, y: 90, bx: 50, by: 70 }, // tú
-  { x: 17, y: 77, bx: 28, by: 64 }, // Dunia
-  { x: 7, y: 47, bx: 18, by: 48 },  // Severo
-  { x: 15, y: 15, bx: 25, by: 29 }, // Mira
-  { x: 36, y: 9, bx: 41, by: 22 },  // Tobías
-  { x: 64, y: 9, bx: 59, by: 22 },  // Kenji
-  { x: 85, y: 15, bx: 75, by: 29 }, // Vael
-  { x: 93, y: 47, bx: 82, by: 48 }, // Lucía
-  { x: 83, y: 77, bx: 72, by: 64 }, // Bruno
+  { x: 50, y: 89, bx: 50, by: 73 }, // tú
+  { x: 20, y: 80, bx: 33, by: 68 }, // Dunia
+  { x: 8, y: 49, bx: 26, by: 50 },  // Severo
+  { x: 18, y: 18, bx: 31, by: 32 }, // Mira
+  { x: 33, y: 14, bx: 40, by: 30 }, // Tobías
+  { x: 67, y: 14, bx: 60, by: 30 }, // Kenji
+  { x: 82, y: 18, bx: 69, by: 32 }, // Vael
+  { x: 92, y: 49, bx: 74, by: 50 }, // Lucía
+  { x: 80, y: 80, bx: 67, by: 68 }, // Bruno
 ];
 const RINGS = ['#5fc795', ...BOTS.map((b) => b.ring)];
-const POT_X = 50, POT_Y = 63; // centro del bote sobre el fieltro
-// Paño de mesa por Casa: /assets/tables/<código>.webp. Si aún no existe ese
-// archivo, el <img> hace fallback (onError) al paño por defecto, así que una
-// Casa nueva "funciona" con solo soltar su <código>.webp en esa carpeta.
-const DEFAULT_FELT = '/assets/poker-table.webp';
-const feltSrc = (code?: string) => (code ? `/assets/tables/${code}.webp` : DEFAULT_FELT);
-// onError que cambia al paño por defecto una sola vez (evita bucle infinito).
+const POT_X = 50, POT_Y = 58; // centro del bote sobre el fieltro
+// Paño de mesa por NIVEL de la mesa (no por Casa). Cada nivel tiene su familia
+// de fieltros (4:3, óvalo cenital), y dentro de la familia se elige una
+// variante ESTABLE derivada del id de la mesa (mismo nivel => mesas distintas
+// pueden verse distinto, pero la misma mesa siempre se ve igual).
+const DEFAULT_FELT = '/assets/tables/basica.webp';
+const LEGACY_FELT = '/assets/poker-table.webp';
+// Familias de fieltro por nivel: nombre base + nº de variantes (1 = sin sufijo).
+const FELT_FAMILY: Record<StakeTierId, { base: string; count: number }> = {
+  micro: { base: 'basica', count: 1 },
+  baja: { base: 'medio', count: 3 },
+  media: { base: 'medio-sup', count: 3 },
+  alta: { base: 'premium', count: 7 },
+};
+// Hash determinista (mismo esquema que seatedCount) para elegir variante estable.
+function feltHash(key: string): number {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return h;
+}
+// Resuelve la ruta del fieltro a partir del nivel de la mesa + su id (variante).
+function feltForTable(table: PokerTable | null): string {
+  if (!table) return DEFAULT_FELT;
+  const fam = FELT_FAMILY[table.tier.id] ?? FELT_FAMILY.micro;
+  if (fam.count <= 1) return `/assets/tables/${fam.base}.webp`;
+  const variant = 1 + (feltHash(table.id) % fam.count);
+  return `/assets/tables/${fam.base}-${variant}.webp`;
+}
+// onError encadenado: fieltro elegido -> basica -> paño antiguo (sin bucle).
 function feltOnError(e: React.SyntheticEvent<HTMLImageElement>) {
   const img = e.currentTarget;
-  if (img.src.endsWith(DEFAULT_FELT)) return; // ya estamos en el respaldo
+  if (img.src.endsWith(LEGACY_FELT)) return;           // último respaldo
+  if (img.src.endsWith(DEFAULT_FELT)) { img.src = LEGACY_FELT; return; }
   img.src = DEFAULT_FELT;
 }
-// El crupier reparte desde el borde superior-central del fieltro (no es el botón "D").
-const DEALER_X = 50, DEALER_Y = 6;
+// El crupier reparte desde la bandeja de fichas, borde superior-central del fieltro.
+const DEALER_X = 50, DEALER_Y = 16;
 
 // Mesas que llegarán (teaser dentro del menú de mesa). Por ahora no jugables.
 const FUTURE_TABLES: { flag: string; name: string; sub: string }[] = [
@@ -116,8 +139,9 @@ export function PokerScreen() {
   const [houseName, setHouseName] = useState('Bacatá');
   // Casa elegida en el lobby: define el paño de la mesa (por código) y el
   // acento de color en juego. undefined => paño por defecto.
-  const [houseCode, setHouseCode] = useState<string | undefined>(undefined);
   const [houseColor, setHouseColor] = useState<string | undefined>(undefined);
+  // Fieltro de la mesa, elegido por nivel + variante estable al sentarse.
+  const [feltPath, setFeltPath] = useState<string>(DEFAULT_FELT);
   // Lobby: lista de Casas (DB) y Casa seleccionada (null = ver casinos).
   const [houses, setHouses] = useState<House[]>([]);
   const [lobbyHouse, setLobbyHouse] = useState<House | null>(null);
@@ -160,8 +184,8 @@ export function PokerScreen() {
       setWallet(bal);
       setTable(t);
       setHouseName(house.name.replace(/^Casa /, ''));
-      setHouseCode(house.code);
       setHouseColor(house.color_primary ?? undefined);
+      setFeltPath(feltForTable(t));
       const players: Player[] = [
         { id: 'you', name: profile?.alias ?? 'Tú', isBot: false, style: 'normal', stack, bet: 0, hole: [], folded: false, allIn: false, acted: false },
         ...BOTS.map((b) => ({ id: b.name, name: b.name, isBot: true, style: b.style, stack, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false })),
@@ -605,11 +629,11 @@ export function PokerScreen() {
         <div style={{ flex: 1, position: 'relative', minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 4px' }}>
           {/* width:100% + aspect-ratio + max-height mantiene la proporción
               de la mesa (asientos alineados) en cualquier tamaño */}
-          <div style={{ position: 'relative', width: '100%', aspectRatio: '1040 / 640', maxHeight: '100%' }}>
-            <PokerTableFelt code={houseCode} color={houseColor} />
+          <div style={{ position: 'relative', width: '100%', aspectRatio: '1448 / 1086', maxHeight: '100%' }}>
+            <PokerTableFelt src={feltPath} color={houseColor} />
 
             {/* cartas comunitarias */}
-            <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', display: 'flex', gap: 5, zIndex: 2 }}>
+            <div style={{ position: 'absolute', left: '50%', top: '47%', transform: 'translate(-50%,-50%)', display: 'flex', gap: 5, zIndex: 2 }}>
               {[0, 1, 2, 3, 4].map((i) => (game.board[i] ? <CardFace key={i} c={game.board[i]} w={40} /> : <CardSlot key={i} w={40} />))}
             </div>
 
@@ -809,10 +833,10 @@ export function PokerScreen() {
         {/* --- ESCENARIO --- */}
         <div style={stage}>
           {/* mesa (imagen real) + acento de Casa */}
-          <PokerTableFelt code={houseCode} color={houseColor} />
+          <PokerTableFelt src={feltPath} color={houseColor} />
 
           {/* cartas comunitarias */}
-          <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', display: 'flex', gap: 6, zIndex: 2 }}>
+          <div style={{ position: 'absolute', left: '50%', top: '47%', transform: 'translate(-50%,-50%)', display: 'flex', gap: 6, zIndex: 2 }}>
             {[0, 1, 2, 3, 4].map((i) => (game.board[i] ? <CardFace key={i} c={game.board[i]} w={44} /> : <CardSlot key={i} w={44} />))}
           </div>
 
@@ -1121,7 +1145,7 @@ function FlyChips({ toX, toY, fromX, fromY, amount }: { toX: number; toY: number
 //  - Detrás del paño, un resplandor radial muy tenue con el color de la Casa
 //    (vignette): da identidad sin teñir el fieltro ni perjudicar la lectura
 //    de cartas/fichas. Si no hay color, no se dibuja el acento.
-function PokerTableFelt({ code, color }: { code?: string; color?: string }) {
+function PokerTableFelt({ src, color }: { src: string; color?: string }) {
   return (
     <>
       {color && (
@@ -1134,19 +1158,7 @@ function PokerTableFelt({ code, color }: { code?: string; color?: string }) {
           }}
         />
       )}
-      <img src={feltSrc(code)} onError={feltOnError} alt="" style={{ ...tableImg, zIndex: 1 }} draggable={false} />
-      {color && (
-        // anillo de acento muy fino, ceñido al borde del paño.
-        <div
-          aria-hidden
-          style={{
-            position: 'absolute', left: '50%', top: '49%', transform: 'translate(-50%,-50%)',
-            width: '84%', maxWidth: '84%', aspectRatio: '1040 / 640',
-            borderRadius: '50% / 50%', zIndex: 1, pointerEvents: 'none',
-            boxShadow: `0 0 0 1px ${color}33, 0 0 34px -6px ${color}59`,
-          }}
-        />
-      )}
+      <img src={src} onError={feltOnError} alt="" style={{ ...tableImg, zIndex: 1 }} draggable={false} />
     </>
   );
 }
@@ -1263,8 +1275,8 @@ const ghostBtn: React.CSSProperties = { display: 'flex', alignItems: 'center', g
 const circleBtn: React.CSSProperties = { width: 34, height: 34, borderRadius: '50%', border: '1px solid rgba(255,255,255,.14)', display: 'grid', placeItems: 'center', color: 'rgba(232,226,212,.7)', fontSize: 19 };
 const houseBadge: React.CSSProperties = { width: 22, height: 28, borderRadius: '4px 4px 11px 11px', background: 'linear-gradient(160deg,#2fa06a,#16613f)', boxShadow: 'inset 0 1px 0 rgba(255,255,255,.25)', display: 'grid', placeItems: 'center', fontFamily: 'Marcellus,serif', fontSize: 12, color: '#eafff4' };
 const chipPill: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '8px 14px', borderRadius: 999, background: 'rgba(201,163,91,.10)', border: '1px solid rgba(201,163,91,.28)' };
-const stage: React.CSSProperties = { position: 'relative', flex: '1 1 560px', minWidth: 320, aspectRatio: '1040 / 640', alignSelf: 'center' };
-const tableImg: React.CSSProperties = { position: 'absolute', left: '50%', top: '49%', transform: 'translate(-50%,-50%)', width: '84%', maxHeight: '92%', objectFit: 'contain', filter: 'drop-shadow(0 40px 70px rgba(0,0,0,.6))', userSelect: 'none', pointerEvents: 'none' };
+const stage: React.CSSProperties = { position: 'relative', flex: '1 1 560px', minWidth: 320, aspectRatio: '1448 / 1086', alignSelf: 'center' };
+const tableImg: React.CSSProperties = { position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '100%', height: '100%', objectFit: 'contain', userSelect: 'none', pointerEvents: 'none' };
 const rail: React.CSSProperties = { flex: '1 1 290px', minWidth: 260, borderLeft: '1px solid rgba(255,255,255,.05)', background: 'linear-gradient(180deg,rgba(255,255,255,.018),transparent)', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: 18 };
 const playerPanel: React.CSSProperties = { padding: 18, borderRadius: 16, background: 'linear-gradient(160deg,rgba(201,163,91,.07),rgba(255,255,255,.012))', border: '1px solid rgba(201,163,91,.18)' };
 const controls: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 13, padding: '18px 26px 22px', borderTop: '1px solid rgba(255,255,255,.05)', background: 'linear-gradient(0deg,rgba(20,16,12,.5),transparent)', minHeight: 90, justifyContent: 'center', alignItems: 'center' };
