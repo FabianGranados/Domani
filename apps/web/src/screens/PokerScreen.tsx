@@ -493,6 +493,11 @@ export function PokerScreen() {
               </div>
             </div>
           )}
+          {turnLeft != null && (
+            <div style={{ width: '100%', textAlign: 'center', fontSize: 12, letterSpacing: '.08em', color: turnLeft <= 5 ? '#e0894f' : 'rgba(232,226,212,.55)' }}>
+              Tu turno · se resuelve solo en {turnLeft}s
+            </div>
+          )}
           <div style={{ display: 'flex', gap: 12, width: '100%' }}>
             <button onClick={() => setGame(applyAction(game!, { type: 'fold' }))} style={actFold}>Retirarse</button>
             {la.canCheck
@@ -924,8 +929,8 @@ export function PokerScreen() {
                 </div>
                 {p.lastAction && !me && <div style={{ marginTop: 4, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: p.folded ? 'rgba(232,226,212,.32)' : '#7fb89a' }}>{p.lastAction}</div>}
                 {me && (
-                  <div style={{ marginTop: 4, fontSize: 9.5, letterSpacing: '.12em', textTransform: 'uppercase', color: '#5fc795' }}>
-                    {yourTurn ? 'Tu turno' : youHandLabel ?? '—'}
+                  <div style={{ marginTop: 4, fontSize: 9.5, letterSpacing: '.12em', textTransform: 'uppercase', color: yourTurn && turnLeft != null && turnLeft <= 5 ? '#e0894f' : '#5fc795' }}>
+                    {yourTurn ? (turnLeft != null ? `Tu turno · ${turnLeft}s` : 'Tu turno') : youHandLabel ?? '—'}
                   </div>
                 )}
               </div>
