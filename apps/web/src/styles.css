@@ -436,3 +436,9 @@ th { color: var(--muted); font-weight: 500; }
   50%      { box-shadow: 0 0 0 2px #ecd28e, 0 0 44px rgba(236,210,142,.85); }
 }
 .poker-bet-chips { animation: domChipDrop .35s cubic-bezier(.3,1.4,.5,1) both; }
+@keyframes domRotateHint {
+  0%   { transform: rotate(0deg);  }
+  30%  { transform: rotate(90deg); }
+  70%  { transform: rotate(90deg); }
+  100% { transform: rotate(0deg);  }
+}
