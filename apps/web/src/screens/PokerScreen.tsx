@@ -45,6 +45,17 @@ const POS: SeatPos[] = [
 ];
 const RINGS = ['#5fc795', ...BOTS.map((b) => b.ring)];
 const POT_X = 50, POT_Y = 63; // centro del bote sobre el fieltro
+// Paño de mesa por Casa: /assets/tables/<código>.webp. Si aún no existe ese
+// archivo, el <img> hace fallback (onError) al paño por defecto, así que una
+// Casa nueva "funciona" con solo soltar su <código>.webp en esa carpeta.
+const DEFAULT_FELT = '/assets/poker-table.webp';
+const feltSrc = (code?: string) => (code ? `/assets/tables/${code}.webp` : DEFAULT_FELT);
+// onError que cambia al paño por defecto una sola vez (evita bucle infinito).
+function feltOnError(e: React.SyntheticEvent<HTMLImageElement>) {
+  const img = e.currentTarget;
+  if (img.src.endsWith(DEFAULT_FELT)) return; // ya estamos en el respaldo
+  img.src = DEFAULT_FELT;
+}
 // El crupier reparte desde el borde superior-central del fieltro (no es el botón "D").
 const DEALER_X = 50, DEALER_Y = 6;
 
@@ -103,6 +114,10 @@ export function PokerScreen() {
   const activeBB = table?.tier.bb ?? BB;
   const [wallet, setWallet] = useState<number | null>(null);
   const [houseName, setHouseName] = useState('Bacatá');
+  // Casa elegida en el lobby: define el paño de la mesa (por código) y el
+  // acento de color en juego. undefined => paño por defecto.
+  const [houseCode, setHouseCode] = useState<string | undefined>(undefined);
+  const [houseColor, setHouseColor] = useState<string | undefined>(undefined);
   // Lobby: lista de Casas (DB) y Casa seleccionada (null = ver casinos).
   const [houses, setHouses] = useState<House[]>([]);
   const [lobbyHouse, setLobbyHouse] = useState<House | null>(null);
@@ -145,6 +160,8 @@ export function PokerScreen() {
       setWallet(bal);
       setTable(t);
       setHouseName(house.name.replace(/^Casa /, ''));
+      setHouseCode(house.code);
+      setHouseColor(house.color_primary ?? undefined);
       const players: Player[] = [
         { id: 'you', name: profile?.alias ?? 'Tú', isBot: false, style: 'normal', stack, bet: 0, hole: [], folded: false, allIn: false, acted: false },
         ...BOTS.map((b) => ({ id: b.name, name: b.name, isBot: true, style: b.style, stack, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false })),
@@ -589,7 +606,7 @@ export function PokerScreen() {
           {/* width:100% + aspect-ratio + max-height mantiene la proporción
               de la mesa (asientos alineados) en cualquier tamaño */}
           <div style={{ position: 'relative', width: '100%', aspectRatio: '1040 / 640', maxHeight: '100%' }}>
-            <img src="/assets/poker-table.webp" alt="" style={tableImg} draggable={false} />
+            <PokerTableFelt code={houseCode} color={houseColor} />
 
             {/* cartas comunitarias */}
             <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', display: 'flex', gap: 5, zIndex: 2 }}>
@@ -791,8 +808,8 @@ export function PokerScreen() {
       <div style={{ display: 'flex', gap: 0, flexWrap: 'wrap', alignItems: 'stretch' }}>
         {/* --- ESCENARIO --- */}
         <div style={stage}>
-          {/* mesa (imagen real) */}
-          <img src="/assets/poker-table.webp" alt="" style={tableImg} draggable={false} />
+          {/* mesa (imagen real) + acento de Casa */}
+          <PokerTableFelt code={houseCode} color={houseColor} />
 
           {/* cartas comunitarias */}
           <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', display: 'flex', gap: 6, zIndex: 2 }}>
@@ -1096,6 +1113,41 @@ function FlyChips({ toX, toY, fromX, fromY, amount }: { toX: number; toY: number
       <ChipStack amount={amount} size={24} />
       <span style={{ fontWeight: 700, fontSize: 13, color: '#ecd9a5', textShadow: '0 0 12px rgba(201,163,91,.6)' }}>+{amount.toLocaleString()}</span>
     </div>
+  );
+}
+
+// Paño de la mesa por Casa + acento de color sutil.
+//  - <img> con src por Casa y respaldo (onError) al paño por defecto.
+//  - Detrás del paño, un resplandor radial muy tenue con el color de la Casa
+//    (vignette): da identidad sin teñir el fieltro ni perjudicar la lectura
+//    de cartas/fichas. Si no hay color, no se dibuja el acento.
+function PokerTableFelt({ code, color }: { code?: string; color?: string }) {
+  return (
+    <>
+      {color && (
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none',
+            background: `radial-gradient(120% 86% at 50% 49%, ${color}26, transparent 62%)`,
+            mixBlendMode: 'screen',
+          }}
+        />
+      )}
+      <img src={feltSrc(code)} onError={feltOnError} alt="" style={{ ...tableImg, zIndex: 1 }} draggable={false} />
+      {color && (
+        // anillo de acento muy fino, ceñido al borde del paño.
+        <div
+          aria-hidden
+          style={{
+            position: 'absolute', left: '50%', top: '49%', transform: 'translate(-50%,-50%)',
+            width: '84%', maxWidth: '84%', aspectRatio: '1040 / 640',
+            borderRadius: '50% / 50%', zIndex: 1, pointerEvents: 'none',
+            boxShadow: `0 0 0 1px ${color}33, 0 0 34px -6px ${color}59`,
+          }}
+        />
+      )}
+    </>
   );
 }
 
