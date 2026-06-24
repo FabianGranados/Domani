@@ -88,6 +88,8 @@ export function PokerScreen() {
   const [fly, setFly] = useState<{ x: number; y: number; fromX: number; fromY: number; amount: number; key: number } | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [railOpen, setRailOpen] = useState(true);
+  const [dealing, setDealing] = useState(false);
+  const [handKey, setHandKey] = useState(0);
   const isMobile = useIsMobile();
   const isPortrait = useIsPortrait();
   const cashedRef = useRef(false);
@@ -118,6 +120,7 @@ export function PokerScreen() {
       setHistory([]);
       handNoRef.current = 1283;
       setGame(startHand(players, d, SB, BB));
+      setHandKey((k) => k + 1);
       cashedRef.current = false;
       setPhase('playing');
       try { await document.documentElement.requestFullscreen?.(); } catch { /* iOS/desktop ignore */ }
@@ -146,6 +149,7 @@ export function PokerScreen() {
     startStackRef.current = game.players.find((p) => p.id === 'you')?.stack ?? 0;
     recordedRef.current = false;
     setGame(startHand(game.players, nd, SB, BB));
+    setHandKey((k) => k + 1);
   }
 
   // Bots juegan en automático
@@ -160,7 +164,15 @@ export function PokerScreen() {
     }
   }, [game]);
 
-  // Fin de mano: animar fichas al ganador + registrar historial
+  // Reparto: al iniciar cada mano, animar las cartas un instante
+  useEffect(() => {
+    if (handKey === 0) return;
+    setDealing(true);
+    const t = setTimeout(() => setDealing(false), 1300);
+    return () => clearTimeout(t);
+  }, [handKey]);
+
+  // Fin de mano: animar fichas al ganador + registrar historial + repartir sola
   useEffect(() => {
     if (!game) return;
     if (game.handOver && !recordedRef.current && game.winners.length) {
@@ -179,8 +191,13 @@ export function PokerScreen() {
         ...h,
       ].slice(0, 8));
       handNoRef.current += 1;
-      const t = setTimeout(() => setFly(null), 1300);
-      return () => clearTimeout(t);
+      const tFly = setTimeout(() => setFly(null), 1300);
+      // El crupier reparte la siguiente mano solo (como en vivo). Si te
+      // quedaste sin fichas, no auto-avanza: se ofrece salir.
+      const youAlive = (game.players.find((p) => p.id === 'you')?.stack ?? 0) > 0;
+      const reveal = game.phase === 'showdown';
+      const tNext = youAlive ? setTimeout(() => nextHand(), reveal ? 3400 : 2200) : undefined;
+      return () => { clearTimeout(tFly); if (tNext) clearTimeout(tNext); };
     }
     if (!game.handOver) setFly(null);
   }, [game?.handOver]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -231,19 +248,31 @@ export function PokerScreen() {
   const rAmt = Math.min(maxR, Math.max(minR, raiseAmt));
   const setPreset = (frac: number) => setRaiseAmt(Math.min(maxR, Math.max(minR, Math.round(game.currentBet + (game.pot + (la?.callAmount ?? 0)) * frac))));
 
+  // Animación de reparto: cada carta "sale" del centro hacia su asiento,
+  // escalonada en el orden de reparto (a partir de la ciega pequeña).
+  const nPlayers = game.players.length;
+  function dealStyle(idx: number, ci: number): React.CSSProperties | undefined {
+    if (!dealing) return undefined;
+    const orderPos = (idx - game!.dealer - 1 + nPlayers) % nPlayers;
+    const delay = (ci * nPlayers + orderPos) * 55;
+    const dx = (POT_X - POS[idx].x) * 1.4;
+    const dy = (POT_Y - POS[idx].y) * 1.4;
+    return { display: 'inline-block', animation: `domDeal .3s ease both ${delay}ms`, ['--dx' as string]: `${dx}px`, ['--dy' as string]: `${dy}px` } as React.CSSProperties;
+  }
+
   // Controles (compartidos entre escritorio y móvil)
   function renderControls() {
     if (game!.handOver) {
       return (
         <div style={{ textAlign: 'center', width: '100%' }}>
-          <div style={{ color: '#ecd9a5', fontFamily: "'Cormorant Garamond',serif", fontSize: 22, marginBottom: 12 }}>
+          <div style={{ color: '#ecd9a5', fontFamily: "'Cormorant Garamond',serif", fontSize: 22, marginBottom: 10 }}>
             {game!.winners.some((w) => w.id === 'you')
               ? `Te llevas el bote · +⟡${game!.winners.find((w) => w.id === 'you')!.amount.toLocaleString()}`
               : `Ganó ${game!.players[winnerIdx]?.name ?? '—'}`}
           </div>
-          <button className="btn" style={{ maxWidth: 280, margin: '0 auto' }} onClick={nextHand}>
-            {you.stack > 0 ? 'Siguiente mano' : 'Sin fichas — salir'}
-          </button>
+          {you.stack > 0
+            ? <div style={{ fontSize: 12, color: 'rgba(232,226,212,.45)', fontStyle: 'italic', fontFamily: "'Cormorant Garamond',serif" }}>El crupier reparte la siguiente mano…</div>
+            : <button className="btn" style={{ maxWidth: 280, margin: '0 auto' }} onClick={levantarse}>Sin fichas — salir</button>}
         </div>
       );
     }
@@ -301,6 +330,21 @@ export function PokerScreen() {
             <div style={{ fontSize: 11, color: 'rgba(232,226,212,.55)' }}>Texas Hold’em · Ciegas {SB}/{BB}</div>
           </div>
           <span style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#5fc795', border: '1px solid rgba(47,160,106,.4)', borderRadius: 999, padding: '4px 9px' }}>En juego</span>
+        </div>
+
+        {/* últimas manos */}
+        <div style={{ fontSize: 10, letterSpacing: '.28em', textTransform: 'uppercase', color: '#9c7a3e', marginTop: 4 }}>Últimas manos</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          {history.length === 0 && <div style={{ fontSize: 12, color: 'rgba(232,226,212,.4)' }}>Aún no hay manos jugadas.</div>}
+          {history.slice(0, 3).map((h, i) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10, padding: '10px 13px', borderRadius: 11, background: h.youWon ? 'rgba(47,160,106,.06)' : 'rgba(255,255,255,.025)', border: `1px solid ${h.youWon ? 'rgba(47,160,106,.2)' : 'rgba(255,255,255,.06)'}` }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ fontSize: 12.5, color: 'rgba(232,226,212,.82)' }}>Mano #{h.n} · {h.title}</div>
+                <div style={{ fontSize: 11, color: 'rgba(232,226,212,.45)', marginTop: 2 }}>{h.sub}</div>
+              </div>
+              <span style={{ fontWeight: 600, fontSize: 12.5, color: h.delta > 0 ? '#5fc795' : 'rgba(232,226,212,.5)', flexShrink: 0 }}>{h.delta > 0 ? '+' : ''}{h.delta.toLocaleString()}</span>
+            </div>
+          ))}
         </div>
 
         {/* próximamente */}
@@ -397,104 +441,178 @@ export function PokerScreen() {
   }
 
   // ============================================================
-  // MÓVIL HORIZONTAL: mesa a pantalla completa, panel inferior desplegable
+  // MÓVIL HORIZONTAL: mesa a altura completa · apuesta a la derecha
   // ============================================================
   if (isMobile) {
     return (
-      <div style={{ position: 'fixed', inset: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', background: 'radial-gradient(120% 80% at 50% 38%, #11201a, #0a0a0d 70%)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        {/* ESCENARIO ocupa todo: la mesa se centra y el resto flota encima */}
-        <div style={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          {/* caja con proporción fija para alinear asientos a la imagen */}
-          <div style={{ position: 'relative', height: '100%', aspectRatio: '1040 / 640', maxWidth: '100%' }}>
-            <img src="/assets/poker-table.webp" alt="" style={tableImg} draggable={false} />
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', overflow: 'hidden', background: 'radial-gradient(120% 90% at 42% 40%, #11201a, #0a0a0d 70%)', paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        {/* ===== IZQUIERDA: mesa (usa toda la altura) + botones de acción abajo ===== */}
+        <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          {/* ESCENARIO */}
+          <div style={{ flex: 1, position: 'relative', minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '44px 4px 2px' }}>
+            <div style={{ position: 'relative', height: '100%', aspectRatio: '1040 / 640', maxWidth: '100%' }}>
+              <img src="/assets/poker-table.webp" alt="" style={tableImg} draggable={false} />
 
-            {/* cartas comunitarias */}
-            <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', display: 'flex', gap: 5, zIndex: 2 }}>
-              {[0, 1, 2, 3, 4].map((i) => (game.board[i] ? <CardFace key={i} c={game.board[i]} w={40} /> : <CardSlot key={i} w={40} />))}
-            </div>
-
-            {/* bote */}
-            <div style={{ position: 'absolute', left: `${POT_X}%`, top: `${POT_Y}%`, transform: 'translate(-50%,-50%)', textAlign: 'center', zIndex: 2 }}>
-              <div style={{ fontSize: 7.5, letterSpacing: '.34em', textTransform: 'uppercase', color: 'rgba(232,226,212,.65)', marginBottom: 3 }}>Bote</div>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
-                <ChipStack amount={game.pot} size={20} />
-                <span style={{ fontFamily: 'Marcellus,serif', fontSize: 19, color: '#ecd9a5', textShadow: '0 0 14px rgba(201,163,91,.5)' }}>{game.pot.toLocaleString()}</span>
+              {/* cartas comunitarias */}
+              <div style={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', display: 'flex', gap: 5, zIndex: 2 }}>
+                {[0, 1, 2, 3, 4].map((i) => (game.board[i] ? <CardFace key={i} c={game.board[i]} w={40} /> : <CardSlot key={i} w={40} />))}
               </div>
-            </div>
 
-            {/* fichas apostadas */}
-            {game.players.map((p, idx) => p.bet > 0 && (
-              <div key={`lbet-${p.id}`} className="poker-bet-chips" style={{ position: 'absolute', left: `${POS[idx].bx}%`, top: `${POS[idx].by}%`, transform: 'translate(-50%,-50%)', display: 'flex', alignItems: 'center', gap: 3, zIndex: 3 }}>
-                <ChipStack amount={p.bet} size={15} />
-                <span style={{ fontWeight: 600, fontSize: 9.5, color: '#ecd9a5', textShadow: '0 1px 3px rgba(0,0,0,.8)' }}>{p.bet.toLocaleString()}</span>
-              </div>
-            ))}
-
-            {/* fichas volando al ganador */}
-            {fly && <FlyChips key={fly.key} toX={fly.x} toY={fly.y} fromX={fly.fromX} fromY={fly.fromY} amount={fly.amount} />}
-
-            {/* asientos (los 9, incluyendo tú abajo-centro) */}
-            {game.players.map((p, idx) => {
-              const pos = POS[idx];
-              const showCards = p.id === 'you' || (reveal && !p.folded);
-              const acting = game.toAct === idx && !game.handOver;
-              const isWin = idx === winnerIdx;
-              const me = p.id === 'you';
-              return (
-                <div key={p.id} style={{ position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%,-50%)', width: 82, textAlign: 'center', opacity: p.folded ? 0.4 : 1, zIndex: 4 }}>
-                  {p.hole.length > 0 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: me ? 5 : -7, marginBottom: -6, position: 'relative', zIndex: 1 }}>
-                      {showCards
-                        ? p.hole.map((c, i) => <CardFace key={i} c={c} w={me ? 40 : 22} tilt={me ? (i === 0 ? -5 : 5) : (i === 0 ? -8 : 8)} />)
-                        : p.hole.map((_, i) => <CardBack key={i} w={18} tilt={i === 0 ? -8 : 8} />)}
-                    </div>
-                  )}
-                  <div style={{ position: 'relative', width: me ? 46 : 40, height: me ? 46 : 40, margin: '0 auto', zIndex: 2 }}>
-                    <div style={{
-                      width: me ? 46 : 40, height: me ? 46 : 40, borderRadius: '50%', display: 'grid', placeItems: 'center',
-                      fontFamily: 'Marcellus,serif', fontSize: me ? 18 : 16, color: RINGS[idx],
-                      background: 'radial-gradient(circle at 35% 30%,#2b2c34,#121317)',
-                      boxShadow: `inset 0 0 0 1.5px ${RINGS[idx]}`,
-                      ...(acting ? { animation: 'domSeatPulse 2.2s ease-in-out infinite' } : {}),
-                      ...(isWin ? { animation: 'domWinGlow 1s ease-in-out infinite' } : {}),
-                    }}>{p.name.charAt(0)}</div>
-                    {idx === game.dealer && <span style={{ ...dealerBtn, width: 16, height: 16, fontSize: 8.5 }}>D</span>}
-                    {acting && <TimerRing />}
-                  </div>
-                  <div style={{ marginTop: 3, padding: '3px 6px', borderRadius: 9, background: 'rgba(8,8,10,.72)', border: `1px solid ${isWin ? 'rgba(236,210,142,.55)' : me ? 'rgba(47,160,106,.4)' : 'rgba(255,255,255,.08)'}`, backdropFilter: 'blur(3px)', display: 'inline-block' }}>
-                    <div style={{ fontSize: 10, color: me ? '#5fc795' : 'rgba(232,226,212,.85)' }}>{p.name}</div>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, marginTop: 1 }}>
-                      <Chip kind="gold" size={8} />
-                      <span style={{ fontSize: 9, color: '#bfa164' }}>{p.stack.toLocaleString()}</span>
-                    </div>
-                  </div>
-                  {p.lastAction && !me && <div style={{ marginTop: 2, fontSize: 8, letterSpacing: '.1em', textTransform: 'uppercase', color: p.folded ? 'rgba(232,226,212,.3)' : '#7fb89a' }}>{p.lastAction}</div>}
-                  {me && <div style={{ marginTop: 2, fontSize: 8, letterSpacing: '.1em', textTransform: 'uppercase', color: '#5fc795' }}>{yourTurn ? 'Tu turno' : youHandLabel ?? '—'}</div>}
+              {/* bote */}
+              <div style={{ position: 'absolute', left: `${POT_X}%`, top: `${POT_Y}%`, transform: 'translate(-50%,-50%)', textAlign: 'center', zIndex: 2 }}>
+                <div style={{ fontSize: 7.5, letterSpacing: '.34em', textTransform: 'uppercase', color: 'rgba(232,226,212,.65)', marginBottom: 3 }}>Bote</div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+                  <ChipStack amount={game.pot} size={20} />
+                  <span style={{ fontFamily: 'Marcellus,serif', fontSize: 19, color: '#ecd9a5', textShadow: '0 0 14px rgba(201,163,91,.5)' }}>{game.pot.toLocaleString()}</span>
                 </div>
-              );
-            })}
+              </div>
+
+              {/* fichas apostadas */}
+              {game.players.map((p, idx) => p.bet > 0 && (
+                <div key={`lbet-${p.id}`} className="poker-bet-chips" style={{ position: 'absolute', left: `${POS[idx].bx}%`, top: `${POS[idx].by}%`, transform: 'translate(-50%,-50%)', display: 'flex', alignItems: 'center', gap: 3, zIndex: 3 }}>
+                  <ChipStack amount={p.bet} size={15} />
+                  <span style={{ fontWeight: 600, fontSize: 9.5, color: '#ecd9a5', textShadow: '0 1px 3px rgba(0,0,0,.8)' }}>{p.bet.toLocaleString()}</span>
+                </div>
+              ))}
+
+              {/* fichas volando al ganador */}
+              {fly && <FlyChips key={fly.key} toX={fly.x} toY={fly.y} fromX={fly.fromX} fromY={fly.fromY} amount={fly.amount} />}
+
+              {/* asientos rivales (1..8) — el héroe NO tiene círculo, solo cartas */}
+              {game.players.map((p, idx) => {
+                if (idx === 0) return null;
+                const pos = POS[idx];
+                const showCards = reveal && !p.folded;
+                const acting = game.toAct === idx && !game.handOver;
+                const isWin = idx === winnerIdx;
+                return (
+                  <div key={p.id} style={{ position: 'absolute', left: `${pos.x}%`, top: `${pos.y}%`, transform: 'translate(-50%,-50%)', width: 78, textAlign: 'center', opacity: p.folded ? 0.4 : 1, zIndex: 4 }}>
+                    {p.hole.length > 0 && (
+                      <div style={{ display: 'flex', justifyContent: 'center', gap: -7, marginBottom: -6, position: 'relative', zIndex: 1 }}>
+                        {showCards
+                          ? p.hole.map((c, i) => <span key={i} style={dealStyle(idx, i)}><CardFace c={c} w={22} tilt={i === 0 ? -8 : 8} /></span>)
+                          : p.hole.map((_, i) => <span key={i} style={dealStyle(idx, i)}><CardBack w={18} tilt={i === 0 ? -8 : 8} /></span>)}
+                      </div>
+                    )}
+                    <div style={{ position: 'relative', width: 40, height: 40, margin: '0 auto', zIndex: 2 }}>
+                      <div style={{
+                        width: 40, height: 40, borderRadius: '50%', display: 'grid', placeItems: 'center',
+                        fontFamily: 'Marcellus,serif', fontSize: 16, color: RINGS[idx],
+                        background: 'radial-gradient(circle at 35% 30%,#2b2c34,#121317)',
+                        boxShadow: `inset 0 0 0 1.5px ${RINGS[idx]}`,
+                        ...(acting ? { animation: 'domSeatPulse 2.2s ease-in-out infinite' } : {}),
+                        ...(isWin ? { animation: 'domWinGlow 1s ease-in-out infinite' } : {}),
+                      }}>{p.name.charAt(0)}</div>
+                      {idx === game.dealer && <span style={{ ...dealerBtn, width: 16, height: 16, fontSize: 8.5 }}>D</span>}
+                      {acting && <TimerRing />}
+                    </div>
+                    <div style={{ marginTop: 3, padding: '3px 6px', borderRadius: 9, background: 'rgba(8,8,10,.72)', border: `1px solid ${isWin ? 'rgba(236,210,142,.55)' : 'rgba(255,255,255,.08)'}`, backdropFilter: 'blur(3px)', display: 'inline-block' }}>
+                      <div style={{ fontSize: 10, color: 'rgba(232,226,212,.85)' }}>{p.name}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, marginTop: 1 }}>
+                        <Chip kind="gold" size={8} />
+                        <span style={{ fontSize: 9, color: '#bfa164' }}>{p.stack.toLocaleString()}</span>
+                      </div>
+                    </div>
+                    {p.lastAction && <div style={{ marginTop: 2, fontSize: 8, letterSpacing: '.1em', textTransform: 'uppercase', color: p.folded ? 'rgba(232,226,212,.3)' : '#7fb89a' }}>{p.lastAction}</div>}
+                  </div>
+                );
+              })}
+
+              {/* héroe: solo cartas, abajo-centro (sin círculo) + botón dealer */}
+              <div style={{ position: 'absolute', left: `${POS[0].x}%`, top: `${POS[0].y}%`, transform: 'translate(-50%,-50%)', zIndex: 5, textAlign: 'center' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', gap: 6 }}>
+                  {you.hole.map((c, i) => <span key={i} style={dealStyle(0, i)}><CardFace c={c} w={48} tilt={i === 0 ? -5 : 5} /></span>)}
+                </div>
+                {game.dealer === 0 && <span style={{ ...dealerBtn, position: 'static', display: 'inline-grid', marginTop: 4, width: 16, height: 16, fontSize: 8.5 }}>D</span>}
+              </div>
+            </div>
+
+            {/* barra superior flotante: salir · stock · menú */}
+            <div style={{ position: 'absolute', top: 10, left: 12, right: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 6, pointerEvents: 'none' }}>
+              <button onClick={levantarse} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 15px 8px 11px', borderRadius: 999, border: '1px solid rgba(255,255,255,.16)', background: 'rgba(8,8,10,.72)', backdropFilter: 'blur(6px)', color: '#ece6d6', fontSize: 13, fontWeight: 500, cursor: 'pointer', pointerEvents: 'auto', boxShadow: '0 6px 18px -8px rgba(0,0,0,.8)' }}>
+                <span style={{ fontSize: 17, lineHeight: 0, marginTop: -1 }}>‹</span> Salir
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, pointerEvents: 'auto' }}>
+                <div style={{ ...chipPill, padding: '7px 15px', background: 'rgba(8,8,10,.72)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px -8px rgba(0,0,0,.8)' }}>
+                  <Chip kind="gold" size={17} />
+                  <span style={{ fontWeight: 700, fontSize: 15, color: '#ecd9a5' }}>{you.stack.toLocaleString()}</span>
+                </div>
+                <button onClick={() => setDrawer(true)} aria-label="Menú de mesa" style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid rgba(201,163,91,.45)', background: 'rgba(8,8,10,.72)', backdropFilter: 'blur(6px)', cursor: 'pointer', display: 'grid', placeItems: 'center', boxShadow: '0 6px 18px -8px rgba(0,0,0,.8)' }}>
+                  <span style={{ display: 'block', width: 16, height: 1.6, background: '#ecd9a5', borderRadius: 2, boxShadow: '0 5px 0 #ecd9a5, 0 -5px 0 #ecd9a5' }} />
+                </button>
+              </div>
+            </div>
+
+            {/* etiqueta de tu mano (flota abajo, sin tapar) */}
+            <div style={{ position: 'absolute', bottom: 4, left: 0, right: 0, textAlign: 'center', zIndex: 5, fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: yourTurn ? '#5fc795' : 'rgba(232,226,212,.5)', pointerEvents: 'none' }}>
+              {yourTurn ? 'Tu turno' : (youHandLabel ?? '')}
+            </div>
           </div>
 
-          {/* barra superior flotante: salir (claro) · stock · menú de mesa */}
-          <div style={{ position: 'absolute', top: 10, left: 12, right: 12, display: 'flex', alignItems: 'center', justifyContent: 'space-between', zIndex: 6, pointerEvents: 'none' }}>
-            <button onClick={levantarse} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 15px 8px 11px', borderRadius: 999, border: '1px solid rgba(255,255,255,.16)', background: 'rgba(8,8,10,.72)', backdropFilter: 'blur(6px)', color: '#ece6d6', fontSize: 13, fontWeight: 500, cursor: 'pointer', pointerEvents: 'auto', boxShadow: '0 6px 18px -8px rgba(0,0,0,.8)' }}>
-              <span style={{ fontSize: 17, lineHeight: 0, marginTop: -1 }}>‹</span> Salir
-            </button>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10, pointerEvents: 'auto' }}>
-              <div style={{ ...chipPill, padding: '7px 15px', background: 'rgba(8,8,10,.72)', backdropFilter: 'blur(6px)', boxShadow: '0 6px 18px -8px rgba(0,0,0,.8)' }}>
-                <Chip kind="gold" size={17} />
-                <span style={{ fontWeight: 700, fontSize: 15, color: '#ecd9a5' }}>{you.stack.toLocaleString()}</span>
+          {/* botones de acción grandes (abajo, ancho completo) */}
+          <div style={{ flexShrink: 0, display: 'flex', gap: 9, padding: '8px 12px 10px' }}>
+            {game.handOver ? (
+              <div style={{ flex: 1, textAlign: 'center', padding: '12px', color: you.stack > 0 ? 'rgba(232,226,212,.5)' : '#ecd9a5', fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic', fontSize: 15 }}>
+                {you.stack > 0
+                  ? 'El crupier reparte la siguiente mano…'
+                  : <button className="btn" onClick={levantarse} style={{ maxWidth: 240, margin: '0 auto' }}>Sin fichas — salir</button>}
               </div>
-              <button onClick={() => setDrawer(true)} aria-label="Menú de mesa" style={{ width: 40, height: 40, borderRadius: '50%', border: '1px solid rgba(201,163,91,.45)', background: 'rgba(8,8,10,.72)', backdropFilter: 'blur(6px)', cursor: 'pointer', display: 'grid', placeItems: 'center', gap: 3, boxShadow: '0 6px 18px -8px rgba(0,0,0,.8)' }}>
-                <span style={{ display: 'block', width: 16, height: 1.6, background: '#ecd9a5', borderRadius: 2, boxShadow: '0 5px 0 #ecd9a5, 0 -5px 0 #ecd9a5' }} />
-              </button>
-            </div>
+            ) : yourTurn && la ? (
+              <>
+                <button onClick={() => setGame(applyAction(game!, { type: 'fold' }))} style={{ ...actFold, padding: '15px 8px' }}>Retirarse</button>
+                {la.canCheck
+                  ? <button onClick={() => setGame(applyAction(game!, { type: 'check' }))} style={{ ...actCall, padding: '15px 8px' }}>Pasar</button>
+                  : <button onClick={() => setGame(applyAction(game!, { type: 'call' }))} style={{ ...actCall, padding: '15px 8px' }}>Igualar · {la.callAmount.toLocaleString()}</button>}
+                {la.canRaise && (
+                  <button onClick={() => setGame(applyAction(game!, { type: 'raise', to: rAmt }))} style={{ ...actRaise, padding: '15px 8px' }}>
+                    {rAmt >= maxR ? `All-in · ${rAmt.toLocaleString()}` : `Subir a ${rAmt.toLocaleString()}`}
+                  </button>
+                )}
+              </>
+            ) : (
+              <div style={{ flex: 1, textAlign: 'center', padding: '14px', color: 'rgba(232,226,212,.5)', fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic', fontSize: 15 }}>
+                {game.players[game.toAct].name} está pensando…
+              </div>
+            )}
           </div>
         </div>
 
-        {/* controles fijos abajo (ancho completo) — se conservan tal cual */}
-        <div style={{ flexShrink: 0, display: 'flex', flexDirection: 'column', gap: 10, padding: '10px 14px 12px', alignItems: 'center', maxWidth: 880, width: '100%', margin: '0 auto' }}>
-          {renderControls()}
+        {/* ===== DERECHA: temporizador + apuesta (slider) ===== */}
+        <div style={{ width: 'clamp(150px, 26%, 226px)', flexShrink: 0, borderLeft: '1px solid rgba(255,255,255,.06)', background: 'rgba(8,8,10,.35)', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 14, padding: '14px 14px calc(14px + env(safe-area-inset-bottom))' }}>
+          {yourTurn && la ? (
+            <>
+              <div style={{ position: 'relative', width: 70, height: 70, display: 'grid', placeItems: 'center' }}>
+                <TimerRing />
+                <span style={{ fontFamily: 'Marcellus,serif', fontSize: 13, color: '#5fc795', letterSpacing: '.1em' }}>JUEGAS</span>
+              </div>
+              {la.canRaise ? (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <Chip kind="gold" size={18} />
+                    <span style={{ fontFamily: 'Marcellus,serif', fontSize: 24, color: '#ecd9a5' }}>{rAmt.toLocaleString()}</span>
+                  </div>
+                  <input type="range" min={minR} max={maxR} step={SB} value={rAmt}
+                    onChange={(e) => setRaiseAmt(Number(e.target.value))}
+                    style={{ width: '100%', accentColor: '#c9a35b' }} />
+                  <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+                    <button onClick={() => setPreset(0.5)} style={{ ...sizeBtn, flex: 1, padding: '8px 4px' }}>½</button>
+                    <button onClick={() => setPreset(1)} style={{ ...sizeBtn, flex: 1, padding: '8px 4px' }}>Bote</button>
+                    <button onClick={() => setRaiseAmt(maxR)} style={{ ...sizeBtn, flex: 1, padding: '8px 4px', color: '#ecd9a5', border: '1px solid rgba(201,163,91,.35)' }}>Todo</button>
+                  </div>
+                </>
+              ) : (
+                <div style={{ fontSize: 12, color: 'rgba(232,226,212,.5)', textAlign: 'center', fontStyle: 'italic', fontFamily: "'Cormorant Garamond',serif" }}>Sin subida disponible</div>
+              )}
+            </>
+          ) : (
+            <div style={{ textAlign: 'center', color: 'rgba(232,226,212,.4)', fontSize: 12, lineHeight: 1.6 }}>
+              <div style={{ fontFamily: 'Marcellus,serif', fontSize: 15, color: 'rgba(232,226,212,.6)', marginBottom: 6 }}>Bote</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5 }}>
+                <Chip kind="gold" size={14} />
+                <span style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ecd9a5' }}>{game.pot.toLocaleString()}</span>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* menú de mesa desplegable: salir · cambiar de mesa (próximamente) */}
