@@ -49,19 +49,28 @@ export default function App() {
   }
 
   // 3. Con perfil -> app completa (la Casa se elige dentro del Salón, no es obligatoria)
+  //    La mesa de póker va FUERA del Layout: es una vista inmersiva a pantalla
+  //    completa, sin barra lateral ni pie (eso haría ruido durante el juego).
   return (
-    <Layout>
-      <Routes>
-        <Route path="/" element={<SalonScreen />} />
-        <Route path="/tessera" element={<TesseraScreen />} />
-        <Route path="/casino" element={<CasinoScreen />} />
-        <Route path="/poker" element={<PokerScreen />} />
-        <Route path="/wallet" element={<WalletScreen />} />
-        <Route path="/academia" element={<AcademyScreen />} />
-        <Route path="/ruleta" element={<RouletteScreen />} />
-        <Route path="/lobby" element={<LobbyScreen />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Layout>
+    <Routes>
+      <Route path="/poker" element={<PokerScreen />} />
+      <Route
+        path="*"
+        element={
+          <Layout>
+            <Routes>
+              <Route path="/" element={<SalonScreen />} />
+              <Route path="/tessera" element={<TesseraScreen />} />
+              <Route path="/casino" element={<CasinoScreen />} />
+              <Route path="/wallet" element={<WalletScreen />} />
+              <Route path="/academia" element={<AcademyScreen />} />
+              <Route path="/ruleta" element={<RouletteScreen />} />
+              <Route path="/lobby" element={<LobbyScreen />} />
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </Layout>
+        }
+      />
+    </Routes>
   );
 }
