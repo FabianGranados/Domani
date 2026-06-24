@@ -155,6 +155,7 @@ export function PokerScreen() {
   const [railOpen, setRailOpen] = useState(true);
   const [dealing, setDealing] = useState(false);
   const [handKey, setHandKey] = useState(0);
+  const [turnLeft, setTurnLeft] = useState<number | null>(null);
   // Cartas volando: reparto (crupier -> asiento) y descarte/fold (asiento -> crupier).
   const [dealCards, setDealCards] = useState<FlyingCard[]>([]);
   const [muckCards, setMuckCards] = useState<FlyingCard[]>([]);
@@ -240,19 +241,23 @@ export function PokerScreen() {
     }
   }, [game, dealing]);
 
-  // Turno del humano: si no actúa a tiempo, se auto-resuelve (check o fold)
-  // para que la mesa no se quede congelada esperándolo.
+  // Turno del humano: cuenta regresiva visible. Si no actúa a tiempo, se
+  // auto-resuelve (check o fold) para que la mesa no se congele esperándolo.
   useEffect(() => {
-    if (!game || game.handOver || dealing) return;
-    if (game.players[game.toAct].id !== 'you') return;
-    const t = setTimeout(() => {
+    if (!game || game.handOver || dealing || game.players[game.toAct].id !== 'you') {
+      setTurnLeft(null);
+      return;
+    }
+    setTurnLeft(TURN_SECONDS);
+    const iv = setInterval(() => setTurnLeft((s) => (s && s > 0 ? s - 1 : 0)), 1000);
+    const to = setTimeout(() => {
       setGame((g) => {
         if (!g || g.handOver || g.players[g.toAct].id !== 'you') return g;
         const a = legalActions(g);
         return applyAction(g, a.canCheck ? { type: 'check' } : { type: 'fold' });
       });
     }, TURN_SECONDS * 1000);
-    return () => clearTimeout(t);
+    return () => { clearInterval(iv); clearTimeout(to); };
   }, [game, dealing]);
 
   // Reparto: al iniciar cada mano, el crupier (arriba-centro) reparte cada
@@ -761,7 +766,9 @@ export function PokerScreen() {
               <>
                 <div style={{ position: 'relative', width: 60, height: 60, display: 'grid', placeItems: 'center', flexShrink: 0 }}>
                   <TimerRing />
-                  <span style={{ fontFamily: 'Marcellus,serif', fontSize: 11, color: '#5fc795', letterSpacing: '.1em' }}>JUEGAS</span>
+                  <span style={{ fontFamily: 'Marcellus,serif', fontSize: turnLeft != null ? 22 : 11, color: turnLeft != null && turnLeft <= 5 ? '#e0894f' : '#5fc795', letterSpacing: '.05em' }}>
+                    {turnLeft != null ? turnLeft : 'JUEGAS'}
+                  </span>
                 </div>
                 {youHandLabel && <div style={{ fontSize: 9.5, letterSpacing: '.12em', textTransform: 'uppercase', color: '#7fb89a' }}>{youHandLabel}</div>}
                 {la.canRaise && (
