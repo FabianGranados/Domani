@@ -12,10 +12,26 @@ import { WalletScreen } from './screens/WalletScreen';
 import { AcademyScreen } from './screens/AcademyScreen';
 import { RouletteScreen } from './screens/RouletteScreen';
 import { LobbyScreen } from './screens/LobbyScreen';
+import { IosInstallHint } from './components/IosInstallHint';
 
 export default function App() {
   const { loading, session, profile } = useAuth();
 
+  return (
+    <>
+      <IosInstallHint />
+      <AppRoutes loading={loading} session={session} profile={profile} />
+    </>
+  );
+}
+
+type AppRoutesProps = {
+  loading: boolean;
+  session: ReturnType<typeof useAuth>['session'];
+  profile: ReturnType<typeof useAuth>['profile'];
+};
+
+function AppRoutes({ loading, session, profile }: AppRoutesProps) {
   if (loading) {
     return (
       <div className="splash">
