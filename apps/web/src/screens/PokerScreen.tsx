@@ -7,10 +7,16 @@ import {
   evaluate7, handCategory, HAND_NAME, RANK_LABEL, isRed,
   type Game, type Player, type Card,
 } from '../lib/poker';
+import type { House } from '../lib/types';
+import {
+  STAKE_LADDER, tablesForHouse, seatedCount,
+  type PokerTable,
+} from '../lib/pokerTables';
 
-const SB = 100;
-const BB = 200;
-const DEFAULT_BUYIN = 10000;
+// Stakes por defecto (sin mesa elegida): nivel "Media" de la escalera.
+const DEFAULT_TIER = STAKE_LADDER.find((t) => t.id === 'media')!;
+const SB = DEFAULT_TIER.sb;
+const BB = DEFAULT_TIER.bb;
 
 const BOTS: { name: string; ring: string; style: Player['style'] }[] = [
   { name: 'Dunia', ring: '#b9c2cc', style: 'conservador' },
@@ -91,9 +97,15 @@ export function PokerScreen() {
   const { user, profile, refreshProfile } = useAuth();
   const navigate = useNavigate();
   const [phase, setPhase] = useState<'lobby' | 'playing'>('lobby');
-  const [buyin, setBuyin] = useState(DEFAULT_BUYIN);
+  // Mesa elegida en el lobby: define ciegas y buy-in de la partida.
+  const [table, setTable] = useState<PokerTable | null>(null);
+  const activeSB = table?.tier.sb ?? SB;
+  const activeBB = table?.tier.bb ?? BB;
   const [wallet, setWallet] = useState<number | null>(null);
   const [houseName, setHouseName] = useState('Bacatá');
+  // Lobby: lista de Casas (DB) y Casa seleccionada (null = ver casinos).
+  const [houses, setHouses] = useState<House[]>([]);
+  const [lobbyHouse, setLobbyHouse] = useState<House | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [game, setGame] = useState<Game | null>(null);
@@ -119,27 +131,31 @@ export function PokerScreen() {
 
   useEffect(() => {
     if (user) getWallet(user.id).then((w) => setWallet(w?.balance ?? 0));
-    listHouses().then((hs) =>
-      setHouseName(hs.find((h) => h.id === profile?.house_id)?.name.replace(/^Casa /, '') ?? 'Bacatá'),
-    );
+    listHouses().then((hs) => {
+      setHouses(hs);
+      setHouseName(hs.find((h) => h.id === profile?.house_id)?.name.replace(/^Casa /, '') ?? 'Bacatá');
+    });
   }, [user, profile?.house_id]);
 
-  async function sentarse() {
+  async function sentarse(t: PokerTable, house: House) {
     setBusy(true); setError(null);
+    const stack = t.tier.buyin;
     try {
-      const bal = await pokerBuyin(buyin);
+      const bal = await pokerBuyin(stack);
       setWallet(bal);
+      setTable(t);
+      setHouseName(house.name.replace(/^Casa /, ''));
       const players: Player[] = [
-        { id: 'you', name: profile?.alias ?? 'Tú', isBot: false, style: 'normal', stack: buyin, bet: 0, hole: [], folded: false, allIn: false, acted: false },
-        ...BOTS.map((b) => ({ id: b.name, name: b.name, isBot: true, style: b.style, stack: buyin, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false })),
+        { id: 'you', name: profile?.alias ?? 'Tú', isBot: false, style: 'normal', stack, bet: 0, hole: [], folded: false, allIn: false, acted: false },
+        ...BOTS.map((b) => ({ id: b.name, name: b.name, isBot: true, style: b.style, stack, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false })),
       ];
       const d = Math.floor(Math.random() * players.length);
       setDealer(d);
-      startStackRef.current = buyin;
+      startStackRef.current = stack;
       recordedRef.current = false;
       setHistory([]);
       handNoRef.current = 1283;
-      setGame(startHand(players, d, SB, BB));
+      setGame(startHand(players, d, t.tier.sb, t.tier.bb));
       setHandKey((k) => k + 1);
       cashedRef.current = false;
       setPhase('playing');
@@ -168,7 +184,7 @@ export function PokerScreen() {
     setDealer(nd);
     startStackRef.current = game.players.find((p) => p.id === 'you')?.stack ?? 0;
     recordedRef.current = false;
-    setGame(startHand(game.players, nd, SB, BB));
+    setGame(startHand(game.players, nd, activeSB, activeBB));
     setHandKey((k) => k + 1);
   }
 
@@ -322,33 +338,19 @@ export function PokerScreen() {
     if (!game.handOver) setFly(null);
   }, [game?.handOver]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // ---------- Lobby (buy-in) ----------
+  // ---------- Lobby: casinos por Casa -> mesas ----------
   if (phase === 'lobby') {
     return (
-      <div style={{ minHeight: '100svh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '24px 18px', background: 'radial-gradient(120% 80% at 50% 30%, rgba(47,160,106,.10), transparent 60%), linear-gradient(180deg,#0d0e12,#0a0a0d)' }}>
-      <div style={{ maxWidth: 460, width: '100%', margin: '0 auto' }}>
-        <div style={{ fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e' }}>El Casino · Mesa</div>
-        <h1 className="page-title" style={{ margin: '6px 0 1rem' }}>Texas Hold’em</h1>
-        <div className="panel" style={{ borderColor: 'rgba(201,163,91,.35)' }}>
-          <p className="muted" style={{ marginTop: 0 }}>
-            Siéntate contra 8 jugadores de la Casa. Ciegas ⟡{SB}/⟡{BB}. Tu billetera:{' '}
-            <span className="aurelios">⟡ {wallet?.toLocaleString() ?? '—'}</span>
-          </p>
-          <label style={{ display: 'block', fontSize: 12, color: '#9c7a3e', letterSpacing: '.08em', margin: '8px 0 6px' }}>Buy-in (Aurelios)</label>
-          <input type="number" min={BB * 20} step={1000} value={buyin}
-            onChange={(e) => setBuyin(Math.max(BB * 20, Number(e.target.value)))}
-            style={{ width: '100%', padding: '12px 14px', background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 11, color: '#ece6d6', fontSize: 16 }} />
-          <div style={{ display: 'flex', gap: 8, marginTop: 10 }}>
-            {[5000, 10000, 40000].map((v) => (
-              <button key={v} onClick={() => setBuyin(v)} style={{ flex: 1, padding: '8px', borderRadius: 9, border: '1px solid rgba(201,163,91,.4)', background: buyin === v ? 'rgba(201,163,91,.2)' : 'transparent', color: '#ecd9a5', cursor: 'pointer', fontSize: 13 }}>⟡{v.toLocaleString()}</button>
-            ))}
-          </div>
-          {error && <p className="error">{error}</p>}
-          <button className="btn" onClick={sentarse} disabled={busy} style={{ marginTop: 16 }}>{busy ? 'Sentándote…' : 'Sentarse a la mesa'}</button>
-          <button onClick={() => navigate('/casino')} style={{ width: '100%', marginTop: 10, background: 'none', border: 'none', color: 'rgba(232,226,212,.5)', cursor: 'pointer' }}>← Volver al Casino</button>
-        </div>
-      </div>
-      </div>
+      <PokerLobby
+        houses={houses}
+        wallet={wallet}
+        lobbyHouse={lobbyHouse}
+        setLobbyHouse={setLobbyHouse}
+        busy={busy}
+        error={error}
+        onSit={sentarse}
+        onExit={() => navigate('/casino')}
+      />
     );
   }
 
@@ -363,8 +365,8 @@ export function PokerScreen() {
   const winnerIdx = game.handOver && game.winners[0] ? game.players.findIndex((p) => p.id === game.winners[0].id) : -1;
 
   // clamp raise slider
-  const minR = la ? la.minRaiseTo : BB * 2;
-  const maxR = la ? la.maxRaiseTo : BB * 2;
+  const minR = la ? la.minRaiseTo : activeBB * 2;
+  const maxR = la ? la.maxRaiseTo : activeBB * 2;
   const rAmt = Math.min(maxR, Math.max(minR, raiseAmt));
   const setPreset = (frac: number) => setRaiseAmt(Math.min(maxR, Math.max(minR, Math.round(game.currentBet + (game.pot + (la?.callAmount ?? 0)) * frac))));
 
@@ -422,7 +424,7 @@ export function PokerScreen() {
                 <button onClick={() => setPreset(1)} style={sizeBtn}>Bote</button>
                 <button onClick={() => setRaiseAmt(maxR)} style={{ ...sizeBtn, color: '#ecd9a5', background: 'rgba(201,163,91,.1)', border: '1px solid rgba(201,163,91,.35)' }}>Todo</button>
               </div>
-              <input type="range" min={minR} max={maxR} step={SB} value={rAmt}
+              <input type="range" min={minR} max={maxR} step={activeSB} value={rAmt}
                 onChange={(e) => setRaiseAmt(Number(e.target.value))}
                 style={{ flex: 1, minWidth: 120, accentColor: '#c9a35b' }} />
               <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 90, justifyContent: 'flex-end' }}>
@@ -463,7 +465,7 @@ export function PokerScreen() {
           <div style={{ width: 40, height: 40, borderRadius: 11, display: 'grid', placeItems: 'center', fontFamily: 'Marcellus,serif', fontSize: 18, color: '#eafff4', background: 'linear-gradient(160deg,#2fa06a,#16613f)' }}>{houseName.charAt(0)}</div>
           <div style={{ flex: 1 }}>
             <div style={{ fontFamily: 'Marcellus,serif', fontSize: 16, color: '#ece6d6' }}>Mesa de {houseName}</div>
-            <div style={{ fontSize: 11, color: 'rgba(232,226,212,.55)' }}>Texas Hold’em · Ciegas {SB}/{BB}</div>
+            <div style={{ fontSize: 11, color: 'rgba(232,226,212,.55)' }}>{table?.game.name ?? 'Texas Hold’em'} · Ciegas {activeSB}/{activeBB}</div>
           </div>
           <span style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#5fc795', border: '1px solid rgba(47,160,106,.4)', borderRadius: 999, padding: '4px 9px' }}>En juego</span>
         </div>
@@ -709,7 +711,7 @@ export function PokerScreen() {
                 {youHandLabel && <div style={{ fontSize: 9.5, letterSpacing: '.12em', textTransform: 'uppercase', color: '#7fb89a' }}>{youHandLabel}</div>}
                 {la.canRaise && (
                   <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: 7, alignItems: 'center' }}>
-                    <input type="range" min={minR} max={maxR} step={SB} value={rAmt}
+                    <input type="range" min={minR} max={maxR} step={activeSB} value={rAmt}
                       onChange={(e) => setRaiseAmt(Number(e.target.value))}
                       style={{ width: '100%', accentColor: '#c9a35b' }} />
                     <div style={{ display: 'flex', gap: 5, width: '100%' }}>
@@ -771,7 +773,7 @@ export function PokerScreen() {
             <div style={{ fontSize: 9, letterSpacing: '.32em', textTransform: 'uppercase', color: '#9c7a3e' }}>El Salón · Casa {houseName}</div>
             <div style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ece6d6' }}>Mesa de {houseName}</div>
           </div>
-          <div style={{ fontSize: 11, color: 'rgba(232,226,212,.45)', borderLeft: '1px solid rgba(255,255,255,.1)', paddingLeft: 13 }}>Ciegas {SB} / {BB}</div>
+          <div style={{ fontSize: 11, color: 'rgba(232,226,212,.45)', borderLeft: '1px solid rgba(255,255,255,.1)', paddingLeft: 13 }}>Ciegas {activeSB} / {activeBB}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <div style={chipPill}>
@@ -881,6 +883,150 @@ export function PokerScreen() {
     </div>
   );
 }
+
+// ============================================================
+// Lobby de póker: casinos por Casa -> mesas (con stakes y ocupación)
+// ============================================================
+interface PokerLobbyProps {
+  houses: House[];
+  wallet: number | null;
+  lobbyHouse: House | null;
+  setLobbyHouse: (h: House | null) => void;
+  busy: boolean;
+  error: string | null;
+  onSit: (t: PokerTable, h: House) => void;
+  onExit: () => void;
+}
+
+function PokerLobby({ houses, wallet, lobbyHouse, setLobbyHouse, busy, error, onSit, onExit }: PokerLobbyProps) {
+  const lobbyBg = 'radial-gradient(120% 80% at 50% 12%, rgba(47,160,106,.10), transparent 60%), linear-gradient(180deg,#0d0e12,#0a0a0d)';
+  const shortName = (h: House) => h.name.replace(/^Casa /, '');
+
+  // --- Vista 1: elegir Casa (casino) ---
+  if (!lobbyHouse) {
+    return (
+      <div style={{ minHeight: '100svh', padding: '28px 18px 48px', background: lobbyBg }}>
+        <div style={{ maxWidth: 920, margin: '0 auto' }}>
+          <button onClick={onExit} style={lobbyBack}>← Volver al Casino</button>
+          <div style={{ fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e', marginTop: 18 }}>El Casino · Salas de póker</div>
+          <h1 className="page-title" style={{ margin: '6px 0 4px' }}>Casinos por Casa</h1>
+          <p className="muted" style={{ marginTop: 0, maxWidth: 560 }}>
+            Cada Casa abre su propio salón de póker. Elige dónde sentarte. Tu billetera:{' '}
+            <span className="aurelios">⟡ {wallet?.toLocaleString() ?? '—'}</span>
+          </p>
+          {houses.length === 0 && <p className="muted">Cargando casinos…</p>}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 14, marginTop: 18 }}>
+            {houses.map((h) => {
+              const c = h.color_primary ?? '#c9a35b';
+              return (
+                <button key={h.id} onClick={() => setLobbyHouse(h)}
+                  style={{
+                    textAlign: 'left', cursor: 'pointer', padding: '18px 18px 16px', borderRadius: 16,
+                    background: `linear-gradient(160deg, ${c}1f, rgba(255,255,255,.015))`,
+                    border: `1px solid ${c}66`, boxShadow: `0 18px 40px -26px ${c}, inset 0 0 0 1px rgba(255,255,255,.02)`,
+                    color: '#ece6d6', display: 'flex', flexDirection: 'column', gap: 10,
+                  }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div style={{ width: 46, height: 46, borderRadius: 13, flex: '0 0 auto', display: 'grid', placeItems: 'center', fontFamily: 'Marcellus,serif', fontSize: 22, color: '#fff', background: `linear-gradient(160deg, ${c}, ${c}99)`, boxShadow: `0 0 16px -2px ${c}` }}>{shortName(h).charAt(0)}</div>
+                    <div>
+                      <div style={{ fontFamily: 'Marcellus,serif', fontSize: 19 }}>{shortName(h)}</div>
+                      <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.5)' }}>{h.city}</div>
+                    </div>
+                  </div>
+                  {h.motto && <div style={{ fontSize: 12, fontStyle: 'italic', color: 'rgba(232,226,212,.6)', lineHeight: 1.45, fontFamily: "'Cormorant Garamond',serif" }}>“{h.motto}”</div>}
+                  <div style={{ marginTop: 'auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span style={{ fontSize: 10, letterSpacing: '.16em', textTransform: 'uppercase', color: c }}>Ver mesas</span>
+                    <span style={{ color: c, fontSize: 18 }}>›</span>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // --- Vista 2: mesas del casino elegido ---
+  const c = lobbyHouse.color_primary ?? '#c9a35b';
+  const name = shortName(lobbyHouse);
+  const tables = tablesForHouse(lobbyHouse.code);
+  return (
+    <div style={{ minHeight: '100svh', padding: '28px 18px 48px', background: lobbyBg }}>
+      <div style={{ maxWidth: 760, margin: '0 auto' }}>
+        <button onClick={() => setLobbyHouse(null)} style={lobbyBack}>← Casinos por Casa</button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 18 }}>
+          <div style={{ width: 50, height: 50, borderRadius: 14, flex: '0 0 auto', display: 'grid', placeItems: 'center', fontFamily: 'Marcellus,serif', fontSize: 24, color: '#fff', background: `linear-gradient(160deg, ${c}, ${c}99)`, boxShadow: `0 0 18px -2px ${c}` }}>{name.charAt(0)}</div>
+          <div>
+            <div style={{ fontSize: 10.5, letterSpacing: '.3em', textTransform: 'uppercase', color: c }}>Salón de póker</div>
+            <h1 className="page-title" style={{ margin: '2px 0 0' }}>Casino {name}</h1>
+            <div style={{ fontSize: 12.5, color: 'rgba(232,226,212,.5)' }}>{lobbyHouse.city} · Billetera ⟡ {wallet?.toLocaleString() ?? '—'}</div>
+          </div>
+        </div>
+
+        {error && <p className="error" style={{ marginTop: 14 }}>{error}</p>}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 20 }}>
+          {tables.map((t) => {
+            const seated = seatedCount(t.id, t.tier.maxSeats);
+            const playable = t.game.playable;
+            const tooPoor = playable && (wallet ?? 0) < t.tier.buyin;
+            const disabled = !playable || busy || tooPoor;
+            return (
+              <div key={t.id}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 14, padding: '14px 16px', borderRadius: 14,
+                  background: playable ? `linear-gradient(160deg, ${c}14, rgba(255,255,255,.012))` : 'rgba(255,255,255,.02)',
+                  border: `1px solid ${playable ? `${c}4d` : 'rgba(255,255,255,.07)'}`,
+                  opacity: playable ? 1 : 0.62,
+                }}>
+                {/* tipo de juego */}
+                <div style={{ flex: '0 0 auto', width: 48, textAlign: 'center' }}>
+                  <div style={{ fontFamily: 'Marcellus,serif', fontSize: 15, color: playable ? c : 'rgba(232,226,212,.55)', border: `1px solid ${playable ? `${c}66` : 'rgba(255,255,255,.12)'}`, borderRadius: 8, padding: '4px 0' }}>{t.game.label}</div>
+                </div>
+                {/* detalles */}
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'Marcellus,serif', fontSize: 16, color: '#ece6d6' }}>
+                    {t.game.name} · {t.tier.name}
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px 14px', marginTop: 3, fontSize: 12, color: 'rgba(232,226,212,.62)' }}>
+                    <span>Ciegas <b style={{ color: '#ecd9a5', fontWeight: 600 }}>{t.tier.sb}/{t.tier.bb}</b></span>
+                    <span>Buy-in <b style={{ color: '#ecd9a5', fontWeight: 600 }}>⟡{t.tier.buyin.toLocaleString()}</b></span>
+                    <span>Asientos <b style={{ color: '#ecd9a5', fontWeight: 600 }}>{seated}/{t.tier.maxSeats}</b></span>
+                  </div>
+                  {tooPoor && <div style={{ fontSize: 11, color: '#e0937f', marginTop: 3 }}>Saldo insuficiente para esta mesa</div>}
+                </div>
+                {/* acción */}
+                <div style={{ flex: '0 0 auto' }}>
+                  {playable ? (
+                    <button onClick={() => onSit(t, lobbyHouse)} disabled={disabled}
+                      style={{
+                        padding: '10px 18px', borderRadius: 11, border: 'none', cursor: disabled ? 'default' : 'pointer',
+                        fontWeight: 700, fontSize: 13.5, color: '#2c2415',
+                        background: disabled ? 'rgba(201,163,91,.35)' : 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)',
+                        opacity: disabled && !busy ? 0.55 : 1,
+                        boxShadow: disabled ? 'none' : '0 12px 26px -12px rgba(201,163,91,.6)',
+                      }}>
+                      {busy ? '…' : 'Sentarse'}
+                    </button>
+                  ) : (
+                    <span style={{ fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', color: '#bfa164', border: '1px solid rgba(201,163,91,.3)', borderRadius: 999, padding: '6px 11px', whiteSpace: 'nowrap' }}>Próximamente</span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <p style={{ textAlign: 'center', fontSize: 11, color: 'rgba(232,226,212,.32)', margin: '22px 0 0' }}>
+          Solo Aurelios (fichas de fantasía). Nunca dinero real. +18.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const lobbyBack: React.CSSProperties = { background: 'none', border: 'none', color: 'rgba(232,226,212,.55)', cursor: 'pointer', fontSize: 13, padding: 0 };
 
 // ============================================================
 // Subcomponentes
