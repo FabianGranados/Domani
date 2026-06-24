@@ -446,6 +446,10 @@ th { color: var(--muted); font-weight: 500; }
   from { transform: translateY(100%); opacity: .4; }
   to   { transform: translateY(0);    opacity: 1;  }
 }
+@keyframes domDrawerRight {
+  from { transform: translateX(100%); }
+  to   { transform: translateX(0); }
+}
 @keyframes domDeal {
   from { opacity: 0; transform: translate(var(--dx,0), var(--dy,-40px)) scale(.4) rotate(var(--dr,0deg)); }
   to   { opacity: 1; transform: translate(0,0) scale(1) rotate(0deg); }
