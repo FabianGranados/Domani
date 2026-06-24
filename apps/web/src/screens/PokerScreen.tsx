@@ -208,13 +208,17 @@ export function PokerScreen() {
   }
 
   async function levantarse() {
-    if (cashedRef.current) { navigate('/casino'); return; }
-    cashedRef.current = true;
-    const youStack = game?.players.find((p) => p.id === 'you')?.stack ?? 0;
-    try { await pokerCashout(youStack); await refreshProfile(); } catch { /* noop */ }
+    if (!cashedRef.current) {
+      cashedRef.current = true;
+      const youStack = game?.players.find((p) => p.id === 'you')?.stack ?? 0;
+      try { const bal = await pokerCashout(youStack); setWallet(bal); await refreshProfile(); } catch { /* noop */ }
+    }
     try { (screen.orientation as unknown as { unlock: () => void }).unlock(); } catch { /* not supported */ }
     try { if (document.fullscreenElement) await document.exitFullscreen?.(); } catch { /* noop */ }
-    navigate('/casino');
+    // Salir de la mesa vuelve al LOBBY de mesas (no al Casino). Desde el lobby
+    // el usuario puede salir al Salón si quiere.
+    setGame(null);
+    setPhase('lobby');
   }
 
   function nextHand() {
@@ -278,9 +282,9 @@ export function PokerScreen() {
       const idx = (game.dealer + k) % np;
       if (!game.players[idx].folded) order.push(idx);
     }
-    const STEP = reduce ? 0 : 60;        // ms entre cartas
-    const FLIGHT = reduce ? 0 : 420;     // duración del vuelo
-    const FLIP = reduce ? 0 : 460;       // duración del volteo del héroe
+    const STEP = reduce ? 0 : 120;       // ms entre cartas (más lento: se nota mejor)
+    const FLIGHT = reduce ? 0 : 820;     // duración del vuelo
+    const FLIP = reduce ? 0 : 820;       // duración del volteo del héroe
     const cards: FlyingCard[] = [];
     let n = 0;
     for (let ci = 0; ci < 2; ci++) {
