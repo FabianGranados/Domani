@@ -9,7 +9,7 @@ import {
 } from '../lib/poker';
 import type { House } from '../lib/types';
 import {
-  STAKE_LADDER, tablesForHouse, seatedCount,
+  STAKE_LADDER, tablesForHouse, seatedCount, tableRoster,
   type PokerTable, type StakeTierId,
 } from '../lib/pokerTables';
 import { Carousel } from '../components/Carousel';
@@ -1076,6 +1076,30 @@ function PokerLobby({ houses, wallet, lobbyHouse, setLobbyHouse, busy, error, on
                     <span>Buy-in <b style={{ color: '#ecd9a5', fontWeight: 600 }}>⟡{t.tier.buyin.toLocaleString()}</b></span>
                     <span>Asientos <b style={{ color: '#ecd9a5', fontWeight: 600 }}>{seated}/{t.tier.maxSeats}</b></span>
                   </div>
+                  {playable && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 7 }}>
+                      <div style={{ display: 'flex' }}>
+                        {tableRoster(t.id, Math.min(5, seated)).map((cz, i) => (
+                          <div
+                            key={cz.name}
+                            title={cz.name}
+                            style={{
+                              width: 22, height: 22, borderRadius: '50%', marginLeft: i === 0 ? 0 : -7,
+                              display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 700,
+                              fontFamily: 'Marcellus,serif', color: '#15131c',
+                              background: `linear-gradient(160deg, ${cz.color}, ${cz.color}aa)`,
+                              border: '1.5px solid #15131c', zIndex: 5 - i,
+                            }}
+                          >
+                            {cz.name.charAt(0)}
+                          </div>
+                        ))}
+                      </div>
+                      <span style={{ fontSize: 11, color: 'rgba(232,226,212,.5)' }}>
+                        {seated > 5 ? `+${seated - 5} jugando` : 'en la mesa'}
+                      </span>
+                    </div>
+                  )}
                   {tooPoor && <div style={{ fontSize: 11, color: '#e0937f', marginTop: 3 }}>Saldo insuficiente para esta mesa</div>}
                 </div>
                 {/* acción */}

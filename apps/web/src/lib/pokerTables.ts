@@ -83,3 +83,41 @@ export function seatedCount(tableId: string, maxSeats: number): number {
   // Entre 1 y maxSeats-1 (nunca vacía del todo, nunca llena: siempre hay sitio).
   return 1 + (h % Math.max(1, maxSeats - 1));
 }
+
+// --- Ciudadanos sentados (cosmético, determinista) ------------------------
+// PLACEHOLDER hasta que exista el sistema real de ciudadanos: poblamos cada
+// mesa con vecinos plausibles y ESTABLES (no parpadean) derivados del id.
+// Son personas "normales" (sin famosos), en línea con la dirección de avatares.
+const CITIZEN_NAMES = [
+  'Diego', 'Valentina', 'Mateo', 'Camila', 'Tomás', 'Lucía', 'Bruno', 'Renata',
+  'Iván', 'Sofía', 'Nicolás', 'Elena', 'Marco', 'Paula', 'Andrés', 'Daniela',
+  'Joaquín', 'Carla', 'Emilio', 'Rosa', 'Hugo', 'Ariana', 'Felipe', 'Noa',
+  'Gael', 'Irene', 'Samuel', 'Olivia', 'Darío', 'Mara', 'Teo', 'Vera',
+  'Kenji', 'Severo', 'Dunia', 'Vael', 'Mira', 'Tobías', 'Nadia', 'Cosme',
+];
+const CITIZEN_COLORS = [
+  '#b9c2cc', '#2fa06a', '#c4514c', '#c8814a', '#3f9d8a', '#9aa3ad', '#d8a93f', '#7c6ff0',
+];
+
+export interface Citizen {
+  name: string;
+  color: string;
+}
+
+// Devuelve `count` ciudadanos distintos, estables para un mismo tableId.
+export function tableRoster(tableId: string, count: number): Citizen[] {
+  let h = 0;
+  for (let i = 0; i < tableId.length; i++) {
+    h = (h * 33 + tableId.charCodeAt(i)) >>> 0;
+  }
+  const out: Citizen[] = [];
+  const seen = new Set<number>();
+  let idx = h % CITIZEN_NAMES.length;
+  for (let i = 0; out.length < count && i < CITIZEN_NAMES.length; i++) {
+    idx = (idx + 7) % CITIZEN_NAMES.length; // paso coprimo con 40 -> recorre todo
+    if (seen.has(idx)) continue;
+    seen.add(idx);
+    out.push({ name: CITIZEN_NAMES[idx], color: CITIZEN_COLORS[idx % CITIZEN_COLORS.length] });
+  }
+  return out;
+}
