@@ -136,6 +136,69 @@ export async function pokerCashout(amount: number): Promise<number> {
   return data as number;
 }
 
+// --- Domanibank: línea de crédito (cupo/préstamo/repago, todo server-side) ---
+export interface Loan {
+  id: string;
+  principal: number;
+  interest_bps: number;
+  total_due: number;
+  outstanding: number;
+  term_days: number;
+  due_date: string;
+  status: 'active' | 'paid';
+  opened_at: string;
+}
+
+export async function getActiveLoan(userId: string): Promise<Loan | null> {
+  const { data, error } = await supabase
+    .from('loans')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .maybeSingle();
+  if (error) throw error;
+  return (data as Loan) ?? null;
+}
+
+export interface CreditQuote {
+  cupo: number;
+  has_active_loan: boolean;
+  interest_bps: number;
+  term_days: number;
+}
+
+export async function bankCreditQuote(): Promise<CreditQuote> {
+  const { data, error } = await supabase.rpc('bank_credit_quote');
+  if (error) throw error;
+  return (data as CreditQuote[])[0];
+}
+
+export interface TakeLoanResult {
+  loan_id: string;
+  total_due: number;
+  outstanding: number;
+  due_date: string;
+  balance: number;
+}
+
+export async function bankTakeLoan(principal: number): Promise<TakeLoanResult> {
+  const { data, error } = await supabase.rpc('bank_take_loan', { p_principal: principal });
+  if (error) throw error;
+  return (data as TakeLoanResult[])[0];
+}
+
+export interface RepayResult {
+  outstanding: number;
+  status: 'active' | 'paid';
+  balance: number;
+}
+
+export async function bankRepay(amount: number): Promise<RepayResult> {
+  const { data, error } = await supabase.rpc('bank_repay', { p_amount: amount });
+  if (error) throw error;
+  return (data as RepayResult[])[0];
+}
+
 // --- Millonaurelios: concurso de escalera (premios reales server-side) ---
 // El cliente NUNCA recibe correct_index (lo bloquea un column-grant en la DB):
 // el servidor califica cada respuesta y acredita el premio.
