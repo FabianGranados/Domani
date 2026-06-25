@@ -136,6 +136,44 @@ export async function pokerCashout(amount: number): Promise<number> {
   return data as number;
 }
 
+// --- Estado del día (para el Escritorio) ---------------------------------
+// ¿Ya reclamó la Renta hoy? Comparamos la última fecha con HOY (UTC, igual
+// que el default current_date del servidor).
+export async function getRentaClaimedToday(userId: string): Promise<boolean> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from('renta_claims')
+    .select('claim_date')
+    .eq('user_id', userId)
+    .order('claim_date', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  return data?.[0]?.claim_date === today;
+}
+
+export interface MillonToday {
+  status: 'in_progress' | 'won' | 'busted' | 'retired';
+  correct_count: number;
+  prize: number;
+}
+
+// Partida de hoy si existe (null = aún no ha jugado hoy).
+export async function getMillonToday(userId: string): Promise<MillonToday | null> {
+  const today = new Date().toISOString().slice(0, 10);
+  const { data, error } = await supabase
+    .from('millonaurelios_plays')
+    .select('status, correct_count, prize, play_date')
+    .eq('user_id', userId)
+    .order('play_date', { ascending: false })
+    .limit(1);
+  if (error) throw error;
+  const row = data?.[0] as { status: MillonToday['status']; correct_count: number; prize: number; play_date: string } | undefined;
+  if (row && row.play_date === today) {
+    return { status: row.status, correct_count: row.correct_count, prize: row.prize };
+  }
+  return null;
+}
+
 // --- Domanibank: línea de crédito (cupo/préstamo/repago, todo server-side) ---
 export interface Loan {
   id: string;
