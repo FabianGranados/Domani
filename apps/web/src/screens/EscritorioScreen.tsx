@@ -82,7 +82,7 @@ export function EscritorioScreen() {
       key: 'banco',
       label: 'Banco',
       title: 'Domanibank',
-      subtitle: `⟡ ${balance ?? '—'}`,
+      subtitle: `⟡ ${balance != null ? balance.toLocaleString() : '—'}`,
       img: '/assets/emblema-aurelio.webp',
       to: '/banco',
     },
@@ -151,7 +151,7 @@ export function EscritorioScreen() {
           </h1>
           <div style={vitalsRow}>
             <span style={vitalPill} title="Aurelios (moneda de fantasía)">
-              <span style={{ color: '#e3c75a' }}>⟡</span> {balance ?? '—'}
+              <span style={{ color: '#e3c75a' }}>⟡</span> {balance != null ? balance.toLocaleString() : '—'}
             </span>
             <span style={vitalSep} aria-hidden>·</span>
             <span style={vitalPlain}>
