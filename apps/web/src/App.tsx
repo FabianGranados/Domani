@@ -5,6 +5,9 @@ import { LandingScreen } from './screens/LandingScreen';
 import { LoginScreen } from './screens/LoginScreen';
 import { OnboardingScreen } from './screens/OnboardingScreen';
 import { SalonScreen } from './screens/SalonScreen';
+import { EscritorioScreen } from './screens/EscritorioScreen';
+import { MichatScreen } from './screens/MichatScreen';
+import { DomanibankScreen } from './screens/DomanibankScreen';
 import { CasinoScreen } from './screens/CasinoScreen';
 import { PokerScreen } from './screens/PokerScreen';
 import { TesseraScreen } from './screens/TesseraScreen';
@@ -75,7 +78,10 @@ function AppRoutes({ loading, session, profile }: AppRoutesProps) {
         element={
           <Layout>
             <Routes>
-              <Route path="/" element={<SalonScreen />} />
+              <Route path="/" element={<EscritorioScreen />} />
+              <Route path="/casas" element={<SalonScreen />} />
+              <Route path="/michat" element={<MichatScreen />} />
+              <Route path="/banco" element={<DomanibankScreen />} />
               <Route path="/tessera" element={<TesseraScreen />} />
               <Route path="/casino" element={<CasinoScreen />} />
               <Route path="/wallet" element={<WalletScreen />} />
