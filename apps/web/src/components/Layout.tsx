@@ -5,7 +5,8 @@ import { getWallet } from '../lib/api';
 import { Isologo } from './Isologo';
 
 const NAV = [
-  { to: '/', label: 'El Salón', end: true },
+  { to: '/', label: 'Inicio', end: true },
+  { to: '/casas', label: 'Las Casas' },
   { to: '/tessera', label: 'Tessera' },
   { to: '/wallet', label: 'Billetera' },
   { to: '/casino', label: 'El Casino' },
