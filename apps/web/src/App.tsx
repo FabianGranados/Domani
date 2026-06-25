@@ -17,6 +17,7 @@ import { AcademyScreen } from './screens/AcademyScreen';
 import { RouletteScreen } from './screens/RouletteScreen';
 import { LobbyScreen } from './screens/LobbyScreen';
 import { IosInstallHint } from './components/IosInstallHint';
+import { FloatingMichat } from './components/FloatingMichat';
 
 export default function App() {
   const { loading, session, profile } = useAuth();
@@ -25,6 +26,7 @@ export default function App() {
     <>
       <IosInstallHint />
       <AppRoutes loading={loading} session={session} profile={profile} />
+      {!loading && session && profile && <FloatingMichat />}
     </>
   );
 }

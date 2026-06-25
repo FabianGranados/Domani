@@ -130,7 +130,6 @@ export function EscritorioScreen() {
   const progress = nextMs ? Math.min(1, (influence - prevMs) / (nextMs - prevMs)) : 1;
 
   const millonPlayed = millon && millon.status !== 'in_progress';
-  const michatUnread = 1 + 2 + 1 + (loan ? 1 : 0); // refleja los no leídos de Michat
 
   const daysToDue = loan ? Math.max(0, Math.ceil((new Date(loan.due_date).getTime() - Date.now()) / 86400000)) : 0;
 
@@ -235,15 +234,6 @@ export function EscritorioScreen() {
       {/* ════════ ZONA 3 · TUS APPS ════════ */}
       <SectionTitle title="Tus apps" hint="Todo a un toque" />
       <div style={appsGrid}>
-        <AppTile
-          to="/michat"
-          img="/assets/consigliere.webp"
-          label="Mensajería"
-          title="Michat"
-          value={michatUnread > 0 ? `${michatUnread} sin leer` : 'Al día'}
-          valueColor="#ecd9a5"
-          badge={michatUnread > 0 ? String(michatUnread) : undefined}
-        />
         <AppTile
           to="/casino"
           img="/assets/casino-mesa.webp"
