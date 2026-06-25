@@ -108,11 +108,9 @@ export function EscritorioScreen() {
       key: 'millon',
       label: 'Concurso',
       title: 'Millonaurelios',
-      subtitle: 'Próximamente',
+      subtitle: 'Trivia · premio diario',
       img: '/assets/bar-vip.webp',
-      to: null,
-      locked: true,
-      lockedText: 'Próximamente',
+      to: '/millonaurelios',
     },
     {
       key: 'circulo',

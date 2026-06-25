@@ -136,6 +136,81 @@ export async function pokerCashout(amount: number): Promise<number> {
   return data as number;
 }
 
+// --- Millonaurelios: concurso de escalera (premios reales server-side) ---
+// El cliente NUNCA recibe correct_index (lo bloquea un column-grant en la DB):
+// el servidor califica cada respuesta y acredita el premio.
+export interface MillonQuestion {
+  id: string;
+  step: number;
+  prompt: string;
+  options: string[];
+  category: string;
+}
+
+export async function getMillonQuestions(): Promise<MillonQuestion[]> {
+  const { data, error } = await supabase
+    .from('millonaurelios_questions')
+    .select('id, step, prompt, options, category')
+    .eq('is_active', true)
+    .order('step');
+  if (error) throw error;
+  return (data ?? []).map((q) => ({
+    id: q.id as string,
+    step: q.step as number,
+    prompt: q.prompt as string,
+    options: (q.options as string[]) ?? [],
+    category: q.category as string,
+  }));
+}
+
+export interface MillonPlay {
+  play_id: string;
+  status: 'in_progress' | 'won' | 'busted' | 'retired';
+  correct_count: number;
+  prize: number;
+}
+
+export async function startMillon(): Promise<MillonPlay> {
+  const { data, error } = await supabase.rpc('millonaurelios_start');
+  if (error) throw error;
+  return (data as MillonPlay[])[0];
+}
+
+export interface MillonAnswerResult {
+  is_correct: boolean;
+  correct_index: number;
+  status: 'in_progress' | 'won' | 'busted' | 'retired';
+  banked: number;        // premio asegurado tras responder
+  prize_awarded: number; // Aurelios acreditados (solo si terminó)
+  balance: number;
+}
+
+export async function answerMillon(
+  playId: string,
+  questionId: string,
+  chosenIndex: number
+): Promise<MillonAnswerResult> {
+  const { data, error } = await supabase.rpc('millonaurelios_answer', {
+    p_play_id: playId,
+    p_question_id: questionId,
+    p_chosen_index: chosenIndex,
+  });
+  if (error) throw error;
+  return (data as MillonAnswerResult[])[0];
+}
+
+export interface MillonRetireResult {
+  prize: number;
+  correct_count: number;
+  balance: number;
+}
+
+export async function retireMillon(playId: string): Promise<MillonRetireResult> {
+  const { data, error } = await supabase.rpc('millonaurelios_retire', { p_play_id: playId });
+  if (error) throw error;
+  return (data as MillonRetireResult[])[0];
+}
+
 // --- Lobby vivo: jugadores (incluye bots is_bot=true) para "que se sienta lleno"
 export interface LobbyPlayer {
   id: string;
