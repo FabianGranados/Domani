@@ -570,11 +570,14 @@ const placeholderBox: React.CSSProperties = {
 
 const circuloBar: React.CSSProperties = {
   position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-  gap: 12, marginTop: 26, padding: '16px 18px', borderRadius: 16,
-  border: '1px solid rgba(201,163,91,.25)', background: 'linear-gradient(120deg,#0c0a12,#15121d 50%,#0c0a12)',
+  gap: 12, marginTop: 26, padding: '18px 18px', borderRadius: 16, minHeight: 104,
+  border: '1px solid rgba(201,163,91,.25)',
+  backgroundImage: "url('/assets/circulo.webp')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#0c0a12',
 };
+// Velo oscuro para mantener legible el texto y el misterio.
 const circuloShine: React.CSSProperties = {
-  position: 'absolute', inset: 0, background: 'linear-gradient(105deg, transparent 40%, rgba(201,163,91,.08) 50%, transparent 60%)',
+  position: 'absolute', inset: 0,
+  background: 'linear-gradient(90deg, rgba(8,7,11,.94) 0%, rgba(8,7,11,.5) 42%, rgba(8,7,11,.55) 72%, rgba(8,7,11,.9) 100%)',
 };
 const circuloPill: React.CSSProperties = {
   flex: '0 0 auto', fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700,
