@@ -41,7 +41,7 @@ export function PremiumCards({
   return (
     <Carousel>
       {/* ===== ORO · Tessera ===== */}
-      <div style={cardBox(1.585)}>
+      <div style={cardBox(CARD_ASPECT)}>
         <img src="/assets/card-tessera.webp" alt="" style={art} />
         <div style={{ ...overlay, justifyContent: 'flex-end' }}>
           <div style={aliasGold}>{alias}</div>
@@ -59,7 +59,7 @@ export function PremiumCards({
       </div>
 
       {/* ===== PLATINO · Billetera ===== */}
-      <div style={cardBox(1.516)}>
+      <div style={cardBox(CARD_ASPECT)}>
         <img src="/assets/card-billetera.webp" alt="" style={art} />
         <div style={overlay}>
           <div style={miniLabelDark}>Tu billetera</div>
@@ -74,9 +74,12 @@ export function PremiumCards({
       </div>
 
       {/* ===== OBSIDIANA · Ascenso ===== */}
-      <div style={cardBox(1.883)}>
+      {/* El arte morado se reprocesó con padding transparente arriba/abajo para
+          igualar el aspecto común (~1.585). El padding extra vertical del overlay
+          mantiene el texto sobre el arte visible de la tarjeta. */}
+      <div style={cardBox(CARD_ASPECT)}>
         <img src="/assets/card-ascenso.webp" alt="" style={art} />
-        <div style={{ ...overlay, justifyContent: 'flex-start' }}>
+        <div style={{ ...overlay, justifyContent: 'flex-start', padding: '21px 15px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={miniLabelGold}>Tu ascenso</div>
@@ -92,7 +95,11 @@ export function PremiumCards({
 }
 
 // ---- estilos ----
-// La tarjeta es el arte (con su marco). Aspect = al del arte para no recortar.
+// Las 3 tarjetas usan el MISMO aspecto para verse simétricas (mismo ancho y alto).
+// El arte morado (card-ascenso) se reprocesó con padding transparente vertical
+// para igualar este aspecto sin recortar su marco; oro y plata ya estaban cerca.
+const CARD_ASPECT = 1.585;
+// La tarjeta es el arte (con su marco). Aspect común para fila uniforme.
 function cardBox(aspect: number): React.CSSProperties {
   return {
     position: 'relative', flex: '0 0 auto',
