@@ -37,6 +37,29 @@ export async function chooseHouse(houseCode: string): Promise<Profile> {
   return data as Profile;
 }
 
+// --- Mudanza (cambiar de ciudad): 1ª gratis, luego 10% del patrimonio con
+// escalada y enfriamiento. Todo server-side (impuesto = sumidero). ---
+export interface MudanzaQuote {
+  is_free: boolean;
+  fee_pct: number;
+  fee: number;
+  days_left: number;
+  balance: number;
+  current: boolean;
+  can_move: boolean;
+}
+export async function getMudanzaQuote(houseCode: string): Promise<MudanzaQuote> {
+  const { data, error } = await supabase.rpc('mudanza_quote', { p_house_code: houseCode });
+  if (error) throw error;
+  return (data as MudanzaQuote[])[0];
+}
+export interface MudanzaResult { house_code: string; fee: number; fee_pct: number; balance: number; }
+export async function mudarse(houseCode: string): Promise<MudanzaResult> {
+  const { data, error } = await supabase.rpc('mudarse', { p_house_code: houseCode });
+  if (error) throw error;
+  return (data as MudanzaResult[])[0];
+}
+
 export async function getWallet(userId: string): Promise<Wallet | null> {
   const { data, error } = await supabase
     .from('wallets')

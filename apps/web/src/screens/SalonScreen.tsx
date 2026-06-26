@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { chooseHouse, claimRenta, getWallet, listHouses } from '../lib/api';
+import { claimRenta, getWallet, listHouses, getMudanzaQuote, mudarse, type MudanzaQuote } from '../lib/api';
 import type { House } from '../lib/types';
 import { ValenteIntro, valenteSeen } from '../components/ValenteIntro';
 import { Carousel } from '../components/Carousel';
@@ -42,8 +42,12 @@ export function SalonScreen() {
   const [rentaMsg, setRentaMsg] = useState<string | null>(null);
   const [rentaErr, setRentaErr] = useState<string | null>(null);
   const [rentaBusy, setRentaBusy] = useState(false);
-  const [houseBusy, setHouseBusy] = useState<string | null>(null);
   const [showValente, setShowValente] = useState(false);
+  // Mudanza
+  const [mudTarget, setMudTarget] = useState<House | null>(null);
+  const [mudQuote, setMudQuote] = useState<MudanzaQuote | null>(null);
+  const [mudBusy, setMudBusy] = useState(false);
+  const [mudErr, setMudErr] = useState<string | null>(null);
 
   useEffect(() => {
     if (user) getWallet(user.id).then((w) => setBalance(w?.balance ?? 0));
@@ -75,14 +79,22 @@ export function SalonScreen() {
     }
   }
 
-  async function pickHouse(code: string) {
-    setHouseBusy(code);
+  async function openMudanza(h: House) {
+    setMudTarget(h); setMudQuote(null); setMudErr(null);
+    try { setMudQuote(await getMudanzaQuote(h.code)); }
+    catch { setMudErr('No se pudo calcular la mudanza.'); }
+  }
+  async function confirmMudanza() {
+    if (!mudTarget) return;
+    setMudBusy(true); setMudErr(null);
     try {
-      await chooseHouse(code);
+      const r = await mudarse(mudTarget.code);
+      setBalance(r.balance);
       await refreshProfile();
-    } finally {
-      setHouseBusy(null);
-    }
+      setMudTarget(null); setMudQuote(null);
+    } catch (e) {
+      setMudErr(e instanceof Error ? e.message : 'No se pudo completar la mudanza.');
+    } finally { setMudBusy(false); }
   }
 
   return (
@@ -234,8 +246,8 @@ export function SalonScreen() {
                 <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' }}>{h.city}</div>
                 <div style={{ fontFamily: 'Marcellus,serif', fontSize: 21, color: '#f3eddd', margin: '2px 0 10px' }}>{h.name.replace(/^Casa /, '')}</div>
                 {!isMine && (
-                  <button onClick={() => pickHouse(h.code)} disabled={!!houseBusy} style={{ ...btnBase, ...btnGoldStyle, opacity: houseBusy ? 0.6 : 1 }}>
-                    {houseBusy === h.code ? 'Uniéndote…' : 'Luchar por ella'}
+                  <button onClick={() => openMudanza(h)} disabled={mudBusy} style={{ ...btnBase, ...btnGoldStyle, opacity: mudBusy ? 0.6 : 1 }}>
+                    Mudarme aquí
                   </button>
                 )}
               </div>
@@ -243,12 +255,52 @@ export function SalonScreen() {
           );
         })}
       </Carousel>
+
+      {/* ===== Modal de mudanza ===== */}
+      {mudTarget && (
+        <div style={mudOverlay} onClick={() => !mudBusy && setMudTarget(null)}>
+          <div style={mudCard} onClick={(e) => e.stopPropagation()}>
+            <div style={{ fontSize: 11, letterSpacing: '.3em', textTransform: 'uppercase', color: '#9c7a3e' }}>Mudanza</div>
+            <h3 style={{ fontFamily: 'Marcellus,serif', fontSize: 24, color: '#f3eddd', margin: '6px 0 8px' }}>
+              Mudarte a {mudTarget.name.replace(/^Casa /, '')}
+            </h3>
+            {!mudQuote ? (
+              <p className="muted">Calculando costo…</p>
+            ) : mudQuote.current ? (
+              <p className="muted">Ya vives aquí.</p>
+            ) : (
+              <>
+                {mudQuote.is_free ? (
+                  <p style={{ color: '#7ee0a6', fontWeight: 700 }}>Tu primera mudanza es GRATIS.</p>
+                ) : (
+                  <p style={{ color: 'rgba(232,226,212,.82)', lineHeight: 1.5 }}>
+                    Impuesto de mudanza: <b style={{ color: '#ecd9a5' }}>⟡ {mudQuote.fee.toLocaleString('es-CO')}</b>
+                    {' '}({Math.round(mudQuote.fee_pct * 100)}% de tu patrimonio). Se paga a Hacienda.
+                  </p>
+                )}
+                {mudQuote.days_left > 0 && <p style={{ color: '#ffb4b4' }}>En enfriamiento: disponible en {mudQuote.days_left} días.</p>}
+                {!mudQuote.is_free && mudQuote.balance < mudQuote.fee && <p style={{ color: '#ffb4b4' }}>Saldo insuficiente.</p>}
+              </>
+            )}
+            {mudErr && <p style={{ color: '#ff8a8a', fontSize: 13, marginTop: 4 }}>{mudErr}</p>}
+            <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
+              <button onClick={() => setMudTarget(null)} disabled={mudBusy} style={mudGhost}>Cancelar</button>
+              <button onClick={confirmMudanza} disabled={mudBusy || !mudQuote?.can_move} style={{ ...btnBase, ...btnGoldStyle, flex: 1, opacity: mudBusy || !mudQuote?.can_move ? 0.5 : 1 }}>
+                {mudBusy ? 'Mudándote…' : mudQuote?.is_free ? 'Mudarme gratis' : 'Pagar y mudarme'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
 // ---- estilos ----
 const sectionTitle: React.CSSProperties = { fontFamily: "'Cormorant Garamond',serif", fontSize: 30, margin: 0, color: '#ece6d6' };
+const mudOverlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(6,5,9,.72)', backdropFilter: 'blur(4px)', display: 'grid', placeItems: 'center', padding: 20 };
+const mudCard: React.CSSProperties = { width: '100%', maxWidth: 380, background: 'linear-gradient(180deg,#1a1722,#120f19)', border: '1px solid rgba(201,163,91,.28)', borderRadius: 18, padding: '22px 22px 20px', boxShadow: '0 30px 80px -30px rgba(0,0,0,.9)' };
+const mudGhost: React.CSSProperties = { padding: '11px 16px', borderRadius: 11, border: '1px solid rgba(255,255,255,.14)', background: 'transparent', color: 'rgba(232,226,212,.8)', fontSize: 14, cursor: 'pointer', fontFamily: "'Hanken Grotesk',sans-serif" };
 const ghostBtn: React.CSSProperties = { padding: '10px 18px', borderRadius: 11, border: '1px solid rgba(201,163,91,.45)', background: 'rgba(8,8,10,.35)', color: '#d8b96b', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: "'Hanken Grotesk',sans-serif" };
 const salaCard: React.CSSProperties = { position: 'relative', flex: '0 0 auto', width: 270, height: 320, borderRadius: 18, overflow: 'hidden', border: '1px solid rgba(201,163,91,.2)', boxShadow: '0 18px 40px -22px rgba(0,0,0,.8)' };
 const salaImg: React.CSSProperties = { position: 'absolute', inset: 0, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c' };
