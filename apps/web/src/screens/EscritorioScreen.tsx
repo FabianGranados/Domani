@@ -50,6 +50,20 @@ const REASON_LABELS: Record<string, string> = {
   loan_disburse: 'Crédito', loan_repay: 'Abono a crédito',
 };
 
+// Juegos de estrategia (bento asimétrico). Fotos PROVISIONALES; se cambian por
+// las que suba el usuario. Span por pantalla: d=desktop, m=móvil.
+type GameTile = {
+  key: string; title: string; tag: string; glyph: string;
+  img?: string; grad?: string; d: { c: string; r: string }; m: { c: string; r: string };
+};
+const GAMES: GameTile[] = [
+  { key: 'ajedrez', title: 'Ajedrez', tag: 'La guerra de la mente.', glyph: '♛', img: '/assets/tablero-ajedrez.webp', d: { c: 'span 2', r: 'span 2' }, m: { c: 'span 2', r: 'span 1' } },
+  { key: 'damas', title: 'Damas', tag: 'Atrapa y corona.', glyph: '⛀', grad: 'linear-gradient(155deg,#26354a,#10151e)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
+  { key: 'parques', title: 'Parqués', tag: 'Sácala o que te saquen.', glyph: '🎲', grad: 'linear-gradient(155deg,#3a2330,#190f16)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
+  { key: 'domino', title: 'Dominó', tag: 'La mesa habla.', glyph: '🁢', grad: 'linear-gradient(155deg,#1f3a2e,#0f1a15)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
+  { key: 'mas', title: 'Y muchos más', tag: 'Backgammon, cartas, go…', glyph: '✦', grad: 'linear-gradient(155deg,#2a2536,#13111b)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 2', r: 'span 1' } },
+];
+
 function greeting(): string {
   const h = typeof window !== 'undefined' ? new Date().getHours() : 20;
   if (h < 6) return 'Buenas noches';
@@ -228,7 +242,34 @@ export function EscritorioScreen() {
         ))}
       </Carousel>
 
-      {/* ════════ ZONA 4 · ZONA FINANCIERA ════════ */}
+      {/* ════════ ZONA 4 · JUEGOS DE ESTRATEGIA (bento) ════════ */}
+      <SectionTitle title="Juegos de estrategia" hint="Mente, mesa y honor" />
+      <div style={bentoGrid(isDesktop)}>
+        {GAMES.map((g) => (
+          <div key={g.key} style={gameTile(isDesktop, g)}>
+            {g.img && <div style={gameImgScrim} />}
+            {!g.img && <span style={gameBigGlyph}>{g.glyph}</span>}
+            <div style={gameFoot}>
+              <div style={gameTitle}>{g.title}</div>
+              <div style={gameTagline}>{g.tag}</div>
+            </div>
+            <span style={soonPill}>Pronto</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Aprende a jugar — Valente */}
+      <div style={learnBanner(isDesktop)}>
+        <img src="/assets/valente_cut.webp" alt="Valente" style={valenteImg(isDesktop)} />
+        <div style={learnText(isDesktop)}>
+          <div style={eyebrow}>Domani · Academia</div>
+          <h3 style={learnTitle}>Aprende a jugar en Domani</h3>
+          <p style={learnSub}>¿Nuevo en la mesa? <strong style={{ color: '#ecd9a5' }}>Valente</strong> te enseña cada juego, paso a paso.</p>
+          <span style={learnPill}>Pronto</span>
+        </div>
+      </div>
+
+      {/* ════════ ZONA 5 · ZONA FINANCIERA ════════ */}
       <SectionTitle title="Zona financiera" hint="Tu banco y tus movimientos" />
       <div style={finGrid(isDesktop)}>
         {/* Domanibank con el logo sobrepuesto */}
@@ -453,6 +494,57 @@ const hubSheen: React.CSSProperties = {
   position: 'absolute', top: 0, left: 0, width: '45%', height: '100%',
   background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent)',
   transform: 'skewX(-16deg)', animation: 'domShimmer 7s ease-in-out infinite', pointerEvents: 'none',
+};
+
+// Juegos de estrategia (bento)
+function bentoGrid(isDesktop: boolean): React.CSSProperties {
+  return { display: 'grid', gap: 12, gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)', gridAutoRows: isDesktop ? '150px' : '124px' };
+}
+function gameTile(isDesktop: boolean, g: GameTile): React.CSSProperties {
+  return {
+    position: 'relative', overflow: 'hidden', borderRadius: 14,
+    border: '1px solid rgba(201,163,91,.2)', boxShadow: '0 14px 34px -24px rgba(0,0,0,.85)',
+    gridColumn: isDesktop ? g.d.c : g.m.c, gridRow: isDesktop ? g.d.r : g.m.r, backgroundColor: '#14111c',
+    ...(g.img
+      ? { backgroundImage: `url('${g.img}')`, backgroundSize: 'cover', backgroundPosition: 'center' }
+      : { background: g.grad }),
+  };
+}
+const gameImgScrim: React.CSSProperties = { position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.05) 40%, rgba(8,8,10,.85) 100%)' };
+const gameBigGlyph: React.CSSProperties = { position: 'absolute', top: 4, right: 10, fontSize: 54, color: 'rgba(201,163,91,.16)', pointerEvents: 'none' };
+const gameFoot: React.CSSProperties = { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 13, zIndex: 1 };
+const gameTitle: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 17, color: '#f3eddd' };
+const gameTagline: React.CSSProperties = { fontSize: 11.5, color: 'rgba(232,226,212,.62)', marginTop: 1 };
+const soonPill: React.CSSProperties = {
+  position: 'absolute', top: 10, left: 10, zIndex: 2, fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase',
+  fontWeight: 700, color: '#1a1405', background: 'rgba(236,217,165,.88)', padding: '3px 8px', borderRadius: 999,
+};
+
+// Aprende a jugar — Valente
+function learnBanner(isDesktop: boolean): React.CSSProperties {
+  return {
+    position: 'relative', overflow: 'hidden', marginTop: 14, borderRadius: 18,
+    minHeight: isDesktop ? 200 : 226, padding: isDesktop ? '26px 30px' : '20px 16px',
+    border: '1px solid rgba(201,163,91,.3)',
+    background:
+      'radial-gradient(70% 110% at 100% 100%, rgba(201,163,91,.14), transparent 60%), radial-gradient(90% 120% at 0% 0%, rgba(31,58,46,.5), transparent 55%), linear-gradient(120deg,#171320,#100e17)',
+    boxShadow: '0 20px 50px -28px rgba(0,0,0,.9)',
+  };
+}
+function valenteImg(isDesktop: boolean): React.CSSProperties {
+  return {
+    position: 'absolute', right: isDesktop ? 28 : -14, bottom: 0, height: isDesktop ? '132%' : '112%',
+    objectFit: 'contain', objectPosition: 'bottom', pointerEvents: 'none', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,.6))',
+  };
+}
+function learnText(isDesktop: boolean): React.CSSProperties {
+  return { position: 'relative', zIndex: 1, maxWidth: isDesktop ? '60%' : '66%' };
+}
+const learnTitle: React.CSSProperties = { fontFamily: "'Cormorant Garamond',serif", fontSize: 28, color: '#f3eddd', margin: '4px 0 6px', lineHeight: 1.1 };
+const learnSub: React.CSSProperties = { fontSize: 13.5, color: 'rgba(232,226,212,.72)', lineHeight: 1.45, margin: 0, maxWidth: 340 };
+const learnPill: React.CSSProperties = {
+  display: 'inline-block', marginTop: 14, fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700,
+  color: 'rgba(236,230,214,.8)', border: '1px solid rgba(201,163,91,.4)', background: 'rgba(8,8,10,.4)', padding: '6px 13px', borderRadius: 999,
 };
 
 // Zona financiera
