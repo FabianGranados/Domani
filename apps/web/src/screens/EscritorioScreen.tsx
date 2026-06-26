@@ -167,7 +167,7 @@ export function EscritorioScreen() {
         {HERO_IMAGES.map((src, i) => (
           <div key={src} style={heroPhoto(src, i === photoIdx, i)} />
         ))}
-        <div style={heroScrim} />
+        <div style={heroScrim(isDesktop)} />
 
         <div style={heroContent(isDesktop)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
@@ -179,7 +179,7 @@ export function EscritorioScreen() {
             </button>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={eyebrow}>{greeting()}</div>
-              <h1 className="page-title" style={{ margin: '2px 0 3px', fontSize: isDesktop ? 36 : 29 }}>
+              <h1 className="page-title" style={{ margin: '2px 0 3px', fontSize: isDesktop ? 36 : 29, textShadow: '0 2px 14px rgba(0,0,0,.75)' }}>
                 Yo <span style={shimmerName}>{alias}</span>
               </h1>
               <div style={taglineWrap}>
@@ -382,7 +382,7 @@ function SectionTitle({ title, hint }: { title: string; hint: string }) {
 }
 
 // ════════ estilos ════════
-const eyebrow: React.CSSProperties = { fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e' };
+const eyebrow: React.CSSProperties = { fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#bfa05a', textShadow: '0 1px 8px rgba(0,0,0,.7)' };
 
 function heroCard(isDesktop: boolean): React.CSSProperties {
   return {
@@ -401,11 +401,17 @@ function heroPhoto(src: string, active: boolean, i: number): React.CSSProperties
     animation: `domKen 18s ease-in-out ${i * -4.5}s infinite alternate`,
   };
 }
-const heroScrim: React.CSSProperties = {
-  position: 'absolute', inset: 0,
-  backgroundImage:
-    'linear-gradient(180deg, rgba(7,6,11,.18) 0%, rgba(7,6,11,.08) 32%, rgba(7,6,11,.55) 70%, rgba(7,6,11,.93) 100%), radial-gradient(120% 70% at 82% 4%, rgba(201,163,91,.14), transparent 50%)',
-};
+// En móvil reforzamos el velo de la mitad inferior (ahí va el texto) para que
+// no se pierda sobre la foto; arriba se mantiene claro (las caras).
+function heroScrim(isDesktop: boolean): React.CSSProperties {
+  const grad = isDesktop
+    ? 'linear-gradient(180deg, rgba(7,6,11,.18) 0%, rgba(7,6,11,.08) 32%, rgba(7,6,11,.55) 70%, rgba(7,6,11,.93) 100%)'
+    : 'linear-gradient(180deg, rgba(7,6,11,.3) 0%, rgba(7,6,11,.12) 24%, rgba(7,6,11,.52) 50%, rgba(7,6,11,.98) 100%)';
+  return {
+    position: 'absolute', inset: 0,
+    backgroundImage: `${grad}, radial-gradient(120% 70% at 82% 4%, rgba(201,163,91,.14), transparent 50%)`,
+  };
+}
 function heroContent(isDesktop: boolean): React.CSSProperties {
   return {
     position: 'relative', zIndex: 1, minHeight: isDesktop ? 'clamp(440px, 52vh, 560px)' : 'clamp(420px, 64vh, 520px)',
@@ -423,6 +429,7 @@ const taglineWrap: React.CSSProperties = { height: 24, overflow: 'hidden' };
 const taglineWord: React.CSSProperties = {
   display: 'inline-block', fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic',
   fontSize: 18, color: '#e7d6a8', letterSpacing: '.02em', animation: 'domWordIn .6s ease-out',
+  textShadow: '0 1px 10px rgba(0,0,0,.7)',
 };
 // Círculo del avatar en el hero (más grande, clickeable para gestionarlo).
 const avatarRingBtn = (color: string): React.CSSProperties => ({
@@ -453,7 +460,7 @@ const houseChip: React.CSSProperties = {
 };
 const inflTrack: React.CSSProperties = { height: 6, borderRadius: 999, background: 'rgba(255,255,255,.07)', overflow: 'hidden' };
 const inflFill: React.CSSProperties = { height: '100%', borderRadius: 999, background: GOLD_GRAD };
-const inflLabel: React.CSSProperties = { fontSize: 11.5, color: 'rgba(232,226,212,.7)', marginTop: 5 };
+const inflLabel: React.CSSProperties = { fontSize: 11.5, color: 'rgba(240,234,220,.85)', marginTop: 5, textShadow: '0 1px 8px rgba(0,0,0,.7)' };
 
 function walletBlock(isDesktop: boolean): React.CSSProperties {
   return {
