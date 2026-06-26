@@ -330,3 +330,45 @@ export async function getLobbyPlayers(limit = 50): Promise<LobbyPlayer[]> {
   if (error) throw error;
   return data ?? [];
 }
+
+// --- Mercado de Avatares -------------------------------------------------
+// El alias nombra al avatar; aquí solo viaja un arquetipo interno. Primera
+// vez gratis; cambios posteriores se pagan con Aurelios (todo server-side).
+export interface MarketAvatar {
+  code: string;
+  name: string;
+  archetype: string;
+  image_path: string;
+  image_ready: boolean;
+  price: number;
+  sort_order: number;
+  owned: boolean;
+  equipped: boolean;
+  effective_cost: number;       // lo que ESTE usuario pagaría ahora
+  free_pick_available: boolean; // ¿le queda su primera-vez-gratis?
+}
+
+export async function getAvatarMarket(): Promise<MarketAvatar[]> {
+  const { data, error } = await supabase.rpc('avatar_market');
+  if (error) throw error;
+  return (data as MarketAvatar[]) ?? [];
+}
+
+export interface SetAvatarResult {
+  avatar_code: string;
+  cost: number;
+  balance: number;
+}
+
+export async function setAvatar(code: string): Promise<SetAvatarResult> {
+  const { data, error } = await supabase.rpc('set_avatar', { p_code: code });
+  if (error) throw error;
+  return (data as SetAvatarResult[])[0];
+}
+
+// Resuelve el código del avatar equipado a su ruta de imagen. avatar-1 usa
+// la ruta heredada; el resto vive en /assets/avatars/.
+export function avatarSrc(code: string | null | undefined): string {
+  if (!code || code === 'avatar-1') return '/assets/avatar-1.webp';
+  return `/assets/avatars/${code}.webp`;
+}

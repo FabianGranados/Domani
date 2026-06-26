@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chess, type Move, type Square } from 'chess.js';
 import { useAuth } from '../auth/AuthProvider';
-import { getWallet, pokerBuyin, pokerCashout, listHouses } from '../lib/api';
+import { getWallet, pokerBuyin, pokerCashout, listHouses, avatarSrc } from '../lib/api';
 import { bestMove } from '../lib/chessBot';
 import { AjedrezLobby } from '../components/AjedrezLobby';
 
@@ -112,6 +112,7 @@ export function AjedrezScreen() {
   }, [user, profile?.house_id]);
 
   const alias = profile?.alias ?? 'Tú';
+  const myAvatar = avatarSrc(profile?.avatar_code);
   const myElo = 1000 + Math.min(900, profile?.influence ?? 0);
 
   // ---- Tick del reloj (tiempo real vía Date.now) ----
@@ -299,7 +300,7 @@ export function AjedrezScreen() {
     return (
       <AjedrezLobby
         alias={alias}
-        avatarSrc="/assets/avatar-1.webp"
+        avatarSrc={myAvatar}
         balance={balance}
         houseName={houseName}
         onPlay={(i, ms) => sentarse(STAKES[i], ms)}
@@ -387,7 +388,7 @@ export function AjedrezScreen() {
 
       {/* Tú */}
       <div style={barWithClock}>
-        <PlayerBar name={alias} sub={`${houseName !== 'Sin Casa' ? 'Casa ' + houseName : 'Sin Casa'} · tú`} elo={myElo} caps={capByWhite} capColor="b" you active={turn === 'w'} thinking={false} img="/assets/avatar-1.webp" />
+        <PlayerBar name={alias} sub={`${houseName !== 'Sin Casa' ? 'Casa ' + houseName : 'Sin Casa'} · tú`} elo={myElo} caps={capByWhite} capColor="b" you active={turn === 'w'} thinking={false} img={myAvatar} />
         {clockOn && <Clock ms={whiteMs} active={turn === 'w' && !result} />}
       </div>
 

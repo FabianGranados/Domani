@@ -8,18 +8,18 @@ import {
   getLedger,
   claimRenta,
   getRentaClaimedToday,
+  avatarSrc,
   type Loan,
+  type SetAvatarResult,
 } from '../lib/api';
 import type { House, LedgerTransaction } from '../lib/types';
 import { PremiumCards } from '../components/PremiumCards';
 import { ValenteCoach } from '../components/ValenteCoach';
+import { AvatarMarket } from '../components/AvatarMarket';
 import { Carousel } from '../components/Carousel';
 
 const GOLD_GRAD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
 const fmt = (n: number) => n.toLocaleString('es-CO');
-
-// Avatar provisional (uno solo, mientras construimos el selector).
-const AVATAR_IMG = '/assets/avatar-1.webp';
 
 const RANK_LABELS: Record<string, string> = {
   ciudadano_nuevo: 'Ciudadano Nuevo',
@@ -88,8 +88,14 @@ function useIsDesktop(): boolean {
 }
 
 export function EscritorioScreen() {
-  const { profile, user } = useAuth();
+  const { profile, user, refreshProfile } = useAuth();
   const isDesktop = useIsDesktop();
+  const avatarImg = avatarSrc(profile?.avatar_code);
+
+  async function onAvatarChanged(r: SetAvatarResult) {
+    setBalance(r.balance);
+    await refreshProfile();
+  }
 
   const [balance, setBalance] = useState<number | null>(null);
   const [todayDelta, setTodayDelta] = useState(0);
@@ -173,7 +179,7 @@ export function EscritorioScreen() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
             <button onClick={() => setShowAvatar(true)} style={avatarRingBtn(houseColor)} aria-label="Gestionar tu avatar">
               <span style={avatarCircle}>
-                <img src={AVATAR_IMG} alt="" style={avatarPortrait} />
+                <img src={avatarImg} alt="" style={avatarPortrait} />
               </span>
               <span style={avatarEditDot}>✎</span>
             </button>
@@ -372,18 +378,7 @@ export function EscritorioScreen() {
         <div style={modalOverlay} onClick={() => setShowAvatar(false)}>
           <div style={modalCard} onClick={(e) => e.stopPropagation()}>
             <button style={modalClose} onClick={() => setShowAvatar(false)} aria-label="Cerrar">×</button>
-            <div style={modalAvatar}>
-              <img src={AVATAR_IMG} alt="" style={avatarPortrait} />
-            </div>
-            <div style={{ textAlign: 'center' }}>
-              <div style={eyebrow}>Tu avatar</div>
-              <h3 style={{ fontFamily: 'Marcellus,serif', fontSize: 24, color: '#f3eddd', margin: '4px 0 2px' }}>{alias}</h3>
-              <p className="muted" style={{ margin: '0 auto 16px', maxWidth: 300, fontSize: 13 }}>
-                Tu primer avatar es <strong style={{ color: '#7ee0a6' }}>gratis</strong>. Para cambiarlo de nuevo, entra al
-                Mercado de Avatares — se paga con Aurelios.
-              </p>
-              <button style={marketBtn} disabled>Mercado de Avatares · Próximamente</button>
-            </div>
+            <AvatarMarket alias={alias} balance={balance} onChanged={onAvatarChanged} />
           </div>
         </div>
       )}

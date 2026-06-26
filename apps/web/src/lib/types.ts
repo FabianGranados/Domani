@@ -321,6 +321,7 @@ export type Database = {
         Row: {
           age_confirmed: boolean
           alias: string
+          avatar_code: string
           created_at: string
           house_id: string | null
           id: string
@@ -334,6 +335,7 @@ export type Database = {
         Insert: {
           age_confirmed?: boolean
           alias: string
+          avatar_code?: string
           created_at?: string
           house_id?: string | null
           id: string
@@ -347,6 +349,7 @@ export type Database = {
         Update: {
           age_confirmed?: boolean
           alias?: string
+          avatar_code?: string
           created_at?: string
           house_id?: string | null
           id?: string
