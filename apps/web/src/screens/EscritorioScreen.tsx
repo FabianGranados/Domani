@@ -193,10 +193,11 @@ export function EscritorioScreen() {
               </div>
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '12px 0 9px' }}>
                 <span style={rankChip}>{rankLabel}</span>
-                <span style={{ ...houseChip, borderColor: `${houseColor}66` }}>
+                <Link to="/casas" style={{ ...houseChip, borderColor: `${houseColor}66`, textDecoration: 'none', cursor: 'pointer' }} title="Ver / cambiar ciudad">
                   <span style={{ width: 8, height: 8, borderRadius: '50%', background: houseColor, display: 'inline-block' }} />
                   {houseName}
-                </span>
+                  <span style={{ opacity: 0.5, fontSize: 11 }}>›</span>
+                </Link>
               </div>
               <div style={{ maxWidth: 320 }}>
                 <div style={inflTrack}><div style={{ ...inflFill, width: `${progress * 100}%` }} /></div>

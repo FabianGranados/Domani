@@ -63,8 +63,9 @@ function AppRoutes({ loading, session, profile }: AppRoutesProps) {
     );
   }
 
-  // 2. Con sesión pero sin perfil -> onboarding (+18 + alias)
-  if (!profile) {
+  // 2. Con sesión pero onboarding incompleto (sin perfil O sin ciudad) -> asistente
+  //    (alias +18 -> elegir ciudad -> avatar gratis). La ciudad es obligatoria.
+  if (!profile || !profile.house_id) {
     return (
       <Routes>
         <Route path="/onboarding" element={<OnboardingScreen />} />
@@ -73,7 +74,7 @@ function AppRoutes({ loading, session, profile }: AppRoutesProps) {
     );
   }
 
-  // 3. Con perfil -> app completa (la Casa se elige dentro del Salón, no es obligatoria)
+  // 3. Con perfil y ciudad -> app completa
   //    La mesa de póker va FUERA del Layout: es una vista inmersiva a pantalla
   //    completa, sin barra lateral ni pie (eso haría ruido durante el juego).
   return (
