@@ -39,13 +39,12 @@ const RANK_LABELS: Record<string, string> = {
 // Hitos de Influencia (solo para la barra de progreso visual).
 const INFLUENCE_MILESTONES = [50, 150, 400, 1000, 2500];
 
-// Fotos del hero (cinematográfico, con crossfade + Ken Burns). PROVISIONALES:
-// reemplazar por las definitivas que suba el usuario en /assets/hero/.
+// Fotos del hero (cinematográfico, con crossfade + Ken Burns).
 const HERO_IMAGES = [
-  '/assets/lobby-domani.webp',
-  '/assets/casino-mesa.webp',
-  '/assets/bar-vip.webp',
-  '/assets/via-mercado.webp',
+  '/assets/hero-1.webp',
+  '/assets/hero-2.webp',
+  '/assets/hero-3.webp',
+  '/assets/hero-4.webp',
 ];
 // Palabra rotativa del titular (texto animado dinámico).
 const HERO_WORDS = ['Donde el lujo es ley', 'El juego te espera', 'Construye tu poder', 'El Círculo observa'];
