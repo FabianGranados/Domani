@@ -368,9 +368,7 @@ export async function setAvatar(code: string): Promise<SetAvatarResult> {
   return (data as SetAvatarResult[])[0];
 }
 
-// Resuelve el código del avatar equipado a su ruta de imagen. avatar-1 usa
-// la ruta heredada; el resto vive en /assets/avatars/.
+// Resuelve el código del avatar equipado a su ruta de imagen.
 export function avatarSrc(code: string | null | undefined): string {
-  if (!code || code === 'avatar-1') return '/assets/avatar-1.webp';
-  return `/assets/avatars/${code}.webp`;
+  return `/assets/avatars/${code || 'avatar-1'}.webp`;
 }
