@@ -350,23 +350,15 @@ export function EscritorioScreen() {
         </div>
       </div>
 
-      <div style={{ ...mallGrid(isDesktop), marginTop: 14 }}>
-        {/* Domani Mall */}
-        <div style={mallCard}>
-          <div style={mallScrim} />
-          <span style={mallSoon}>Próximamente</span>
-          <div style={{ position: 'relative', zIndex: 1, marginTop: 'auto', padding: 16 }}>
-            <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' }}>Centro comercial</div>
-            <div style={{ fontFamily: 'Marcellus,serif', fontSize: 23, color: '#f3eddd', margin: '2px 0 3px' }}>Domani Mall</div>
-            <div style={{ fontSize: 12.5, color: 'rgba(232,226,212,.75)' }}>Autos, joyas, moda… ve de shopping con tus Aurelios.</div>
-          </div>
-        </div>
-        {/* Eventos del día */}
-        <div style={placeholderBox}>
-          <div style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ece6d6' }}>Eventos del día</div>
-          <p className="muted" style={{ margin: '6px 0 0' }}>
-            Desafíos de ciudad, misiones y bonos. Pronto.
-          </p>
+      {/* Domani Mall (a todo el ancho, destino principal de gasto) */}
+      <SectionTitle title="Domani Mall" hint="Tu centro comercial" />
+      <div style={mallCard}>
+        <div style={mallScrim} />
+        <span style={mallSoon}>Próximamente</span>
+        <div style={{ position: 'relative', zIndex: 1, marginTop: 'auto', padding: 18 }}>
+          <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' }}>Centro comercial</div>
+          <div style={{ fontFamily: 'Marcellus,serif', fontSize: 26, color: '#f3eddd', margin: '2px 0 3px' }}>Domani Mall</div>
+          <div style={{ fontSize: 13, color: 'rgba(232,226,212,.78)' }}>Autos, joyas, moda… ve de shopping con tus Aurelios.</div>
         </div>
       </div>
 
@@ -614,8 +606,8 @@ function mallGrid(isDesktop: boolean): React.CSSProperties {
 }
 const mallCard: React.CSSProperties = {
   position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column',
-  minHeight: 196, borderRadius: 16, border: '1px solid rgba(201,163,91,.28)',
-  backgroundImage: "url('/assets/mall.webp')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#0c0a12',
+  minHeight: 240, borderRadius: 16, border: '1px solid rgba(201,163,91,.28)',
+  backgroundImage: "url('/assets/mall.webp')", backgroundSize: 'cover', backgroundPosition: 'center 38%', backgroundColor: '#0c0a12',
   boxShadow: '0 18px 44px -24px rgba(0,0,0,.85)',
 };
 const mallScrim: React.CSSProperties = {
