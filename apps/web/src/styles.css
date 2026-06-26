@@ -377,41 +377,15 @@ th { color: var(--muted); font-weight: 500; }
    RESPONSIVE — móvil
    ============================================================ */
 @media (max-width: 1024px) {
-  /* App shell: la barra lateral pasa a barra horizontal arriba */
+  /* App shell móvil: SIN menú. La navegación vive en el Escritorio (apps,
+     banca, juegos), la burbuja de Michat y los botones "← Volver". El logo
+     de la barra superior funciona como botón de Inicio. */
   .app-shell {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 52px auto 1fr auto;
-    grid-template-areas: 'top' 'nav' 'main' 'footer';
+    grid-template-rows: 52px 1fr auto;
+    grid-template-areas: 'top' 'main' 'footer';
   }
-  .sidenav {
-    position: static;
-    grid-area: nav;
-    width: auto;
-    flex-direction: row;
-    gap: 0.3rem;
-    overflow-x: auto;
-    overflow-y: hidden;
-    background: rgba(0, 0, 0, 0.25);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    box-shadow: none;
-    border-right: none;
-    border-bottom: 1px solid var(--line);
-    padding: 0.5rem 0.6rem;
-    -webkit-overflow-scrolling: touch;
-  }
-  .sidenav::before { display: none; }
-  /* En móvil el "hover" no debe expandir el menú (lo dispara el tap) */
-  .sidenav:hover {
-    width: auto;
-    padding: 0.5rem 0.6rem;
-    background: rgba(0, 0, 0, 0.25);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-    border-right: none;
-    box-shadow: none;
-  }
-  .sidenav .navlink { opacity: 1; transform: none; }
+  .sidenav { display: none; }
   .navlink { white-space: nowrap; padding: 0.5rem 0.7rem; font-size: 0.9rem; }
   .content { padding: 1.1rem; }
   .topbar { padding: 0 0.9rem; }

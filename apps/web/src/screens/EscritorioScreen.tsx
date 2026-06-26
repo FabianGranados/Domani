@@ -61,7 +61,7 @@ const GAMES: GameTile[] = [
   { key: 'ajedrez', title: 'Ajedrez', tag: 'La guerra de la mente.', glyph: '♛', img: '/assets/game-ajedrez.webp', d: { c: 'span 2', r: 'span 2' }, m: { c: 'span 2', r: 'span 1' } },
   { key: 'parques', title: 'Parqués', tag: 'Sácala o que te saquen.', glyph: '🎲', img: '/assets/game-parques.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
   { key: 'domino', title: 'Dominó', tag: 'La mesa habla.', glyph: '🁢', img: '/assets/game-domino.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
-  { key: 'damas', title: 'Damas chinas', tag: 'Estrella de estrategas.', glyph: '⛀', grad: 'linear-gradient(155deg,#26354a,#10151e)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
+  { key: 'damas', title: 'Damas chinas', tag: 'Estrella de estrategas.', glyph: '⛀', img: '/assets/game-damas.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 2', r: 'span 1' } },
   { key: 'mas', title: 'Y muchos más', tag: 'Backgammon, cartas, go…', glyph: '✦', grad: 'linear-gradient(155deg,#2a2536,#13111b)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 2', r: 'span 1' } },
 ];
 
@@ -490,7 +490,11 @@ const hubSheen: React.CSSProperties = {
 
 // Juegos de estrategia (bento)
 function bentoGrid(isDesktop: boolean): React.CSSProperties {
-  return { display: 'grid', gap: 12, gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)', gridAutoRows: isDesktop ? '150px' : '124px' };
+  return {
+    display: 'grid', gap: 12, gridAutoFlow: 'dense',
+    gridTemplateColumns: isDesktop ? 'repeat(4, 1fr)' : 'repeat(2, 1fr)',
+    gridAutoRows: isDesktop ? '150px' : '124px',
+  };
 }
 function gameTile(isDesktop: boolean, g: GameTile): React.CSSProperties {
   return {
