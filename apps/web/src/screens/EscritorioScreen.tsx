@@ -57,7 +57,7 @@ type GameTile = {
   img?: string; grad?: string; d: { c: string; r: string }; m: { c: string; r: string };
 };
 const GAMES: GameTile[] = [
-  { key: 'ajedrez', title: 'Ajedrez', tag: 'La guerra de la mente.', glyph: '♛', img: '/assets/tablero-ajedrez.webp', d: { c: 'span 2', r: 'span 2' }, m: { c: 'span 2', r: 'span 1' } },
+  { key: 'ajedrez', title: 'Ajedrez', tag: 'La guerra de la mente.', glyph: '♛', img: '/assets/game-ajedrez.webp', d: { c: 'span 2', r: 'span 2' }, m: { c: 'span 2', r: 'span 1' } },
   { key: 'damas', title: 'Damas', tag: 'Atrapa y corona.', glyph: '⛀', grad: 'linear-gradient(155deg,#26354a,#10151e)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
   { key: 'parques', title: 'Parqués', tag: 'Sácala o que te saquen.', glyph: '🎲', grad: 'linear-gradient(155deg,#3a2330,#190f16)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
   { key: 'domino', title: 'Dominó', tag: 'La mesa habla.', glyph: '🁢', grad: 'linear-gradient(155deg,#1f3a2e,#0f1a15)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
