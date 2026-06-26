@@ -20,15 +20,15 @@ const THEMES: Record<ThemeId, { name: string; img: string; inset: number }> = {
   oro: { name: 'Oro', img: '/assets/board-oro.webp', inset: 10 },
 };
 
-type Stake = { id: string; name: string; bet: number; depth: number; opp: { name: string; title: string; casa: string; elo: number; glyph: string } };
+type Stake = { id: string; name: string; bet: number; depth: number; opp: { name: string; title: string; casa: string; elo: number; img: string } };
 // 5 niveles (examen), todos abiertos. La apuesta es la ENTRADA; el premio real
 // al vencer se afina con la lógica de trofeos/escalafón (siguiente fase).
 const STAKES: Stake[] = [
-  { id: 'n1', name: 'Nivel 1 · Aprendiz', bet: 100, depth: 2, opp: { name: 'Dunia', title: 'Centinela', casa: 'Bacatá', elo: 1180, glyph: '♟' } },
-  { id: 'n2', name: 'Nivel 2 · Retador', bet: 250, depth: 3, opp: { name: 'Severo', title: 'Estratega', casa: 'Roma', elo: 1480, glyph: '♞' } },
-  { id: 'n3', name: 'Nivel 3 · Maestro', bet: 500, depth: 3, opp: { name: 'Kenji', title: 'Maestro', casa: 'Osaka', elo: 1820, glyph: '♝' } },
-  { id: 'n4', name: 'Nivel 4 · Gran Maestro', bet: 1000, depth: 4, opp: { name: 'Aurelia', title: 'Gran Maestra', casa: 'Plata', elo: 2200, glyph: '♜' } },
-  { id: 'n5', name: 'Nivel 5 · Campeón Mundial', bet: 2000, depth: 4, opp: { name: 'El Mayor', title: 'Campeón Mundial', casa: 'El Círculo', elo: 2600, glyph: '♛' } },
+  { id: 'n1', name: 'Nivel 1 · Aprendiz', bet: 100, depth: 2, opp: { name: 'Teo', title: 'Aprendiz', casa: 'Bacatá', elo: 1180, img: '/assets/maestro-1.webp' } },
+  { id: 'n2', name: 'Nivel 2 · Retador', bet: 250, depth: 3, opp: { name: 'Vera', title: 'Estratega', casa: 'Roma', elo: 1480, img: '/assets/maestro-2.webp' } },
+  { id: 'n3', name: 'Nivel 3 · Maestro', bet: 500, depth: 3, opp: { name: 'Severo', title: 'Maestro', casa: 'Osaka', elo: 1820, img: '/assets/maestro-3.webp' } },
+  { id: 'n4', name: 'Nivel 4 · Gran Maestro', bet: 1000, depth: 4, opp: { name: 'Don Aurelio', title: 'Gran Maestro', casa: 'Plata', elo: 2200, img: '/assets/maestro-4.webp' } },
+  { id: 'n5', name: 'Nivel 5 · Campeón Mundial', bet: 2000, depth: 4, opp: { name: 'El Encapuchado', title: 'Campeón Mundial', casa: 'El Círculo', elo: 2600, img: '/assets/maestro-5.webp' } },
 ];
 
 type TimeControl = { id: string; label: string; ms: number }; // ms = 0 => sin reloj
@@ -336,7 +336,7 @@ export function AjedrezScreen() {
 
       {/* Rival */}
       <div style={barWithClock}>
-        <PlayerBar name={stake.opp.name} sub={`${stake.opp.title} · Casa ${stake.opp.casa}`} elo={stake.opp.elo} caps={capByBlack} capColor="w" you={false} active={turn === 'b'} thinking={thinking} />
+        <PlayerBar name={stake.opp.name} sub={`${stake.opp.title} · Casa ${stake.opp.casa}`} elo={stake.opp.elo} caps={capByBlack} capColor="w" you={false} active={turn === 'b'} thinking={thinking} img={stake.opp.img} />
         {clockOn && <Clock ms={blackMs} active={turn === 'b' && !result} />}
       </div>
 
@@ -387,7 +387,7 @@ export function AjedrezScreen() {
 
       {/* Tú */}
       <div style={barWithClock}>
-        <PlayerBar name={alias} sub={`${houseName !== 'Sin Casa' ? 'Casa ' + houseName : 'Sin Casa'} · tú`} elo={myElo} caps={capByWhite} capColor="b" you active={turn === 'w'} thinking={false} />
+        <PlayerBar name={alias} sub={`${houseName !== 'Sin Casa' ? 'Casa ' + houseName : 'Sin Casa'} · tú`} elo={myElo} caps={capByWhite} capColor="b" you active={turn === 'w'} thinking={false} img="/assets/avatar-1.webp" />
         {clockOn && <Clock ms={whiteMs} active={turn === 'w' && !result} />}
       </div>
 
@@ -438,13 +438,13 @@ export function AjedrezScreen() {
   );
 }
 
-function PlayerBar({ name, sub, elo, caps, capColor, you, active, thinking }: {
-  name: string; sub: string; elo: number; caps: string[]; capColor: 'w' | 'b'; you: boolean; active: boolean; thinking: boolean;
+function PlayerBar({ name, sub, elo, caps, capColor, you, active, thinking, img }: {
+  name: string; sub: string; elo: number; caps: string[]; capColor: 'w' | 'b'; you: boolean; active: boolean; thinking: boolean; img?: string;
 }) {
   return (
     <div style={{ ...playerBar, borderColor: active ? 'rgba(201,163,91,.6)' : 'rgba(255,255,255,.08)' }}>
-      <div style={{ ...avatar, background: you ? 'linear-gradient(135deg,#1f6f4a,#2da06b)' : 'linear-gradient(135deg,#7b1e2b,#c45464)' }}>
-        {name.charAt(0)}
+      <div style={{ ...avatar, overflow: 'hidden', background: you ? 'linear-gradient(135deg,#1f6f4a,#2da06b)' : 'linear-gradient(135deg,#7b1e2b,#c45464)' }}>
+        {img ? <img src={img} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : name.charAt(0)}
       </div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

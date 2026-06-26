@@ -332,13 +332,26 @@ export function EscritorioScreen() {
         </div>
       </div>
 
-      {/* ════════ ZONA 5 · HOY EN DOMANI (próximamente) ════════ */}
-      <SectionTitle title="Hoy en Domani" hint="Novedades del día" />
-      <div style={placeholderBox}>
-        <div style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ece6d6' }}>Pronto</div>
-        <p className="muted" style={{ margin: '6px 0 0', maxWidth: 460 }}>
-          Aquí llegarán las novedades, misiones y eventos del día en Domani.
-        </p>
+      {/* ════════ ZONA 5b · DOMANI MALL + HOY EN DOMANI ════════ */}
+      <SectionTitle title="Más en Domani" hint="Shopping y novedades" />
+      <div style={mallGrid(isDesktop)}>
+        {/* Domani Mall */}
+        <div style={mallCard}>
+          <div style={mallScrim} />
+          <span style={mallSoon}>Próximamente</span>
+          <div style={{ position: 'relative', zIndex: 1, marginTop: 'auto', padding: 16 }}>
+            <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' }}>Centro comercial</div>
+            <div style={{ fontFamily: 'Marcellus,serif', fontSize: 23, color: '#f3eddd', margin: '2px 0 3px' }}>Domani Mall</div>
+            <div style={{ fontSize: 12.5, color: 'rgba(232,226,212,.75)' }}>Autos, joyas, moda… ve de shopping con tus Aurelios.</div>
+          </div>
+        </div>
+        {/* Hoy en Domani */}
+        <div style={placeholderBox}>
+          <div style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ece6d6' }}>Hoy en Domani</div>
+          <p className="muted" style={{ margin: '6px 0 0' }}>
+            Novedades, misiones y eventos del día. Pronto.
+          </p>
+        </div>
       </div>
 
       {/* ════════ ZONA 6 · EL CÍRCULO ════════ */}
@@ -584,6 +597,32 @@ const movFooter: React.CSSProperties = { textAlign: 'center', padding: '13px 0 2
 
 const placeholderBox: React.CSSProperties = {
   padding: 22, borderRadius: 16, border: '1px dashed rgba(201,163,91,.3)', background: 'rgba(255,255,255,.015)',
+  display: 'flex', flexDirection: 'column', justifyContent: 'center',
+};
+
+// ---- Domani Mall + Hoy en Domani ----
+function mallGrid(isDesktop: boolean): React.CSSProperties {
+  return {
+    display: 'grid', gap: 14, marginTop: 14,
+    gridTemplateColumns: isDesktop ? '1.5fr 1fr' : '1fr',
+  };
+}
+const mallCard: React.CSSProperties = {
+  position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column',
+  minHeight: 196, borderRadius: 16, border: '1px solid rgba(201,163,91,.28)',
+  backgroundImage: "url('/assets/mall.webp')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#0c0a12',
+  boxShadow: '0 18px 44px -24px rgba(0,0,0,.85)',
+};
+const mallScrim: React.CSSProperties = {
+  position: 'absolute', inset: 0, zIndex: 0,
+  background: 'linear-gradient(180deg, rgba(8,6,12,.05) 0%, rgba(8,6,12,.28) 45%, rgba(8,6,12,.88) 100%)',
+};
+const mallSoon: React.CSSProperties = {
+  position: 'absolute', top: 12, right: 12, zIndex: 2,
+  fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
+  color: '#1a1509', padding: '4px 9px', borderRadius: 999,
+  background: 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)',
+  boxShadow: '0 4px 14px -4px rgba(0,0,0,.6)',
 };
 
 const circuloBar: React.CSSProperties = {

@@ -11,13 +11,13 @@ import { useEffect, useState } from 'react';
 const GOLD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
 const fmt = (n: number) => n.toLocaleString('es-CO');
 
-type Level = { idx: number; n: number; master: string; title: string; elo: number; glyph: string; prize: number; timeMs: number; time: string };
+type Level = { idx: number; n: number; master: string; title: string; elo: number; img: string; prize: number; timeMs: number; time: string };
 const LEVELS: Level[] = [
-  { idx: 0, n: 1, master: 'Dunia', title: 'Centinela', elo: 1180, glyph: '♟', prize: 5000, timeMs: 0, time: 'Sin reloj' },
-  { idx: 1, n: 2, master: 'Severo', title: 'Estratega', elo: 1480, glyph: '♞', prize: 20000, timeMs: 600_000, time: 'Rápida · 10′' },
-  { idx: 2, n: 3, master: 'Kenji', title: 'Maestro', elo: 1820, glyph: '♝', prize: 80000, timeMs: 600_000, time: 'Rápida · 10′' },
-  { idx: 3, n: 4, master: 'Aurelia', title: 'Gran Maestra', elo: 2200, glyph: '♜', prize: 300000, timeMs: 300_000, time: 'Blitz · 5′' },
-  { idx: 4, n: 5, master: 'El Mayor', title: 'Campeón Mundial', elo: 2600, glyph: '♛', prize: 2_000_000, timeMs: 300_000, time: 'Blitz · 5′' },
+  { idx: 0, n: 1, master: 'Teo', title: 'Aprendiz', elo: 1180, img: '/assets/maestro-1.webp', prize: 5000, timeMs: 0, time: 'Sin reloj' },
+  { idx: 1, n: 2, master: 'Vera', title: 'Estratega', elo: 1480, img: '/assets/maestro-2.webp', prize: 20000, timeMs: 600_000, time: 'Rápida · 10′' },
+  { idx: 2, n: 3, master: 'Severo', title: 'Maestro', elo: 1820, img: '/assets/maestro-3.webp', prize: 80000, timeMs: 600_000, time: 'Rápida · 10′' },
+  { idx: 3, n: 4, master: 'Don Aurelio', title: 'Gran Maestro', elo: 2200, img: '/assets/maestro-4.webp', prize: 300000, timeMs: 300_000, time: 'Blitz · 5′' },
+  { idx: 4, n: 5, master: 'El Encapuchado', title: 'Campeón Mundial', elo: 2600, img: '/assets/maestro-5.webp', prize: 2_000_000, timeMs: 300_000, time: 'Blitz · 5′' },
 ];
 
 const SECTIONS = [
@@ -118,8 +118,8 @@ export function AjedrezLobby({
                   return (
                     <div key={l.idx} style={{ ...levelRow, ...(top ? levelRowTop : null) }}>
                       <div style={levelNum}>{l.n}</div>
-                      <div style={{ ...masterPortrait, width: 52, height: 52, flex: '0 0 auto' }}>
-                        <span style={{ fontSize: 26, color: '#ecd9a5' }}>{l.glyph}</span>
+                      <div style={{ ...masterPortrait, width: 56, height: 56, flex: '0 0 auto', overflow: 'hidden' }}>
+                        <img src={l.img} alt={l.master} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       </div>
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ fontFamily: 'Marcellus,serif', fontSize: 16, color: '#f3eddd' }}>
