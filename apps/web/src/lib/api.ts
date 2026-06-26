@@ -319,16 +319,17 @@ export interface LobbyPlayer {
   rank: string;
   influence: number;
   house_id: string | null;
+  avatar_code: string;
 }
 
 export async function getLobbyPlayers(limit = 50): Promise<LobbyPlayer[]> {
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, alias, rank, influence, house_id')
+    .select('id, alias, rank, influence, house_id, avatar_code')
     .order('influence', { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return data ?? [];
+  return (data ?? []) as LobbyPlayer[];
 }
 
 // --- Mercado de Avatares -------------------------------------------------

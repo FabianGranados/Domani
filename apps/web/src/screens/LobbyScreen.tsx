@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getLobbyPlayers, listHouses, type LobbyPlayer } from '../lib/api';
+import { getLobbyPlayers, listHouses, avatarSrc, type LobbyPlayer } from '../lib/api';
 import type { House } from '../lib/types';
 
 const RANK_LABELS: Record<string, string> = {
@@ -28,7 +28,7 @@ export function LobbyScreen() {
     <div>
       <h1 className="page-title">El Círculo</h1>
       <p className="muted">
-        Miembros de la sociedad, ordenados por Influencia. El salón nunca duerme.
+        {loading ? 'Miembros de la sociedad, ordenados por Influencia.' : `${players.length} miembros visibles · ordenados por Influencia. El salón nunca duerme.`}
       </p>
 
       <div className="panel">
@@ -49,7 +49,19 @@ export function LobbyScreen() {
               {players.map((p, i) => (
                 <tr key={p.id}>
                   <td className="muted">{i + 1}</td>
-                  <td>{p.alias}</td>
+                  <td>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 9 }}>
+                      <img
+                        src={avatarSrc(p.avatar_code)}
+                        alt=""
+                        width={30}
+                        height={30}
+                        loading="lazy"
+                        style={{ width: 30, height: 30, borderRadius: '50%', objectFit: 'cover', background: 'radial-gradient(120% 120% at 50% 20%, #2a2438, #14111d 75%)', border: '1px solid rgba(201,163,91,.3)', flex: '0 0 auto' }}
+                      />
+                      <span>{p.alias}</span>
+                    </span>
+                  </td>
                   <td className="muted">
                     {p.house_id ? houses[p.house_id]?.name ?? '—' : '—'}
                   </td>
