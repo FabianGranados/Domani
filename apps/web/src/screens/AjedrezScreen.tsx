@@ -26,6 +26,21 @@ const STAKES: Stake[] = [
   { id: 'maestro', name: 'Maestro', bet: 10000, depth: 3, opp: { name: 'Kenji', title: 'Gran Maestro', casa: 'Osaka', elo: 1820, glyph: '♛' } },
 ];
 
+type TimeControl = { id: string; label: string; ms: number }; // ms = 0 => sin reloj
+const TIME_CONTROLS: TimeControl[] = [
+  { id: 'none', label: 'Sin reloj', ms: 0 },
+  { id: 'blitz', label: 'Blitz · 5 min', ms: 5 * 60_000 },
+  { id: 'rapida', label: 'Rápida · 10 min', ms: 10 * 60_000 },
+  { id: 'clasica', label: 'Clásica · 20 min', ms: 20 * 60_000 },
+];
+
+const fmtClock = (ms: number): string => {
+  const t = Math.max(0, Math.ceil(ms / 1000));
+  const m = Math.floor(t / 60);
+  const s = t % 60;
+  return `${m}:${String(s).padStart(2, '0')}`;
+};
+
 function useIsMobile(): boolean {
   const q = '(max-width: 820px)';
   const [v, setV] = useState(() => (typeof window !== 'undefined' ? window.matchMedia(q).matches : false));
@@ -74,7 +89,14 @@ export function AjedrezScreen() {
   const [lastMove, setLastMove] = useState<{ from: string; to: string } | null>(null);
   const [thinking, setThinking] = useState(false);
   const [status, setStatus] = useState('Tu turno');
-  const [result, setResult] = useState<{ outcome: Outcome; delta: number } | null>(null);
+  const [result, setResult] = useState<{ outcome: Outcome; delta: number; reason?: 'time' } | null>(null);
+
+  // ---- Reloj ----
+  const [timeControl, setTimeControl] = useState<TimeControl>(TIME_CONTROLS[0]);
+  const [whiteMs, setWhiteMs] = useState(0); // tú = blancas
+  const [blackMs, setBlackMs] = useState(0); // rival = negras
+  const lastTickRef = useRef<number | null>(null);
+  const flaggedRef = useRef(false);
 
   useEffect(() => {
     if (user) getWallet(user.id).then((w) => setBalance(w?.balance ?? 0));
@@ -86,6 +108,49 @@ export function AjedrezScreen() {
 
   const alias = profile?.alias ?? 'Tú';
   const myElo = 1000 + Math.min(900, profile?.influence ?? 0);
+
+  // ---- Tick del reloj (tiempo real vía Date.now) ----
+  const clockOn = timeControl.ms > 0;
+  const turnTick = gameRef.current.turn(); // cambia con cada jugada (vía bump) → re-arma el intervalo
+  useEffect(() => {
+    if (phase !== 'playing' || !clockOn || result) {
+      lastTickRef.current = null;
+      return;
+    }
+    const turnSide = gameRef.current.turn(); // 'w' = tú, 'b' = rival
+    lastTickRef.current = Date.now();
+    const id = window.setInterval(() => {
+      if (flaggedRef.current) return;
+      const now = Date.now();
+      const prev = lastTickRef.current ?? now;
+      const dt = now - prev;
+      lastTickRef.current = now;
+      if (turnSide === 'w') {
+        setWhiteMs((ms) => {
+          const next = ms - dt;
+          if (next <= 0 && !flaggedRef.current) {
+            flaggedRef.current = true;
+            window.setTimeout(() => settle('loss', stake, 'time'), 0);
+            return 0;
+          }
+          return next;
+        });
+      } else {
+        setBlackMs((ms) => {
+          const next = ms - dt;
+          if (next <= 0 && !flaggedRef.current) {
+            flaggedRef.current = true;
+            window.setTimeout(() => settle('win', stake, 'time'), 0);
+            return 0;
+          }
+          return next;
+        });
+      }
+    }, 200);
+    return () => window.clearInterval(id);
+    // re-armar el intervalo cuando cambia el turno, la fase, el resultado o el control de tiempo
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, clockOn, result, turnTick]);
 
   async function sentarse(s: Stake) {
     if (busy) return;
@@ -103,6 +168,10 @@ export function AjedrezScreen() {
       setResult(null);
       setStatus('Tu turno');
       setThinking(false);
+      flaggedRef.current = false;
+      lastTickRef.current = null;
+      setWhiteMs(timeControl.ms);
+      setBlackMs(timeControl.ms);
       setPhase('playing');
       bump();
     } catch (e) {
@@ -112,11 +181,11 @@ export function AjedrezScreen() {
     }
   }
 
-  function settle(outcome: Outcome, s: Stake) {
+  function settle(outcome: Outcome, s: Stake, reason?: 'time') {
     const payout = outcome === 'win' ? s.bet * 2 : outcome === 'draw' ? s.bet : 0;
     if (payout > 0) pokerCashout(payout).then((b) => setBalance(b)).catch(() => {});
     const delta = outcome === 'win' ? s.bet : outcome === 'loss' ? -s.bet : 0;
-    setResult({ outcome, delta });
+    setResult({ outcome, delta, reason });
     refreshProfile?.();
   }
 
@@ -208,6 +277,10 @@ export function AjedrezScreen() {
     setSelected(null);
     setLegalTo([]);
     setLastMove(null);
+    flaggedRef.current = false;
+    lastTickRef.current = null;
+    setWhiteMs(0);
+    setBlackMs(0);
     setPhase('lobby');
     bump();
   }
@@ -250,6 +323,24 @@ export function AjedrezScreen() {
             );
           })}
         </div>
+
+        <div style={tcWrap}>
+          <div style={{ fontSize: 11, letterSpacing: '.25em', textTransform: 'uppercase', color: '#9c7a3e', marginBottom: 10 }}>
+            Control de tiempo
+          </div>
+          <div style={tcRow}>
+            {TIME_CONTROLS.map((t) => (
+              <button
+                key={t.id}
+                onClick={() => setTimeControl(t)}
+                style={{ ...tcBtn, ...(timeControl.id === t.id ? tcBtnActive : null) }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         <p style={{ textAlign: 'center', fontSize: 11, color: 'rgba(232,226,212,.32)', marginTop: 22 }}>
           Solo Aurelios (fichas de fantasía). Nunca dinero real. +18.
         </p>
@@ -284,7 +375,10 @@ export function AjedrezScreen() {
       <button onClick={() => navigate('/')} style={{ ...exitBtn, position: 'absolute', top: 'calc(env(safe-area-inset-top) + 10px)', left: 12 }}>← Salir</button>
 
       {/* Rival */}
-      <PlayerBar name={stake.opp.name} sub={`${stake.opp.title} · Casa ${stake.opp.casa}`} elo={stake.opp.elo} caps={capByBlack} capColor="w" you={false} active={turn === 'b'} thinking={thinking} />
+      <div style={barWithClock}>
+        <PlayerBar name={stake.opp.name} sub={`${stake.opp.title} · Casa ${stake.opp.casa}`} elo={stake.opp.elo} caps={capByBlack} capColor="w" you={false} active={turn === 'b'} thinking={thinking} />
+        {clockOn && <Clock ms={blackMs} active={turn === 'b' && !result} />}
+      </div>
 
       {/* Tablero con marco (imagen) + rejilla de piezas encima */}
       <div style={{
@@ -317,8 +411,10 @@ export function AjedrezScreen() {
                   {cell && (
                     <span style={{
                       fontSize: `calc(${boardSize} / 11)`, lineHeight: 1, position: 'relative', zIndex: 2,
-                      color: cell.color === 'w' ? '#f8f1e4' : '#15151b',
-                      textShadow: cell.color === 'w' ? '0 1px 3px rgba(0,0,0,.7), 0 0 2px rgba(0,0,0,.9)' : '0 1px 3px rgba(255,255,255,.35)',
+                      color: cell.color === 'w' ? '#f8f1e4' : '#1b1b22',
+                      textShadow: cell.color === 'w'
+                        ? '0 1px 3px rgba(0,0,0,.7), 0 0 2px rgba(0,0,0,.95), 0 0 1px rgba(0,0,0,1)'
+                        : '0 0 5px rgba(255,255,255,.5), 0 0 2px rgba(255,255,255,.85), 0 1px 1px rgba(255,255,255,.9), 0 1px 3px rgba(0,0,0,.55)',
                     }}>{GLYPH[cell.type]}</span>
                   )}
                   {isTarget && <div style={cell ? targetRing : targetDot} />}
@@ -330,7 +426,10 @@ export function AjedrezScreen() {
       </div>
 
       {/* Tú */}
-      <PlayerBar name={alias} sub={`${houseName !== 'Sin Casa' ? 'Casa ' + houseName : 'Sin Casa'} · tú`} elo={myElo} caps={capByWhite} capColor="b" you active={turn === 'w'} thinking={false} />
+      <div style={barWithClock}>
+        <PlayerBar name={alias} sub={`${houseName !== 'Sin Casa' ? 'Casa ' + houseName : 'Sin Casa'} · tú`} elo={myElo} caps={capByWhite} capColor="b" you active={turn === 'w'} thinking={false} />
+        {clockOn && <Clock ms={whiteMs} active={turn === 'w' && !result} />}
+      </div>
 
       {/* Estado + bote */}
       <div style={statusRow}>
@@ -358,7 +457,9 @@ export function AjedrezScreen() {
         <div style={overlay}>
           <div style={overlayCard}>
             <div style={{ fontSize: 11, letterSpacing: '.3em', textTransform: 'uppercase', color: '#9c7a3e' }}>
-              {result.outcome === 'win' ? 'Jaque mate a tu favor' : result.outcome === 'loss' ? 'Caíste' : 'Tablas'}
+              {result.reason === 'time'
+                ? 'Se acabó el tiempo'
+                : result.outcome === 'win' ? 'Jaque mate a tu favor' : result.outcome === 'loss' ? 'Caíste' : 'Tablas'}
             </div>
             <h2 style={{ fontFamily: 'Marcellus,serif', fontSize: 30, color: '#f3eddd', margin: '8px 0 2px' }}>
               {result.outcome === 'win' ? '¡Ganaste!' : result.outcome === 'loss' ? 'Derrota' : 'Empate'}
@@ -394,9 +495,41 @@ function PlayerBar({ name, sub, elo, caps, capColor, you, active, thinking }: {
         </div>
         <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.55)' }}>{sub}</div>
       </div>
-      <div style={{ display: 'flex', gap: 1, fontSize: 16, color: capColor === 'w' ? '#f8f1e4' : '#15151b', textShadow: capColor === 'w' ? '0 1px 2px #000' : '0 1px 2px rgba(255,255,255,.3)' }}>
+      <div style={{ display: 'flex', gap: 1, fontSize: 16, color: capColor === 'w' ? '#f8f1e4' : '#1b1b22', textShadow: capColor === 'w' ? '0 1px 2px #000' : '0 0 4px rgba(255,255,255,.6), 0 0 1px rgba(255,255,255,.9), 0 1px 2px rgba(0,0,0,.5)' }}>
         {caps.slice(0, 8).map((p, i) => <span key={i}>{GLYPH[p]}</span>)}
       </div>
+    </div>
+  );
+}
+
+function Clock({ ms, active }: { ms: number; active: boolean }) {
+  const low = ms <= 30_000; // bajo 30s → rojo
+  const color = active ? (low ? '#ff7a7a' : '#ecd28e') : 'rgba(232,226,212,.55)';
+  const border = active ? (low ? 'rgba(255,122,122,.7)' : 'rgba(201,163,91,.7)') : 'rgba(255,255,255,.1)';
+  const bg = active ? (low ? 'rgba(255,122,122,.12)' : 'rgba(201,163,91,.14)') : 'rgba(8,8,10,.5)';
+  return (
+    <div
+      style={{
+        flex: '0 0 auto',
+        fontFamily: "'Marcellus',serif",
+        fontVariantNumeric: 'tabular-nums',
+        fontSize: 'clamp(16px, 4.6vw, 21px)',
+        fontWeight: 700,
+        letterSpacing: '.04em',
+        color,
+        padding: '5px 11px',
+        borderRadius: 10,
+        border: `1px solid ${border}`,
+        background: bg,
+        minWidth: 64,
+        display: 'grid',
+        placeItems: 'center',
+        textAlign: 'center',
+        animation: active && low ? 'domPulse 1.1s ease-in-out infinite' : undefined,
+      }}
+      aria-label="reloj"
+    >
+      {fmtClock(ms)}
     </div>
   );
 }
@@ -434,8 +567,22 @@ const sitBtn: React.CSSProperties = {
 const lastDot: React.CSSProperties = { position: 'absolute', inset: 0, background: 'rgba(236,210,142,.3)', zIndex: 1 };
 const targetDot: React.CSSProperties = { position: 'absolute', width: '28%', height: '28%', borderRadius: '50%', background: 'rgba(20,20,20,.35)', zIndex: 1 };
 const targetRing: React.CSSProperties = { position: 'absolute', inset: '6%', borderRadius: '50%', border: '3px solid rgba(20,20,20,.4)', zIndex: 1 };
+const barWithClock: React.CSSProperties = {
+  width: 'min(94vw, 520px)', maxWidth: '100%', display: 'flex', alignItems: 'stretch', gap: 8,
+};
+const tcWrap: React.CSSProperties = {
+  maxWidth: 560, marginLeft: 'auto', marginRight: 'auto', marginTop: 20, textAlign: 'center',
+};
+const tcRow: React.CSSProperties = {
+  display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center',
+};
+const tcBtn: React.CSSProperties = {
+  padding: '9px 14px', borderRadius: 10, fontSize: 13, cursor: 'pointer', fontWeight: 600,
+  border: '1px solid rgba(201,163,91,.3)', background: 'transparent', color: 'rgba(232,226,212,.72)',
+};
+const tcBtnActive: React.CSSProperties = { background: GOLD, color: '#2c2415', border: 'none', fontWeight: 800 };
 const playerBar: React.CSSProperties = {
-  width: 'min(94vw, 520px)', maxWidth: '100%', display: 'flex', alignItems: 'center', gap: 12,
+  flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 12,
   padding: '8px 12px', borderRadius: 12, border: '1px solid rgba(255,255,255,.08)', background: 'rgba(8,8,10,.4)',
 };
 const avatar: React.CSSProperties = {
