@@ -83,16 +83,16 @@ export function PremiumCards({
         <div style={sheen} />
         <div style={cardTop}>
           <span style={cardLabel('obsidian')}>Tu ascenso</span>
-          <span style={{ fontSize: 11, color: '#9c7a3e' }}>Influencia · {influence}</span>
+          <span style={{ fontSize: 9.5, color: '#9c7a3e' }}>Infl · {influence}</span>
         </div>
         <div style={cardMain('obsidian')}>{RANKS[rankIdx].label}</div>
         <div>
-          <div style={{ display: 'flex', gap: 5, marginBottom: 7 }}>
+          <div style={{ display: 'flex', gap: 4, marginBottom: 5 }}>
             {RANKS.map((r, i) => (
-              <span key={r.key} style={{ flex: 1, height: 5, borderRadius: 999, background: i <= rankIdx ? GOLD_GRAD : 'rgba(255,255,255,.14)' }} />
+              <span key={r.key} style={{ flex: 1, height: 4, borderRadius: 999, background: i <= rankIdx ? GOLD_GRAD : 'rgba(255,255,255,.14)' }} />
             ))}
           </div>
-          <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.6)' }}>
+          <div style={{ fontSize: 10, color: 'rgba(232,226,212,.6)' }}>
             {nextRank ? `Próximo: ${nextRank.label}` : 'Has llegado a la cima.'}
           </div>
         </div>
@@ -113,11 +113,11 @@ const METAL_INK: Record<Metal, string> = { gold: '#2c2412', silver: '#23282e', o
 function premiumCard(metal: Metal): React.CSSProperties {
   return {
     position: 'relative', overflow: 'hidden', flex: '0 0 auto',
-    width: 'clamp(280px, 82vw, 320px)', scrollSnapAlign: 'start', aspectRatio: '1.62 / 1',
-    borderRadius: 16, padding: 20, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
+    width: 'clamp(196px, 56vw, 224px)', scrollSnapAlign: 'start', aspectRatio: '1.62 / 1',
+    borderRadius: 13, padding: 14, display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
     color: METAL_INK[metal], background: METAL_BG[metal],
     border: metal === 'obsidian' ? '1px solid rgba(201,163,91,.4)' : '1px solid rgba(255,255,255,.4)',
-    boxShadow: '0 22px 50px -22px rgba(0,0,0,.85)',
+    boxShadow: '0 16px 38px -20px rgba(0,0,0,.85)',
   };
 }
 const sheen: React.CSSProperties = {
@@ -128,20 +128,20 @@ const sheen: React.CSSProperties = {
 const cardTop: React.CSSProperties = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', zIndex: 1 };
 const cardBottom: React.CSSProperties = { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', position: 'relative', zIndex: 1 };
 function cardLabel(metal: Metal): React.CSSProperties {
-  return { fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', fontWeight: 700, color: metal === 'obsidian' ? '#9c7a3e' : 'rgba(0,0,0,.55)' };
+  return { fontSize: 8.5, letterSpacing: '.18em', textTransform: 'uppercase', fontWeight: 700, color: metal === 'obsidian' ? '#9c7a3e' : 'rgba(0,0,0,.55)' };
 }
 function cardMain(metal: Metal): React.CSSProperties {
-  return { fontFamily: metal === 'obsidian' ? "'Cormorant Garamond',serif" : 'Marcellus, serif', fontSize: metal === 'obsidian' ? 30 : 26, position: 'relative', zIndex: 1, color: metal === 'obsidian' ? '#ecd9a5' : METAL_INK[metal] };
+  return { fontFamily: metal === 'obsidian' ? "'Cormorant Garamond',serif" : 'Marcellus, serif', fontSize: metal === 'obsidian' ? 21 : 18, position: 'relative', zIndex: 1, color: metal === 'obsidian' ? '#ecd9a5' : METAL_INK[metal] };
 }
 function miniLabel(metal: Metal): React.CSSProperties {
-  return { fontSize: 9, letterSpacing: '.2em', textTransform: 'uppercase', color: metal === 'obsidian' ? '#9c7a3e' : 'rgba(0,0,0,.5)' };
+  return { fontSize: 8, letterSpacing: '.16em', textTransform: 'uppercase', color: metal === 'obsidian' ? '#9c7a3e' : 'rgba(0,0,0,.5)' };
 }
 function miniVal(metal: Metal): React.CSSProperties {
-  return { fontSize: 14, fontWeight: 600, color: metal === 'obsidian' ? '#ece6d6' : METAL_INK[metal] };
+  return { fontSize: 12, fontWeight: 600, color: metal === 'obsidian' ? '#ece6d6' : METAL_INK[metal] };
 }
-const chipImg: React.CSSProperties = { width: 38, height: 38, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.3))' };
-const coinChip: React.CSSProperties = { width: 36, height: 36, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 2px 6px rgba(0,0,0,.35)' };
+const chipImg: React.CSSProperties = { width: 27, height: 27, objectFit: 'contain', filter: 'drop-shadow(0 2px 4px rgba(0,0,0,.3))' };
+const coinChip: React.CSSProperties = { width: 26, height: 26, borderRadius: '50%', objectFit: 'cover', boxShadow: '0 2px 6px rgba(0,0,0,.35)' };
 const cardBtn: React.CSSProperties = {
   background: 'linear-gradient(135deg,#2c2412,#1a1509)', color: '#ecd9a5', border: '1px solid rgba(0,0,0,.25)',
-  padding: '9px 16px', borderRadius: 10, fontWeight: 700, fontSize: 13, cursor: 'pointer', fontFamily: "'Hanken Grotesk',sans-serif",
+  padding: '6px 11px', borderRadius: 9, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: "'Hanken Grotesk',sans-serif",
 };
