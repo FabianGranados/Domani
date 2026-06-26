@@ -367,10 +367,12 @@ function SmallTile({
 // ════════ estilos ════════
 const eyebrow: React.CSSProperties = { fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e' };
 
+// Alto del hero: generoso para que las fotos 16:9 luzcan sin comerse las caras.
 function heroCard(isDesktop: boolean): React.CSSProperties {
   return {
     position: 'relative', overflow: 'hidden', isolation: 'isolate',
-    minHeight: isDesktop ? 300 : 380, marginTop: 'env(safe-area-inset-top)',
+    minHeight: isDesktop ? 'clamp(440px, 52vh, 560px)' : 'clamp(420px, 64vh, 520px)',
+    marginTop: 'env(safe-area-inset-top)',
     borderRadius: 20, border: '1px solid rgba(201,163,91,.28)',
     background: '#0f0c16', boxShadow: '0 26px 60px -30px rgba(0,0,0,.95)',
   };
@@ -378,21 +380,24 @@ function heroCard(isDesktop: boolean): React.CSSProperties {
 function heroPhoto(src: string, active: boolean, i: number): React.CSSProperties {
   return {
     position: 'absolute', inset: 0, backgroundImage: `url('${src}')`,
-    backgroundSize: 'cover', backgroundPosition: 'center',
+    backgroundSize: 'cover', backgroundPosition: 'center 38%',
     opacity: active ? 1 : 0, transition: 'opacity 1.5s ease',
-    animation: `domKen 16s ease-in-out ${i * -4}s infinite alternate`,
+    animation: `domKen 18s ease-in-out ${i * -4.5}s infinite alternate`,
   };
 }
+// Oscurece sobre todo abajo (donde va el texto); arriba casi transparente
+// para no tapar las caras.
 const heroScrim: React.CSSProperties = {
   position: 'absolute', inset: 0,
   backgroundImage:
-    'radial-gradient(130% 100% at 82% 8%, rgba(201,163,91,.16), transparent 55%), linear-gradient(120deg, rgba(7,6,11,.92) 0%, rgba(7,6,11,.5) 48%, rgba(7,6,11,.84) 100%)',
+    'linear-gradient(180deg, rgba(7,6,11,.18) 0%, rgba(7,6,11,.08) 32%, rgba(7,6,11,.55) 70%, rgba(7,6,11,.93) 100%), radial-gradient(120% 70% at 82% 4%, rgba(201,163,91,.14), transparent 50%)',
 };
+// Contenido anclado ABAJO: las caras de arriba quedan despejadas.
 function heroContent(isDesktop: boolean): React.CSSProperties {
   return {
-    position: 'relative', zIndex: 1, minHeight: isDesktop ? 300 : 380,
+    position: 'relative', zIndex: 1, minHeight: isDesktop ? 'clamp(440px, 52vh, 560px)' : 'clamp(420px, 64vh, 520px)',
     display: 'flex', flexDirection: isDesktop ? 'row' : 'column',
-    alignItems: isDesktop ? 'center' : 'stretch', justifyContent: 'space-between',
+    alignItems: isDesktop ? 'flex-end' : 'stretch', justifyContent: isDesktop ? 'space-between' : 'flex-end',
     gap: 18, padding: isDesktop ? '26px 28px' : '22px 18px',
   };
 }
