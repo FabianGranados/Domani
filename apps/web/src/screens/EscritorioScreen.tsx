@@ -62,7 +62,7 @@ const GAMES: GameTile[] = [
   { key: 'parques', title: 'Parqués', tag: 'Sácala o que te saquen.', glyph: '🎲', img: '/assets/game-parques.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
   { key: 'domino', title: 'Dominó', tag: 'La mesa habla.', glyph: '🁢', img: '/assets/game-domino.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
   { key: 'damas', title: 'Damas chinas', tag: 'Estrella de estrategas.', glyph: '⛀', img: '/assets/game-damas.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 2', r: 'span 1' } },
-  { key: 'mas', title: 'Y muchos más', tag: 'Backgammon, cartas, go…', glyph: '✦', grad: 'linear-gradient(155deg,#2a2536,#13111b)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 2', r: 'span 1' } },
+  { key: 'mas', title: 'Y muchos más', tag: 'Super Triunfo, backgammon, cartas…', glyph: '✦', img: '/assets/game-mas.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 2', r: 'span 1' } },
 ];
 
 function greeting(): string {
