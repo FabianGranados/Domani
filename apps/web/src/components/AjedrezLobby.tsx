@@ -1,5 +1,32 @@
 import { useEffect, useState } from 'react';
 
+// ============================================================
+// Lobby del Salón de Ajedrez — panel de gestión (estilo GTA):
+// foto de fondo + tarjetas de vidrio. Izquierda: avatar + ficha (ELO,
+// título, racha) + secciones. Contenido: LOS 5 NIVELES (examen, todos
+// abiertos, con premio y trofeo), VITRINA de trofeos (visible a otros),
+// MULTIMESA (5 a la vez, rush) y JUGAR CON AMIGOS (social, casual).
+// Placeholders donde aún no hay lógica.
+// ============================================================
+const GOLD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
+const fmt = (n: number) => n.toLocaleString('es-CO');
+
+type Level = { idx: number; n: number; master: string; title: string; elo: number; glyph: string; prize: number; timeMs: number; time: string };
+const LEVELS: Level[] = [
+  { idx: 0, n: 1, master: 'Dunia', title: 'Centinela', elo: 1180, glyph: '♟', prize: 5000, timeMs: 0, time: 'Sin reloj' },
+  { idx: 1, n: 2, master: 'Severo', title: 'Estratega', elo: 1480, glyph: '♞', prize: 20000, timeMs: 600_000, time: 'Rápida · 10′' },
+  { idx: 2, n: 3, master: 'Kenji', title: 'Maestro', elo: 1820, glyph: '♝', prize: 80000, timeMs: 600_000, time: 'Rápida · 10′' },
+  { idx: 3, n: 4, master: 'Aurelia', title: 'Gran Maestra', elo: 2200, glyph: '♜', prize: 300000, timeMs: 300_000, time: 'Blitz · 5′' },
+  { idx: 4, n: 5, master: 'El Mayor', title: 'Campeón Mundial', elo: 2600, glyph: '♛', prize: 2_000_000, timeMs: 300_000, time: 'Blitz · 5′' },
+];
+
+const SECTIONS = [
+  { id: 'niveles', label: 'Los 5 Niveles', sub: 'El examen' },
+  { id: 'vitrina', label: 'Vitrina de Trofeos', sub: 'Tus logros' },
+  { id: 'multimesa', label: 'Multimesa', sub: '5 a la vez · Rush' },
+  { id: 'amigos', label: 'Jugar con amigos', sub: 'Invita y reta' },
+];
+
 function useIsMobile(): boolean {
   const q = '(max-width: 820px)';
   const [v, setV] = useState(() => (typeof window !== 'undefined' ? window.matchMedia(q).matches : false));
@@ -14,48 +41,6 @@ function useIsMobile(): boolean {
   return v;
 }
 
-// ============================================================
-// Lobby del Salón de Ajedrez — estilo "panel de gestión" (GTA / GALAXY):
-// foto de fondo + tarjetas de vidrio (glass). Izquierda: avatar del jugador
-// y su ficha (ELO, título, racha) + menú de formas de jugar. Arriba: los
-// niveles/maestros a vencer (escalafón). Centro: formas de jugar. Abajo:
-// estadísticas. TODO con placeholders por ahora.
-// ============================================================
-const GOLD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
-const fmt = (n: number) => n.toLocaleString('es-CO');
-
-type Master = {
-  name: string; title: string; casa: string; elo: number; glyph: string;
-  state: 'beaten' | 'open' | 'locked'; stakeIndex: number | null;
-};
-// Escalafón (placeholders). Los primeros 3 son jugables (mapean a los stakes
-// del juego); los demás se desbloquean al vencer al anterior.
-const MASTERS: Master[] = [
-  { name: 'Dunia', title: 'Centinela', casa: 'Bacatá', elo: 1180, glyph: '♟', state: 'open', stakeIndex: 0 },
-  { name: 'Severo', title: 'Estratega', casa: 'Roma', elo: 1480, glyph: '♞', state: 'open', stakeIndex: 1 },
-  { name: 'Kenji', title: 'Maestro', casa: 'Osaka', elo: 1820, glyph: '♛', state: 'open', stakeIndex: 2 },
-  { name: '???', title: 'Maestro Internacional', casa: '—', elo: 2100, glyph: '♜', state: 'locked', stakeIndex: null },
-  { name: '???', title: 'Gran Maestro', casa: '—', elo: 2300, glyph: '♝', state: 'locked', stakeIndex: null },
-  { name: '???', title: 'El Maestro Mayor', casa: 'El Círculo', elo: 2500, glyph: '♚', state: 'locked', stakeIndex: null },
-];
-
-const MENU = [
-  { id: 'escalafon', label: 'El Escalafón', sub: 'Sube de título' },
-  { id: 'rapida', label: 'Partida Rápida', sub: 'Sin clasificar' },
-  { id: 'apuestas', label: 'Apuestas', sub: 'El bote es tuyo' },
-  { id: 'torneos', label: 'Torneos', sub: 'Próximamente', locked: true },
-  { id: 'desafios', label: 'Desafíos del día', sub: 'Próximamente', locked: true },
-];
-
-const MODES = [
-  { id: 'clasif', label: 'Clasificatoria', sub: 'Afecta tu ELO y el escalafón', icon: '⟡', locked: false },
-  { id: 'amistosa', label: 'Amistosa', sub: 'Practica sin arriesgar rating', icon: '☖', locked: false },
-  { id: 'blitz', label: 'Blitz · 5 min', sub: 'Rápido y a sangre fría', icon: '⏱', locked: false },
-  { id: 'rapida', label: 'Rápida · 10 min', sub: 'Equilibrio y nervio', icon: '⏱', locked: false },
-  { id: 'clasica', label: 'Clásica · 20 min', sub: 'Para los pacientes', icon: '⏱', locked: false },
-  { id: 'odds', label: 'Partida con ventaja', sub: 'El maestro te da un peón', icon: '♙', locked: true },
-];
-
 export function AjedrezLobby({
   alias, avatarSrc, balance, houseName, bg = '/assets/ajedrez-bg.webp', onPlay, onExit,
 }: {
@@ -63,64 +48,53 @@ export function AjedrezLobby({
   bg?: string; onPlay: (stakeIndex: number, timeMs: number) => void; onExit: () => void;
 }) {
   const isMobile = useIsMobile();
-  const [menu, setMenu] = useState('escalafon');
-  const [sel, setSel] = useState(0); // maestro seleccionado
-  const [mode, setMode] = useState('clasif');
+  const [section, setSection] = useState('niveles');
 
-  // Placeholders de ficha del jugador
+  // Placeholders de la ficha del jugador (lógica real: siguiente fase)
   const elo = 800;
   const titulo = 'Aprendiz';
-  const stats = { partidas: 0, victorias: 0, derrotas: 0, racha: 0 };
-
-  const master = MASTERS[sel];
+  const trofeos = 0;
+  const stats = { partidas: 0, victorias: 0, racha: 0 };
+  const earned: boolean[] = [false, false, false, false, false]; // trofeos por nivel
 
   return (
     <div style={shell}>
       <div style={{ ...bgLayer, backgroundImage: `url('${bg}')` }} />
       <div style={scrim} />
-
       <button onClick={onExit} style={exitBtn}>← Salir</button>
 
       <div style={{ ...grid, gridTemplateColumns: isMobile ? '1fr' : 'minmax(230px, 280px) 1fr' }}>
-        {/* ===== Sidebar: jugador + menú ===== */}
+        {/* ===== Sidebar ===== */}
         <aside style={{ ...sidebar, position: isMobile ? 'static' : 'sticky' }}>
           <div style={playerCard}>
-            <div style={avatarRing}>
-              <img src={avatarSrc} alt="" style={avatarImg} />
-            </div>
+            <div style={avatarRing}><img src={avatarSrc} alt="" style={avatarImg} /></div>
             <div style={{ minWidth: 0 }}>
               <div style={kicker}>Jugador</div>
               <div style={playerName}>{alias}</div>
-              <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.55)' }}>
-                {houseName !== 'Sin Casa' ? `Casa ${houseName}` : 'Sin Casa'}
-              </div>
+              <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.6)' }}>{houseName !== 'Sin Casa' ? `Casa ${houseName}` : 'Sin Casa'}</div>
             </div>
           </div>
 
           <div style={eloRow}>
-            <div style={eloBox}>
-              <div style={eloNum}>{elo}</div>
-              <div style={eloLbl}>ELO</div>
-            </div>
+            <div style={eloBox}><div style={eloNum}>{elo}</div><div style={eloLbl}>ELO</div></div>
             <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 12, color: 'rgba(232,226,212,.6)' }}>Título</div>
+              <div style={{ fontSize: 12, color: 'rgba(232,226,212,.65)' }}>Título</div>
               <div style={{ fontFamily: 'Marcellus,serif', fontSize: 16, color: '#ecd9a5' }}>{titulo}</div>
-              <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.5)', marginTop: 2 }}>Racha {stats.racha} · Billetera ⟡ {balance != null ? fmt(balance) : '—'}</div>
+              <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.55)', marginTop: 2 }}>🏆 {trofeos}/5 · Racha {stats.racha}</div>
             </div>
           </div>
 
+          <div style={{ fontSize: 12, color: 'rgba(232,226,212,.6)', padding: '0 2px' }}>
+            Billetera <span style={{ color: '#ecd9a5', fontWeight: 700 }}>⟡ {balance != null ? fmt(balance) : '—'}</span>
+          </div>
+
           <nav style={{ display: 'flex', flexDirection: 'column', gap: 4, marginTop: 6 }}>
-            {MENU.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => !m.locked && setMenu(m.id)}
-                style={{ ...menuItem, ...(menu === m.id ? menuItemActive : null), opacity: m.locked ? 0.5 : 1, cursor: m.locked ? 'default' : 'pointer' }}
-              >
+            {SECTIONS.map((s) => (
+              <button key={s.id} onClick={() => setSection(s.id)} style={{ ...menuItem, ...(section === s.id ? menuItemActive : null) }}>
                 <span style={{ flex: 1, textAlign: 'left' }}>
-                  <span style={{ display: 'block', fontSize: 14, color: '#f3eddd', fontWeight: 600 }}>{m.label}</span>
-                  <span style={{ display: 'block', fontSize: 11, color: 'rgba(232,226,212,.5)' }}>{m.sub}</span>
+                  <span style={{ display: 'block', fontSize: 14, color: '#f3eddd', fontWeight: 600 }}>{s.label}</span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'rgba(232,226,212,.5)' }}>{s.sub}</span>
                 </span>
-                {m.locked && <span style={{ fontSize: 12 }}>🔒</span>}
               </button>
             ))}
           </nav>
@@ -128,77 +102,104 @@ export function AjedrezLobby({
 
         {/* ===== Contenido ===== */}
         <main style={content}>
-          <div style={{ textAlign: 'left' }}>
+          <div>
             <div style={kicker}>El Salón · Juegos de destreza</div>
             <h1 style={lobbyTitle}>Salón de Ajedrez</h1>
-            <p style={{ color: 'rgba(232,226,212,.6)', fontStyle: 'italic', margin: '2px 0 0', fontSize: 14 }}>Un movimiento. Una consecuencia.</p>
+            <p style={{ color: 'rgba(232,226,212,.7)', fontStyle: 'italic', margin: '2px 0 0', fontSize: 14 }}>Un movimiento. Una consecuencia.</p>
           </div>
 
-          {/* Niveles a vencer (escalafón) */}
-          <div style={{ marginTop: 16 }}>
-            <div style={sectionLabel}>Niveles a vencer</div>
-            <div style={mastersRow}>
-              {MASTERS.map((m, i) => {
-                const locked = m.state === 'locked';
-                return (
-                  <button key={i} onClick={() => !locked && setSel(i)} style={{ ...masterCard, ...(sel === i ? masterCardActive : null), opacity: locked ? 0.55 : 1, cursor: locked ? 'default' : 'pointer' }}>
-                    <div style={masterPortrait}>
-                      <span style={{ fontSize: 30, color: locked ? 'rgba(232,226,212,.35)' : '#ecd9a5' }}>{m.glyph}</span>
-                      {locked && <span style={lockBadge}>🔒</span>}
-                      {m.state === 'beaten' && <span style={beatBadge}>✓</span>}
+          {/* ----- LOS 5 NIVELES ----- */}
+          {section === 'niveles' && (
+            <div style={{ marginTop: 16 }}>
+              <div style={sectionLabel}>Los 5 niveles · siempre abiertos</div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                {LEVELS.map((l) => {
+                  const top = l.n === 5;
+                  return (
+                    <div key={l.idx} style={{ ...levelRow, ...(top ? levelRowTop : null) }}>
+                      <div style={levelNum}>{l.n}</div>
+                      <div style={{ ...masterPortrait, width: 52, height: 52, flex: '0 0 auto' }}>
+                        <span style={{ fontSize: 26, color: '#ecd9a5' }}>{l.glyph}</span>
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontFamily: 'Marcellus,serif', fontSize: 16, color: '#f3eddd' }}>
+                          {l.master} <span style={{ fontSize: 11.5, color: '#9c7a3e' }}>· {l.title} · ELO {l.elo}</span>
+                        </div>
+                        <div style={{ fontSize: 12, color: 'rgba(232,226,212,.62)' }}>
+                          {l.time} · Premio al vencer <b style={{ color: top ? '#7ee0a6' : '#ecd9a5' }}>⟡ {fmt(l.prize)}</b>
+                        </div>
+                        {top && <div style={{ fontSize: 11, color: '#e0b15a', marginTop: 2 }}>👑 Solo para campeones. El bot juega en serio.</div>}
+                      </div>
+                      <button onClick={() => onPlay(l.idx, l.timeMs)} style={challengeBtn}>Retar</button>
                     </div>
-                    <div style={{ fontSize: 12.5, color: '#f3eddd', fontWeight: 600, marginTop: 6 }}>{m.name}</div>
-                    <div style={{ fontSize: 10.5, color: 'rgba(232,226,212,.5)' }}>ELO {m.elo}</div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Detalle del maestro + formas de jugar */}
-          <div style={detailWrap}>
-            <div style={detailHead}>
-              <div style={{ ...masterPortrait, width: 56, height: 56, flex: '0 0 auto' }}>
-                <span style={{ fontSize: 30, color: '#ecd9a5' }}>{master.glyph}</span>
+                  );
+                })}
               </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontFamily: 'Marcellus,serif', fontSize: 20, color: '#f3eddd' }}>
-                  {master.name} <span style={{ fontSize: 12, color: '#9c7a3e' }}>· ELO {master.elo}</span>
+            </div>
+          )}
+
+          {/* ----- VITRINA ----- */}
+          {section === 'vitrina' && (
+            <div style={{ marginTop: 16 }}>
+              <div style={sectionLabel}>Vitrina de trofeos · visible para todos</div>
+              <div style={trophyGrid}>
+                {LEVELS.map((l, i) => {
+                  const won = earned[i];
+                  return (
+                    <div key={l.idx} style={trophyCard}>
+                      <div style={{ ...medal, filter: won ? 'none' : 'grayscale(1) brightness(.6)', opacity: won ? 1 : 0.55 }}>
+                        <span style={{ fontSize: 30 }}>🏅</span>
+                        <span style={medalLvl}>{l.n}</span>
+                      </div>
+                      <div style={{ fontSize: 12.5, color: won ? '#ecd9a5' : 'rgba(232,226,212,.5)', marginTop: 6, fontWeight: 600 }}>Nivel {l.n}</div>
+                      <div style={{ fontSize: 10.5, color: 'rgba(232,226,212,.45)' }}>{won ? 'Conquistado' : 'Por conquistar'}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="muted" style={{ fontSize: 12, marginTop: 12 }}>Cada nivel que venzas pinta su medalla a color. Otros jugadores podrán ver tu vitrina.</p>
+            </div>
+          )}
+
+          {/* ----- MULTIMESA ----- */}
+          {section === 'multimesa' && (
+            <div style={{ marginTop: 16 }}>
+              <div style={sectionLabel}>Multimesa · estilo Rush</div>
+              <div style={featureCard}>
+                <div style={{ fontSize: 40 }}>🏁</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'Marcellus,serif', fontSize: 20, color: '#f3eddd' }}>5 mesas a la vez</div>
+                  <p style={{ fontSize: 13, color: 'rgba(232,226,212,.7)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                    Juega 5 partidas simultáneas contra reloj, como el Rush del póker. Gana <b style={{ color: '#ecd9a5' }}>al menos una</b> y te llevas el <b style={{ color: '#ecd9a5' }}>trofeo de Multimesa</b>.
+                  </p>
+                  <span style={soonPill}>Próximamente</span>
                 </div>
-                <div style={{ fontSize: 12.5, color: 'rgba(232,226,212,.6)' }}>{master.title} · Casa {master.casa}</div>
               </div>
-              {master.stakeIndex != null ? (
-                <button
-                  onClick={() => onPlay(master.stakeIndex as number, mode === 'blitz' ? 300_000 : mode === 'rapida' ? 600_000 : mode === 'clasica' ? 1_200_000 : 0)}
-                  style={challengeBtn}
-                >
-                  Retar
-                </button>
-              ) : (
-                <span style={{ ...challengeBtn, background: 'rgba(8,8,10,.5)', color: 'rgba(232,226,212,.5)', cursor: 'default', border: '1px solid rgba(201,163,91,.25)' }}>Bloqueado</span>
-              )}
             </div>
+          )}
 
-            <div style={sectionLabel}>Formas de jugar</div>
-            <div style={modesGrid}>
-              {MODES.map((m) => (
-                <button key={m.id} onClick={() => !m.locked && setMode(m.id)} style={{ ...modeCard, ...(mode === m.id ? modeCardActive : null), opacity: m.locked ? 0.5 : 1, cursor: m.locked ? 'default' : 'pointer' }}>
-                  <span style={modeIcon}>{m.icon}</span>
-                  <span style={{ flex: 1, textAlign: 'left' }}>
-                    <span style={{ display: 'block', fontSize: 13.5, color: '#f3eddd', fontWeight: 600 }}>{m.label}</span>
-                    <span style={{ display: 'block', fontSize: 11, color: 'rgba(232,226,212,.55)' }}>{m.sub}</span>
-                  </span>
-                  {m.locked && <span style={{ fontSize: 12 }}>🔒</span>}
-                </button>
-              ))}
+          {/* ----- AMIGOS ----- */}
+          {section === 'amigos' && (
+            <div style={{ marginTop: 16 }}>
+              <div style={sectionLabel}>Jugar con amigos · partidas tranquilas</div>
+              <div style={featureCard}>
+                <div style={{ fontSize: 40 }}>🤝</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'Marcellus,serif', fontSize: 20, color: '#f3eddd' }}>Tus amigos del Círculo</div>
+                  <p style={{ fontSize: 13, color: 'rgba(232,226,212,.7)', margin: '4px 0 0', lineHeight: 1.45 }}>
+                    Invita o llama a tus amigos de la red social de Domani y juega partidas <b style={{ color: '#ecd9a5' }}>sin apostar tantas fichas</b>, a tu ritmo.
+                  </p>
+                  <span style={soonPill}>Próximamente</span>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Estadísticas */}
+          {/* ----- Estadísticas ----- */}
           <div style={statsBar}>
             <Stat label="Partidas" value={stats.partidas} />
             <Stat label="Victorias" value={stats.victorias} gold />
-            <Stat label="Derrotas" value={stats.derrotas} />
+            <Stat label="Trofeos" value={trofeos} gold />
             <Stat label="Racha" value={stats.racha} />
             <Stat label="ELO" value={elo} gold />
           </div>
@@ -214,19 +215,19 @@ export function AjedrezLobby({
 
 function Stat({ label, value, gold }: { label: string; value: number; gold?: boolean }) {
   return (
-    <div style={{ flex: 1, textAlign: 'center', minWidth: 64 }}>
+    <div style={{ flex: 1, textAlign: 'center', minWidth: 56 }}>
       <div style={{ fontFamily: 'Marcellus,serif', fontSize: 22, color: gold ? '#ecd9a5' : '#ece6d6' }}>{value}</div>
-      <div style={{ fontSize: 9.5, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(232,226,212,.45)', marginTop: 2 }}>{label}</div>
+      <div style={{ fontSize: 9, letterSpacing: '.14em', textTransform: 'uppercase', color: 'rgba(232,226,212,.45)', marginTop: 2 }}>{label}</div>
     </div>
   );
 }
 
 // ---- estilos ----
 const shell: React.CSSProperties = { position: 'fixed', inset: 0, overflow: 'hidden' };
-const bgLayer: React.CSSProperties = { position: 'absolute', inset: 0, backgroundSize: 'cover', backgroundPosition: 'center' };
+const bgLayer: React.CSSProperties = { position: 'absolute', inset: 0, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'brightness(1.18) saturate(1.05)' };
 const scrim: React.CSSProperties = {
   position: 'absolute', inset: 0,
-  background: 'radial-gradient(120% 90% at 50% 0%, rgba(10,9,14,.62), rgba(8,7,11,.9) 70%), linear-gradient(180deg, rgba(8,7,11,.55), rgba(8,7,11,.82))',
+  background: 'radial-gradient(120% 90% at 50% 0%, rgba(10,9,14,.28), rgba(8,7,11,.62) 75%), linear-gradient(180deg, rgba(8,7,11,.22), rgba(8,7,11,.5))',
 };
 const exitBtn: React.CSSProperties = {
   position: 'absolute', top: 'calc(env(safe-area-inset-top) + 12px)', left: 14, zIndex: 5,
@@ -236,55 +237,43 @@ const exitBtn: React.CSSProperties = {
 };
 const grid: React.CSSProperties = {
   position: 'relative', zIndex: 1, height: '100%', overflowY: 'auto',
-  display: 'grid', gridTemplateColumns: 'minmax(230px, 280px) 1fr', gap: 16,
-  padding: 'calc(env(safe-area-inset-top) + 56px) 18px calc(env(safe-area-inset-bottom) + 18px)',
+  display: 'grid', gap: 16, padding: 'calc(env(safe-area-inset-top) + 56px) 18px calc(env(safe-area-inset-bottom) + 18px)',
   maxWidth: 1180, margin: '0 auto',
 };
 const glass: React.CSSProperties = {
-  background: 'rgba(16,14,22,.55)', border: '1px solid rgba(201,163,91,.28)', borderRadius: 16,
-  backdropFilter: 'blur(14px) saturate(120%)', WebkitBackdropFilter: 'blur(14px) saturate(120%)',
+  background: 'rgba(14,12,20,.62)', border: '1px solid rgba(201,163,91,.3)', borderRadius: 16,
+  backdropFilter: 'blur(16px) saturate(120%)', WebkitBackdropFilter: 'blur(16px) saturate(120%)',
   boxShadow: '0 24px 60px -30px rgba(0,0,0,.9)',
 };
-const sidebar: React.CSSProperties = { ...glass, padding: 16, display: 'flex', flexDirection: 'column', gap: 12, alignSelf: 'start', position: 'sticky', top: 0 };
+const sidebar: React.CSSProperties = { ...glass, padding: 16, display: 'flex', flexDirection: 'column', gap: 12, alignSelf: 'start', top: 0 };
 const playerCard: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12 };
-const avatarRing: React.CSSProperties = {
-  flex: '0 0 auto', width: 58, height: 58, borderRadius: '50%', padding: 2, background: GOLD, overflow: 'hidden',
-};
-const avatarImg: React.CSSProperties = {
-  width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top center',
-  background: 'radial-gradient(120% 100% at 50% 0%, #1e6f4a, #14111c 72%)',
-};
-const kicker: React.CSSProperties = { fontSize: 10, letterSpacing: '.24em', textTransform: 'uppercase', color: '#9c7a3e' };
+const avatarRing: React.CSSProperties = { flex: '0 0 auto', width: 58, height: 58, borderRadius: '50%', padding: 2, background: GOLD, overflow: 'hidden' };
+const avatarImg: React.CSSProperties = { width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', objectPosition: 'top center', background: 'radial-gradient(120% 100% at 50% 0%, #1e6f4a, #14111c 72%)' };
+const kicker: React.CSSProperties = { fontSize: 10, letterSpacing: '.24em', textTransform: 'uppercase', color: '#bfa05a' };
 const playerName: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 20, color: '#f3eddd', lineHeight: 1.1 };
-const eloRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderTop: '1px solid rgba(255,255,255,.07)', borderBottom: '1px solid rgba(255,255,255,.07)' };
-const eloBox: React.CSSProperties = { flex: '0 0 auto', width: 70, height: 64, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'rgba(201,163,91,.1)', border: '1px solid rgba(201,163,91,.3)' };
+const eloRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 0', borderTop: '1px solid rgba(255,255,255,.08)', borderBottom: '1px solid rgba(255,255,255,.08)' };
+const eloBox: React.CSSProperties = { flex: '0 0 auto', width: 70, height: 64, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'rgba(201,163,91,.12)', border: '1px solid rgba(201,163,91,.3)' };
 const eloNum: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 26, color: '#ecd9a5', lineHeight: 1 };
 const eloLbl: React.CSSProperties = { fontSize: 9, letterSpacing: '.2em', color: '#9c7a3e', marginTop: 2 };
-const menuItem: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 11, border: '1px solid transparent', background: 'transparent', width: '100%', fontFamily: "'Hanken Grotesk',sans-serif" };
-const menuItemActive: React.CSSProperties = { background: 'linear-gradient(135deg, rgba(201,163,91,.16), rgba(201,163,91,.05))', border: '1px solid rgba(201,163,91,.4)' };
+const menuItem: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 8, padding: '10px 12px', borderRadius: 11, border: '1px solid transparent', background: 'transparent', width: '100%', cursor: 'pointer', fontFamily: "'Hanken Grotesk',sans-serif" };
+const menuItemActive: React.CSSProperties = { background: 'linear-gradient(135deg, rgba(201,163,91,.18), rgba(201,163,91,.05))', border: '1px solid rgba(201,163,91,.4)' };
 
 const content: React.CSSProperties = { ...glass, padding: 18, minWidth: 0 };
 const lobbyTitle: React.CSSProperties = { fontFamily: "'Cormorant Garamond',serif", fontSize: 30, color: '#ece6d6', margin: '4px 0 0' };
-const sectionLabel: React.CSSProperties = { fontSize: 10.5, letterSpacing: '.24em', textTransform: 'uppercase', color: '#9c7a3e', margin: '0 0 8px' };
-const mastersRow: React.CSSProperties = { display: 'flex', gap: 10, overflowX: 'auto', paddingBottom: 6 };
-const masterCard: React.CSSProperties = {
-  flex: '0 0 auto', width: 96, padding: '10px 8px', borderRadius: 14, textAlign: 'center',
-  border: '1px solid rgba(255,255,255,.08)', background: 'rgba(8,8,10,.45)',
-};
-const masterCardActive: React.CSSProperties = { border: '1px solid rgba(201,163,91,.6)', background: 'rgba(201,163,91,.1)' };
-const masterPortrait: React.CSSProperties = {
-  position: 'relative', width: 72, height: 72, margin: '0 auto', borderRadius: 12, display: 'grid', placeItems: 'center',
-  background: 'radial-gradient(120% 100% at 50% 0%, #241606, #100e16 75%)', border: '1px solid rgba(201,163,91,.25)',
-};
-const lockBadge: React.CSSProperties = { position: 'absolute', bottom: 2, right: 2, fontSize: 12 };
-const beatBadge: React.CSSProperties = { position: 'absolute', top: 2, right: 4, fontSize: 12, color: '#7ee0a6' };
+const sectionLabel: React.CSSProperties = { fontSize: 10.5, letterSpacing: '.24em', textTransform: 'uppercase', color: '#bfa05a', margin: '0 0 10px' };
 
-const detailWrap: React.CSSProperties = { marginTop: 16, padding: 14, borderRadius: 14, border: '1px solid rgba(201,163,91,.2)', background: 'rgba(8,8,10,.35)' };
-const detailHead: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14 };
-const challengeBtn: React.CSSProperties = { flex: '0 0 auto', padding: '10px 22px', borderRadius: 11, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 14, color: '#2c2415', background: GOLD };
-const modesGrid: React.CSSProperties = { display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fill, minmax(190px, 1fr))' };
-const modeCard: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 10, padding: '11px 12px', borderRadius: 12, border: '1px solid rgba(255,255,255,.08)', background: 'rgba(8,8,10,.4)', width: '100%' };
-const modeCardActive: React.CSSProperties = { border: '1px solid rgba(201,163,91,.55)', background: 'rgba(201,163,91,.1)' };
-const modeIcon: React.CSSProperties = { flex: '0 0 auto', width: 32, height: 32, borderRadius: 9, display: 'grid', placeItems: 'center', fontSize: 16, color: '#ecd9a5', background: 'rgba(201,163,91,.14)', border: '1px solid rgba(201,163,91,.3)' };
+const levelRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 14, border: '1px solid rgba(255,255,255,.08)', background: 'rgba(8,8,10,.5)' };
+const levelRowTop: React.CSSProperties = { border: '1px solid rgba(201,163,91,.55)', background: 'linear-gradient(135deg, rgba(201,163,91,.12), rgba(8,8,10,.5))' };
+const levelNum: React.CSSProperties = { flex: '0 0 auto', width: 26, fontFamily: 'Marcellus,serif', fontSize: 22, color: '#9c7a3e', textAlign: 'center' };
+const masterPortrait: React.CSSProperties = { position: 'relative', width: 72, height: 72, borderRadius: 12, display: 'grid', placeItems: 'center', background: 'radial-gradient(120% 100% at 50% 0%, #241606, #100e16 75%)', border: '1px solid rgba(201,163,91,.25)' };
+const challengeBtn: React.CSSProperties = { flex: '0 0 auto', padding: '10px 20px', borderRadius: 11, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 14, color: '#2c2415', background: GOLD };
 
-const statsBar: React.CSSProperties = { display: 'flex', gap: 8, marginTop: 16, padding: '14px 10px', borderRadius: 14, border: '1px solid rgba(201,163,91,.2)', background: 'rgba(8,8,10,.45)', flexWrap: 'wrap' };
+const trophyGrid: React.CSSProperties = { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))' };
+const trophyCard: React.CSSProperties = { textAlign: 'center', padding: '14px 8px', borderRadius: 14, border: '1px solid rgba(255,255,255,.08)', background: 'rgba(8,8,10,.45)' };
+const medal: React.CSSProperties = { position: 'relative', width: 64, height: 64, margin: '0 auto', borderRadius: '50%', display: 'grid', placeItems: 'center', background: 'radial-gradient(circle at 40% 30%, rgba(201,163,91,.3), rgba(8,8,10,.6))', border: '1px solid rgba(201,163,91,.3)' };
+const medalLvl: React.CSSProperties = { position: 'absolute', bottom: 4, right: 8, fontSize: 12, fontWeight: 800, color: '#2c2415', background: GOLD, borderRadius: 999, width: 18, height: 18, display: 'grid', placeItems: 'center' };
+
+const featureCard: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 16, padding: 18, borderRadius: 16, border: '1px solid rgba(201,163,91,.28)', background: 'rgba(8,8,10,.45)' };
+const soonPill: React.CSSProperties = { display: 'inline-block', marginTop: 12, fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700, color: 'rgba(236,230,214,.8)', border: '1px solid rgba(201,163,91,.4)', background: 'rgba(8,8,10,.4)', padding: '6px 13px', borderRadius: 999 };
+
+const statsBar: React.CSSProperties = { display: 'flex', gap: 8, marginTop: 18, padding: '14px 10px', borderRadius: 14, border: '1px solid rgba(201,163,91,.22)', background: 'rgba(8,8,10,.5)', flexWrap: 'wrap' };

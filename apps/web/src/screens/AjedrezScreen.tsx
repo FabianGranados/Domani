@@ -16,15 +16,19 @@ type ThemeId = 'madera' | 'ebano' | 'oro';
 // alinear la rejilla de piezas exactamente sobre el área de juego 8×8.
 const THEMES: Record<ThemeId, { name: string; img: string; inset: number }> = {
   madera: { name: 'Madera', img: '/assets/board-madera.webp', inset: 9.5 },
-  ebano: { name: 'Ébano', img: '/assets/board-ebano.webp', inset: 10 },
-  oro: { name: 'Oro', img: '/assets/board-oro.webp', inset: 12 },
+  ebano: { name: 'Ébano', img: '/assets/board-ebano.webp', inset: 9.5 },
+  oro: { name: 'Oro', img: '/assets/board-oro.webp', inset: 10 },
 };
 
 type Stake = { id: string; name: string; bet: number; depth: number; opp: { name: string; title: string; casa: string; elo: number; glyph: string } };
+// 5 niveles (examen), todos abiertos. La apuesta es la ENTRADA; el premio real
+// al vencer se afina con la lógica de trofeos/escalafón (siguiente fase).
 const STAKES: Stake[] = [
-  { id: 'aprendiz', name: 'Aprendiz', bet: 100, depth: 2, opp: { name: 'Dunia', title: 'Centinela', casa: 'Bacatá', elo: 1180, glyph: '♟' } },
-  { id: 'retador', name: 'Retador', bet: 1000, depth: 3, opp: { name: 'Severo', title: 'Estratega', casa: 'Roma', elo: 1480, glyph: '♞' } },
-  { id: 'maestro', name: 'Maestro', bet: 10000, depth: 3, opp: { name: 'Kenji', title: 'Gran Maestro', casa: 'Osaka', elo: 1820, glyph: '♛' } },
+  { id: 'n1', name: 'Nivel 1 · Aprendiz', bet: 100, depth: 2, opp: { name: 'Dunia', title: 'Centinela', casa: 'Bacatá', elo: 1180, glyph: '♟' } },
+  { id: 'n2', name: 'Nivel 2 · Retador', bet: 250, depth: 3, opp: { name: 'Severo', title: 'Estratega', casa: 'Roma', elo: 1480, glyph: '♞' } },
+  { id: 'n3', name: 'Nivel 3 · Maestro', bet: 500, depth: 3, opp: { name: 'Kenji', title: 'Maestro', casa: 'Osaka', elo: 1820, glyph: '♝' } },
+  { id: 'n4', name: 'Nivel 4 · Gran Maestro', bet: 1000, depth: 4, opp: { name: 'Aurelia', title: 'Gran Maestra', casa: 'Plata', elo: 2200, glyph: '♜' } },
+  { id: 'n5', name: 'Nivel 5 · Campeón Mundial', bet: 2000, depth: 4, opp: { name: 'El Mayor', title: 'Campeón Mundial', casa: 'El Círculo', elo: 2600, glyph: '♛' } },
 ];
 
 type TimeControl = { id: string; label: string; ms: number }; // ms = 0 => sin reloj
@@ -207,7 +211,9 @@ export function AjedrezScreen() {
     const fen = g.fen();
     const started = Date.now();
     const apply = (bm: { from: string; to: string; promotion?: string } | null) => {
-      const wait = Math.max(0, 380 - (Date.now() - started)); // mínimo "pensar"
+      // Ritmo HUMANO: piensa un tiempo variable (no instantáneo de máquina).
+      const target = 650 + Math.random() * 1600;
+      const wait = Math.max(0, target - (Date.now() - started));
       window.setTimeout(() => {
         if (bm) { try { g.move(bm); setLastMove({ from: bm.from, to: bm.to }); } catch { /* ignore */ } }
         setThinking(false);
