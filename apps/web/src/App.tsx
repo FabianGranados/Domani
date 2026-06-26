@@ -11,6 +11,7 @@ import { DomanibankScreen } from './screens/DomanibankScreen';
 import { MillonaureliosScreen } from './screens/MillonaureliosScreen';
 import { CasinoScreen } from './screens/CasinoScreen';
 import { PokerScreen } from './screens/PokerScreen';
+import { AjedrezScreen } from './screens/AjedrezScreen';
 import { TesseraScreen } from './screens/TesseraScreen';
 import { WalletScreen } from './screens/WalletScreen';
 import { AcademyScreen } from './screens/AcademyScreen';
@@ -78,6 +79,7 @@ function AppRoutes({ loading, session, profile }: AppRoutesProps) {
   return (
     <Routes>
       <Route path="/poker" element={<PokerScreen />} />
+      <Route path="/ajedrez" element={<AjedrezScreen />} />
       <Route
         path="*"
         element={

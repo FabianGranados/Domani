@@ -31,7 +31,7 @@ export function FloatingNav() {
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
 
-  if (location.pathname.startsWith('/poker')) return null;
+  if (location.pathname.startsWith('/poker') || location.pathname.startsWith('/ajedrez')) return null;
   const isHome = location.pathname === '/';
 
   function go(to: string) {

@@ -69,8 +69,8 @@ export function FloatingMichat() {
   const unread = totalUnread(conversations);
   const conv = conversations.find((c) => c.id === convId) ?? null;
 
-  // Oculta en la mesa de póker (inmersiva).
-  if (location.pathname.startsWith('/poker')) return null;
+  // Oculta en pantallas inmersivas (póker, ajedrez).
+  if (location.pathname.startsWith('/poker') || location.pathname.startsWith('/ajedrez')) return null;
 
   function tapQuick(id: string, idx: number, qr: QuickReply) {
     setExtra((prev) => ({
