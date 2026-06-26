@@ -57,7 +57,7 @@ const MODES = [
 ];
 
 export function AjedrezLobby({
-  alias, avatarSrc, balance, houseName, bg = '/assets/game-ajedrez.webp', onPlay, onExit,
+  alias, avatarSrc, balance, houseName, bg = '/assets/ajedrez-bg.webp', onPlay, onExit,
 }: {
   alias: string; avatarSrc: string; balance: number | null; houseName: string;
   bg?: string; onPlay: (stakeIndex: number, timeMs: number) => void; onExit: () => void;
