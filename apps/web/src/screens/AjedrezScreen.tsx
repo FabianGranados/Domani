@@ -11,10 +11,12 @@ const FILES = 'abcdefgh';
 const GLYPH: Record<string, string> = { k: '♚', q: '♛', r: '♜', b: '♝', n: '♞', p: '♟' };
 
 type ThemeId = 'madera' | 'ebano' | 'oro';
-const THEMES: Record<ThemeId, { name: string; light: string; dark: string }> = {
-  madera: { name: 'Madera', light: '#e9c9a1', dark: '#9d6a3c' },
-  ebano: { name: 'Ébano', light: '#c6c8d1', dark: '#33333f' },
-  oro: { name: 'Oro', light: '#f1dca6', dark: '#8a6a2e' },
+// Tableros con marco (imagen completa). `inset` = grosor del marco como % para
+// alinear la rejilla de piezas exactamente sobre el área de juego 8×8.
+const THEMES: Record<ThemeId, { name: string; img: string; inset: number }> = {
+  madera: { name: 'Madera', img: '/assets/board-madera.webp', inset: 9.5 },
+  ebano: { name: 'Ébano', img: '/assets/board-ebano.webp', inset: 10 },
+  oro: { name: 'Oro', img: '/assets/board-oro.webp', inset: 12 },
 };
 
 type Stake = { id: string; name: string; bet: number; depth: number; opp: { name: string; title: string; casa: string; elo: number; glyph: string } };
@@ -284,13 +286,19 @@ export function AjedrezScreen() {
       {/* Rival */}
       <PlayerBar name={stake.opp.name} sub={`${stake.opp.title} · Casa ${stake.opp.casa}`} elo={stake.opp.elo} caps={capByBlack} capColor="w" you={false} active={turn === 'b'} thinking={thinking} />
 
-      {/* Tablero */}
-      <div style={{ width: boardSize, maxWidth: '100%', aspectRatio: '1', position: 'relative' }}>
-        <div style={boardGrid}>
+      {/* Tablero con marco (imagen) + rejilla de piezas encima */}
+      <div style={{
+        width: boardSize, maxWidth: '100%', aspectRatio: '1', position: 'relative',
+        backgroundImage: `url('${th.img}')`, backgroundSize: 'cover', backgroundPosition: 'center',
+        borderRadius: 10, boxShadow: '0 24px 60px -22px rgba(0,0,0,.9)',
+      }}>
+        <div style={{
+          position: 'absolute', top: `${th.inset}%`, left: `${th.inset}%`, right: `${th.inset}%`, bottom: `${th.inset}%`,
+          display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gridTemplateRows: 'repeat(8, 1fr)',
+        }}>
           {board.map((row, r) =>
             row.map((cell, c) => {
               const sq = (FILES[c] + (8 - r)) as Square;
-              const light = (r + c) % 2 === 0;
               const isSel = selected === sq;
               const isTarget = targets.has(sq);
               const isLast = lastMove && (lastMove.from === sq || lastMove.to === sq);
@@ -300,8 +308,8 @@ export function AjedrezScreen() {
                   key={sq}
                   onClick={() => onSquare(sq)}
                   style={{
-                    position: 'relative', background: light ? th.light : th.dark,
-                    display: 'grid', placeItems: 'center', cursor: turn === 'w' && !result ? 'pointer' : 'default',
+                    position: 'relative', display: 'grid', placeItems: 'center',
+                    cursor: turn === 'w' && !result ? 'pointer' : 'default',
                     boxShadow: isSel ? 'inset 0 0 0 3px #ecd28e' : isCheck ? 'inset 0 0 0 3px #e0594f' : 'none',
                   }}
                 >
@@ -310,7 +318,7 @@ export function AjedrezScreen() {
                     <span style={{
                       fontSize: `calc(${boardSize} / 11)`, lineHeight: 1, position: 'relative', zIndex: 2,
                       color: cell.color === 'w' ? '#f8f1e4' : '#15151b',
-                      textShadow: cell.color === 'w' ? '0 1px 2px rgba(0,0,0,.55), 0 0 1px rgba(0,0,0,.8)' : '0 1px 2px rgba(255,255,255,.22)',
+                      textShadow: cell.color === 'w' ? '0 1px 3px rgba(0,0,0,.7), 0 0 2px rgba(0,0,0,.9)' : '0 1px 3px rgba(255,255,255,.35)',
                     }}>{GLYPH[cell.type]}</span>
                   )}
                   {isTarget && <div style={cell ? targetRing : targetDot} />}
@@ -423,11 +431,7 @@ const sitBtn: React.CSSProperties = {
   padding: '10px 20px', borderRadius: 11, border: 'none', cursor: 'pointer', fontWeight: 800, fontSize: 14,
   color: '#2c2415', background: GOLD, flex: '0 0 auto',
 };
-const boardGrid: React.CSSProperties = {
-  position: 'absolute', inset: 0, display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gridTemplateRows: 'repeat(8, 1fr)',
-  borderRadius: 8, overflow: 'hidden', border: '4px solid #241606', boxShadow: '0 20px 50px -20px rgba(0,0,0,.9)',
-};
-const lastDot: React.CSSProperties = { position: 'absolute', inset: 0, background: 'rgba(236,210,142,.28)', zIndex: 1 };
+const lastDot: React.CSSProperties = { position: 'absolute', inset: 0, background: 'rgba(236,210,142,.3)', zIndex: 1 };
 const targetDot: React.CSSProperties = { position: 'absolute', width: '28%', height: '28%', borderRadius: '50%', background: 'rgba(20,20,20,.35)', zIndex: 1 };
 const targetRing: React.CSSProperties = { position: 'absolute', inset: '6%', borderRadius: '50%', border: '3px solid rgba(20,20,20,.4)', zIndex: 1 };
 const playerBar: React.CSSProperties = {
