@@ -13,6 +13,7 @@
     "@domani/game-core": "workspace:*",
     "@domani/game-roulette": "workspace:*",
     "@supabase/supabase-js": "^2.45.4",
+    "chess.js": "^1.4.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.26.2"

@@ -54,11 +54,11 @@ const REASON_LABELS: Record<string, string> = {
 // Juegos de estrategia (bento asimétrico). Fotos PROVISIONALES; se cambian por
 // las que suba el usuario. Span por pantalla: d=desktop, m=móvil.
 type GameTile = {
-  key: string; title: string; tag: string; glyph: string;
+  key: string; title: string; tag: string; glyph: string; to?: string;
   img?: string; grad?: string; d: { c: string; r: string }; m: { c: string; r: string };
 };
 const GAMES: GameTile[] = [
-  { key: 'ajedrez', title: 'Ajedrez', tag: 'La guerra de la mente.', glyph: '♛', img: '/assets/game-ajedrez.webp', d: { c: 'span 2', r: 'span 2' }, m: { c: 'span 2', r: 'span 1' } },
+  { key: 'ajedrez', title: 'Ajedrez', tag: 'La guerra de la mente.', glyph: '♛', to: '/ajedrez', img: '/assets/game-ajedrez.webp', d: { c: 'span 2', r: 'span 2' }, m: { c: 'span 2', r: 'span 1' } },
   { key: 'parques', title: 'Parqués', tag: 'Sácala o que te saquen.', glyph: '🎲', img: '/assets/game-parques.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
   { key: 'domino', title: 'Dominó', tag: 'La mesa habla.', glyph: '🁢', img: '/assets/game-domino.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
   { key: 'damas', title: 'Damas chinas', tag: 'Estrella de estrategas.', glyph: '⛀', img: '/assets/game-damas.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 2', r: 'span 1' } },
@@ -248,17 +248,24 @@ export function EscritorioScreen() {
       {/* ════════ ZONA 4 · JUEGOS DE ESTRATEGIA (bento) ════════ */}
       <SectionTitle title="Juegos de estrategia" hint="Mente, mesa y honor" />
       <div style={bentoGrid(isDesktop)}>
-        {GAMES.map((g) => (
-          <div key={g.key} style={gameTile(isDesktop, g)}>
-            {g.img && <div style={gameImgScrim} />}
-            {!g.img && <span style={gameBigGlyph}>{g.glyph}</span>}
-            <div style={gameFoot}>
-              <div style={gameTitle}>{g.title}</div>
-              <div style={gameTagline}>{g.tag}</div>
+        {GAMES.map((g) => {
+          const inner = (
+            <div style={gameTile(isDesktop, g)}>
+              {g.img && <div style={gameImgScrim} />}
+              {!g.img && <span style={gameBigGlyph}>{g.glyph}</span>}
+              <div style={gameFoot}>
+                <div style={gameTitle}>{g.title}</div>
+                <div style={gameTagline}>{g.tag}</div>
+              </div>
+              <span style={g.to ? playPill : soonPill}>{g.to ? 'Jugar' : 'Pronto'}</span>
             </div>
-            <span style={soonPill}>Pronto</span>
-          </div>
-        ))}
+          );
+          return g.to ? (
+            <Link key={g.key} to={g.to} style={{ textDecoration: 'none', display: 'contents' }}>{inner}</Link>
+          ) : (
+            <div key={g.key} style={{ display: 'contents' }}>{inner}</div>
+          );
+        })}
       </div>
 
       {/* ════════ ZONA 5 · ZONA FINANCIERA ════════ */}
@@ -521,6 +528,10 @@ const gameTagline: React.CSSProperties = { fontSize: 11.5, color: 'rgba(232,226,
 const soonPill: React.CSSProperties = {
   position: 'absolute', top: 10, left: 10, zIndex: 2, fontSize: 9, letterSpacing: '.1em', textTransform: 'uppercase',
   fontWeight: 700, color: '#1a1405', background: 'rgba(236,217,165,.88)', padding: '3px 8px', borderRadius: 999,
+};
+const playPill: React.CSSProperties = {
+  position: 'absolute', top: 10, left: 10, zIndex: 2, fontSize: 9.5, letterSpacing: '.1em', textTransform: 'uppercase',
+  fontWeight: 800, color: '#063', background: 'linear-gradient(135deg,#3fe0a0,#1eb178)', padding: '3px 9px', borderRadius: 999,
 };
 
 
