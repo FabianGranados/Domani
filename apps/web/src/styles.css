@@ -32,6 +32,7 @@ html { scroll-behavior: smooth; }
 @keyframes domShimmer { 0% { transform: translateX(-120%) skewX(-16deg) } 60%,100% { transform: translateX(260%) skewX(-16deg) } }
 @keyframes domPulse { 0%,100% { box-shadow: 0 0 0 0 rgba(201,163,91,.45) } 50% { box-shadow: 0 0 0 6px rgba(201,163,91,0) } }
 @keyframes domEmeraldRing { 0% { transform: scale(.82); opacity: .7 } 100% { transform: scale(1.45); opacity: 0 } }
+@keyframes domWordIn { 0% { opacity: 0; transform: translateY(14px) } 12% { opacity: 1 } 88% { opacity: 1; transform: translateY(0) } 100% { opacity: 1 } }
 body {
   background: radial-gradient(1200px 600px at 50% -10%, #1a1726 0%, var(--bg) 60%);
   color: var(--text);
