@@ -180,7 +180,11 @@ export function PokerScreen() {
     if (user) getWallet(user.id).then((w) => setWallet(w?.balance ?? 0));
     listHouses().then((hs) => {
       setHouses(hs);
-      setHouseName(hs.find((h) => h.id === profile?.house_id)?.name.replace(/^Casa /, '') ?? 'Bacatá');
+      // La ciudad ya se eligió en el onboarding: entras directo al casino de TU
+      // ciudad, sin volver a escogerla.
+      const mine = hs.find((h) => h.id === profile?.house_id) ?? hs[0] ?? null;
+      setHouseName(mine?.name.replace(/^Casa /, '') ?? 'Bacatá');
+      setLobbyHouse(mine);
     });
   }, [user, profile?.house_id]);
 
@@ -981,50 +985,12 @@ function PokerLobby({ houses, wallet, lobbyHouse, setLobbyHouse, busy, error, on
   const lobbyBg = 'radial-gradient(120% 80% at 50% 12%, rgba(47,160,106,.10), transparent 60%), linear-gradient(180deg,#0d0e12,#0a0a0d)';
   const shortName = (h: House) => h.name.replace(/^Casa /, '');
 
-  // --- Vista 1: elegir Casa (casino) ---
+  // La ciudad ya se eligió en el onboarding: entras directo al salón de TU
+  // ciudad. Mientras carga, mostramos un estado breve.
   if (!lobbyHouse) {
     return (
-      <div style={{ minHeight: '100svh', padding: '28px 18px 48px', background: lobbyBg }}>
-        <div style={{ maxWidth: 920, margin: '0 auto' }}>
-          <button onClick={onExit} style={lobbyBack}>← Volver al Casino</button>
-          <div style={{ fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e', marginTop: 18 }}>El Casino · Salas de póker</div>
-          <h1 className="page-title" style={{ margin: '6px 0 4px' }}>Casinos por Casa</h1>
-          <p className="muted" style={{ marginTop: 0, maxWidth: 560 }}>
-            Cada ciudad abre su propio salón de póker. Elige dónde sentarte. Tu billetera:{' '}
-            <span className="aurelios">⟡ {wallet?.toLocaleString() ?? '—'}</span>
-          </p>
-          {houses.length === 0 && <p className="muted">Cargando casinos…</p>}
-          <div style={{ marginTop: 20 }}>
-            <Carousel>
-              {houses.map((h) => {
-                const c = h.color_primary ?? '#c9a35b';
-                return (
-                  <div key={h.id} style={{
-                    position: 'relative', flex: '0 0 auto', scrollSnapAlign: 'start',
-                    width: 'clamp(190px, 64vw, 230px)', aspectRatio: '3 / 4',
-                    borderRadius: 16, overflow: 'hidden', display: 'flex',
-                    border: `1px solid ${c}55`, boxShadow: '0 16px 40px -22px rgba(0,0,0,.85)',
-                  }}>
-                    <div style={{ position: 'absolute', inset: 0, backgroundImage: `url('${HOUSE_IMG[h.code] ?? ''}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c' }} />
-                    <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.05) 0%, rgba(8,8,10,.5) 50%, rgba(8,8,10,.97) 100%)' }} />
-                    <div style={{ position: 'relative', zIndex: 1, marginTop: 'auto', padding: 16, width: '100%' }}>
-                      <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' }}>{h.city}</div>
-                      <div style={{ fontFamily: 'Marcellus,serif', fontSize: 21, color: '#f3eddd', margin: '2px 0 4px' }}>{shortName(h)}</div>
-                      {h.motto && <div style={{ fontSize: 11, fontStyle: 'italic', color: 'rgba(232,226,212,.62)', lineHeight: 1.4, marginBottom: 11, fontFamily: "'Cormorant Garamond',serif", display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>“{h.motto}”</div>}
-                      <button onClick={() => setLobbyHouse(h)} style={{
-                        display: 'block', width: '100%', padding: '11px', borderRadius: 11, border: 'none', cursor: 'pointer',
-                        fontWeight: 700, fontSize: 13.5, color: '#2c2415', fontFamily: "'Hanken Grotesk',sans-serif",
-                        background: 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)', boxShadow: '0 12px 26px -14px rgba(201,163,91,.6)',
-                      }}>
-                        Entrar al salón
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </Carousel>
-          </div>
-        </div>
+      <div style={{ minHeight: '100svh', padding: '28px 18px 48px', background: lobbyBg, display: 'grid', placeItems: 'center' }}>
+        <p className="muted">Abriendo el salón de póker…</p>
       </div>
     );
   }
@@ -1036,7 +1002,7 @@ function PokerLobby({ houses, wallet, lobbyHouse, setLobbyHouse, busy, error, on
   return (
     <div style={{ minHeight: '100svh', padding: '28px 18px 48px', background: lobbyBg }}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <button onClick={() => setLobbyHouse(null)} style={lobbyBack}>← Casinos por ciudad</button>
+        <button onClick={onExit} style={lobbyBack}>← Volver al Casino</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 18 }}>
           <div style={{ width: 50, height: 50, borderRadius: 14, flex: '0 0 auto', display: 'grid', placeItems: 'center', fontFamily: 'Marcellus,serif', fontSize: 24, color: '#fff', background: `linear-gradient(160deg, ${c}, ${c}99)`, boxShadow: `0 0 18px -2px ${c}` }}>{name.charAt(0)}</div>
           <div>
