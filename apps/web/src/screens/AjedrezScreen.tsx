@@ -25,10 +25,10 @@ type Stake = { id: string; name: string; bet: number; depth: number; level: 1 | 
 // al vencer se afina con la lógica de trofeos/escalafón (siguiente fase).
 const STAKES: Stake[] = [
   { id: 'n1', name: 'Nivel 1 · Aprendiz', bet: 100, depth: 2, level: 1, opp: { name: 'Teo', title: 'Aprendiz', casa: 'Bacatá', elo: 1180, img: '/assets/maestro-1.webp' } },
-  { id: 'n2', name: 'Nivel 2 · Retador', bet: 250, depth: 3, level: 2, opp: { name: 'Vera', title: 'Estratega', casa: 'Roma', elo: 1480, img: '/assets/maestro-2.webp' } },
-  { id: 'n3', name: 'Nivel 3 · Maestro', bet: 500, depth: 3, level: 3, opp: { name: 'Severo', title: 'Maestro', casa: 'Osaka', elo: 1820, img: '/assets/maestro-3.webp' } },
-  { id: 'n4', name: 'Nivel 4 · Gran Maestro', bet: 1000, depth: 4, level: 4, opp: { name: 'Don Aurelio', title: 'Gran Maestro', casa: 'Plata', elo: 2200, img: '/assets/maestro-4.webp' } },
-  { id: 'n5', name: 'Nivel 5 · Campeón Mundial', bet: 2000, depth: 4, level: 5, opp: { name: 'El Encapuchado', title: 'Campeón Mundial', casa: 'El Círculo', elo: 2600, img: '/assets/maestro-5.webp' } },
+  { id: 'n2', name: 'Nivel 2 · Retador', bet: 250, depth: 3, level: 2, opp: { name: 'Vera', title: 'Estratega', casa: 'Imperia', elo: 1480, img: '/assets/maestro-2.webp' } },
+  { id: 'n3', name: 'Nivel 3 · Maestro', bet: 500, depth: 3, level: 3, opp: { name: 'Severo', title: 'Maestro', casa: 'Edoria', elo: 1820, img: '/assets/maestro-3.webp' } },
+  { id: 'n4', name: 'Nivel 4 · Gran Maestro', bet: 1000, depth: 4, level: 4, opp: { name: 'Don Aurelio', title: 'Gran Maestro', casa: 'Severia', elo: 2200, img: '/assets/maestro-4.webp' } },
+  { id: 'n5', name: 'Nivel 5 · Campeón Mundial', bet: 2000, depth: 4, level: 5, opp: { name: 'El Encapuchado', title: 'Campeón Mundial', casa: 'Severia', elo: 2600, img: '/assets/maestro-5.webp' } },
 ];
 
 type TimeControl = { id: string; label: string; ms: number }; // ms = 0 => sin reloj
@@ -69,7 +69,7 @@ export function AjedrezScreen() {
 
   const [phase, setPhase] = useState<'lobby' | 'playing'>('lobby');
   const [balance, setBalance] = useState<number | null>(null);
-  const [houseName, setHouseName] = useState('Sin Casa');
+  const [houseName, setHouseName] = useState('Sin ciudad');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -337,7 +337,7 @@ export function AjedrezScreen() {
 
       {/* Rival */}
       <div style={barWithClock}>
-        <PlayerBar name={stake.opp.name} sub={`${stake.opp.title} · Casa ${stake.opp.casa}`} elo={stake.opp.elo} caps={capByBlack} capColor="w" you={false} active={turn === 'b'} thinking={thinking} img={stake.opp.img} />
+        <PlayerBar name={stake.opp.name} sub={`${stake.opp.title} · ${stake.opp.casa}`} elo={stake.opp.elo} caps={capByBlack} capColor="w" you={false} active={turn === 'b'} thinking={thinking} img={stake.opp.img} />
         {clockOn && <Clock ms={blackMs} active={turn === 'b' && !result} />}
       </div>
 
@@ -388,7 +388,7 @@ export function AjedrezScreen() {
 
       {/* Tú */}
       <div style={barWithClock}>
-        <PlayerBar name={alias} sub={`${houseName !== 'Sin Casa' ? 'Casa ' + houseName : 'Sin Casa'} · tú`} elo={myElo} caps={capByWhite} capColor="b" you active={turn === 'w'} thinking={false} img={myAvatar} />
+        <PlayerBar name={alias} sub={`${houseName} · tú`} elo={myElo} caps={capByWhite} capColor="b" you active={turn === 'w'} thinking={false} img={myAvatar} />
         {clockOn && <Clock ms={whiteMs} active={turn === 'w' && !result} />}
       </div>
 

@@ -9,7 +9,7 @@ const MESSAGES = [
   'Esto no es un casino. Es una sociedad. Aquí el respeto se gana… nunca se compra.',
   'Juegas en las Salas —el Casino, la Academia, los juegos de destreza— y ganas Aurelios, nuestra moneda.',
   'Con Aurelios accedes a mesas más altas y, algún día, a lujos que pocos pueden permitirse.',
-  'Elige una Casa y lucha por su nombre. Pero tu verdadero ascenso es tuyo: empiezas como Ciudadano… y si demuestras tu valía, llegarás a ser un Don.',
+  'Elige una ciudad y lucha por su nombre. Pero tu verdadero ascenso es tuyo: empiezas como Ciudadano… y si demuestras tu valía, llegarás a ser un Don.',
   'Una advertencia de la casa: aquí solo se juega con Aurelios, fichas de fantasía. Jamás dinero real. La gloria es lo único en juego.',
   'El Círculo te espera. Que la suerte —y la astucia— te acompañen.',
 ];

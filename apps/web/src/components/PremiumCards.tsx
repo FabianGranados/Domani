@@ -2,9 +2,9 @@ import { Carousel } from './Carousel';
 import type { House } from '../lib/types';
 
 // ============================================================
-// Tarjetas premium (Tessera / Billetera / Ascenso) con el ARTE del
-// usuario como fondo (oro / platino / obsidiana) + brillo animado (sheen)
-// + la info encima. Presentacional: datos por props.
+// Tarjetas premium (Tessera / Billetera / Ascenso) con el ARTE metálico del
+// usuario como tarjeta flotante (marco propio + esquinas transparentes) y la
+// info encima. Presentacional: datos por props.
 // ============================================================
 const fmt = (n: number) => n.toLocaleString('es-CO');
 
@@ -36,19 +36,19 @@ export function PremiumCards({
 }: PremiumCardsProps) {
   const rankIdx = Math.max(0, RANKS.findIndex((r) => r.key === rank));
   const nextRank = RANKS[rankIdx + 1];
-  const houseName = houses.find((h) => h.id === houseId)?.name.replace(/^Casa /, '') ?? 'Sin Casa';
+  const cityName = houses.find((h) => h.id === houseId)?.name.replace(/^Casa /, '') ?? 'Sin ciudad';
 
   return (
     <Carousel>
       {/* ===== ORO · Tessera ===== */}
-      <div style={card('/assets/card-tessera.webp', '#caa24f')}>
-        <div style={sheen} />
-        <div style={footGold}>
+      <div style={cardBox(1.585)}>
+        <img src="/assets/card-tessera.webp" alt="" style={art} />
+        <div style={{ ...overlay, justifyContent: 'flex-end' }}>
           <div style={aliasGold}>{alias}</div>
           <div style={rowGold}>
             <div>
-              <div style={miniLabelDark}>Casa</div>
-              <div style={miniValDark}>{houseName}</div>
+              <div style={miniLabelDark}>Ciudad</div>
+              <div style={miniValDark}>{cityName}</div>
             </div>
             <div style={{ textAlign: 'right' }}>
               <div style={miniLabelDark}>Rango</div>
@@ -59,33 +59,32 @@ export function PremiumCards({
       </div>
 
       {/* ===== PLATINO · Billetera ===== */}
-      <div style={card('/assets/card-billetera.webp', '#9aa1a8')}>
-        <div style={sheen} />
-        <div style={silverScrim} />
-        <div style={contentSilver}>
+      <div style={cardBox(1.516)}>
+        <img src="/assets/card-billetera.webp" alt="" style={art} />
+        <div style={overlay}>
           <div style={miniLabelDark}>Tu billetera</div>
           <div style={{ marginTop: 'auto' }}>
             <div style={balanceSilver}>⟡ {fmt(balance)}</div>
             <button onClick={onReclamar} disabled={rentaBusy || rentaDone} style={{ ...rentaBtn, opacity: rentaDone ? 0.7 : 1 }}>
               {rentaDone ? 'Renta reclamada ✓' : rentaBusy ? 'Reclamando…' : 'Reclamar Renta diaria'}
             </button>
-            {rentaMsg && <div style={{ fontSize: 11, color: '#0f5c2e', marginTop: 4, fontWeight: 600 }}>{rentaMsg}</div>}
+            {rentaMsg && <div style={{ fontSize: 11, color: '#0f5c2e', marginTop: 4, fontWeight: 700, textShadow: '0 1px 1px rgba(255,255,255,.4)' }}>{rentaMsg}</div>}
           </div>
         </div>
       </div>
 
       {/* ===== OBSIDIANA · Ascenso ===== */}
-      <div style={card('/assets/card-ascenso.webp', '#1a1726')}>
-        <div style={sheen} />
-        <div style={contentObsidian}>
+      <div style={cardBox(1.883)}>
+        <img src="/assets/card-ascenso.webp" alt="" style={art} />
+        <div style={{ ...overlay, justifyContent: 'flex-start' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <div style={miniLabelGold}>Tu ascenso</div>
               <div style={rankObsidian}>{RANKS[rankIdx].label}</div>
             </div>
-            <div style={{ fontSize: 10.5, color: '#d8b96b', textAlign: 'right' }}>Influencia<br /><b style={{ color: '#ece6d6', fontSize: 13 }}>{influence}</b></div>
+            <div style={{ fontSize: 10.5, color: '#d8b96b', textAlign: 'right', textShadow: '0 1px 4px rgba(0,0,0,.7)' }}>Influencia<br /><b style={{ color: '#f3eddd', fontSize: 13 }}>{influence}</b></div>
           </div>
-          <div style={nextObsidian}>{nextRank ? `Próximo: ${nextRank.label}` : 'Has llegado a la cima.'}</div>
+          <div style={{ ...nextObsidian, marginTop: 6 }}>{nextRank ? `Próximo: ${nextRank.label}` : 'Has llegado a la cima.'}</div>
         </div>
       </div>
     </Carousel>
@@ -93,43 +92,31 @@ export function PremiumCards({
 }
 
 // ---- estilos ----
-type CardBg = string;
-function card(img: CardBg, fallback: string): React.CSSProperties {
+// La tarjeta es el arte (con su marco). Aspect = al del arte para no recortar.
+function cardBox(aspect: number): React.CSSProperties {
   return {
-    position: 'relative', overflow: 'hidden', flex: '0 0 auto',
-    width: 'clamp(196px, 56vw, 224px)', scrollSnapAlign: 'start', aspectRatio: '1.62 / 1',
-    borderRadius: 13, padding: 14, display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-    backgroundImage: `url('${img}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: fallback,
-    border: '1px solid rgba(255,255,255,.18)', boxShadow: '0 16px 38px -20px rgba(0,0,0,.85)',
+    position: 'relative', flex: '0 0 auto',
+    width: 'clamp(196px, 56vw, 224px)', aspectRatio: `${aspect} / 1`,
+    scrollSnapAlign: 'start', filter: 'drop-shadow(0 14px 26px rgba(0,0,0,.7))',
   };
 }
-const sheen: React.CSSProperties = {
-  position: 'absolute', top: 0, left: 0, width: '45%', height: '100%', zIndex: 1,
-  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.45), transparent)',
-  transform: 'skewX(-16deg)', animation: 'domShimmer 6.5s ease-in-out infinite', pointerEvents: 'none',
-};
+const art: React.CSSProperties = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'contain', zIndex: 0 };
+const overlay: React.CSSProperties = { position: 'absolute', inset: 0, zIndex: 2, display: 'flex', flexDirection: 'column', padding: '13px 15px' };
 
 // ORO
-const footGold: React.CSSProperties = { position: 'relative', zIndex: 2 };
-const aliasGold: React.CSSProperties = { fontFamily: 'Marcellus, serif', fontSize: 18, color: '#2c2412', textShadow: '0 1px 1px rgba(255,255,255,.3)' };
+const aliasGold: React.CSSProperties = { fontFamily: 'Marcellus, serif', fontSize: 18, color: '#2c2412', textShadow: '0 1px 1px rgba(255,255,255,.35)' };
 const rowGold: React.CSSProperties = { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', marginTop: 6 };
 const miniLabelDark: React.CSSProperties = { fontSize: 8, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(0,0,0,.55)' };
 const miniValDark: React.CSSProperties = { fontSize: 12, fontWeight: 700, color: '#23201a' };
 
 // PLATINO
-const silverScrim: React.CSSProperties = {
-  position: 'absolute', inset: 0, zIndex: 1,
-  background: 'linear-gradient(105deg, rgba(245,247,249,.55) 0%, rgba(245,247,249,0) 45%)',
-};
-const contentSilver: React.CSSProperties = { position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', height: '100%' };
-const balanceSilver: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 20, color: '#1f242a', textShadow: '0 1px 1px rgba(255,255,255,.4)' };
+const balanceSilver: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 20, color: '#1f242a', textShadow: '0 1px 1px rgba(255,255,255,.45)' };
 const rentaBtn: React.CSSProperties = {
   marginTop: 6, background: 'linear-gradient(135deg,#2c2412,#1a1509)', color: '#ecd9a5', border: '1px solid rgba(0,0,0,.25)',
   padding: '6px 11px', borderRadius: 9, fontWeight: 700, fontSize: 11, cursor: 'pointer', fontFamily: "'Hanken Grotesk',sans-serif",
 };
 
 // OBSIDIANA
-const contentObsidian: React.CSSProperties = { position: 'relative', zIndex: 2, display: 'flex', flexDirection: 'column', height: '100%', justifyContent: 'space-between' };
-const miniLabelGold: React.CSSProperties = { fontSize: 8, letterSpacing: '.16em', textTransform: 'uppercase', color: '#9c7a3e' };
-const rankObsidian: React.CSSProperties = { fontFamily: "'Cormorant Garamond',serif", fontSize: 21, color: '#ecd9a5', lineHeight: 1.1 };
-const nextObsidian: React.CSSProperties = { fontSize: 10.5, color: 'rgba(232,226,212,.65)' };
+const miniLabelGold: React.CSSProperties = { fontSize: 8, letterSpacing: '.16em', textTransform: 'uppercase', color: '#caa24f', textShadow: '0 1px 4px rgba(0,0,0,.6)' };
+const rankObsidian: React.CSSProperties = { fontFamily: "'Cormorant Garamond',serif", fontSize: 21, color: '#f3eddd', lineHeight: 1.1, textShadow: '0 1px 6px rgba(0,0,0,.7)' };
+const nextObsidian: React.CSSProperties = { fontSize: 10.5, color: 'rgba(243,237,221,.7)', textShadow: '0 1px 4px rgba(0,0,0,.7)' };

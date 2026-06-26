@@ -599,7 +599,7 @@ export function PokerScreen() {
               <div style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ece6d6' }}>{profile?.alias ?? 'Tú'}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
                 <div style={{ width: 13, height: 16, borderRadius: '2px 2px 6px 6px', background: 'linear-gradient(160deg,#2fa06a,#16613f)' }} />
-                <span style={{ fontSize: 11, letterSpacing: '.08em', color: 'rgba(232,226,212,.55)' }}>Caballero · Casa {houseName}</span>
+                <span style={{ fontSize: 11, letterSpacing: '.08em', color: 'rgba(232,226,212,.55)' }}>Caballero · {houseName}</span>
               </div>
             </div>
           </div>
@@ -849,7 +849,7 @@ export function PokerScreen() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 13, flexWrap: 'wrap', justifyContent: 'center' }}>
           <div style={houseBadge}>{houseName.charAt(0)}</div>
           <div style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: 9, letterSpacing: '.32em', textTransform: 'uppercase', color: '#9c7a3e' }}>El Salón · Casa {houseName}</div>
+            <div style={{ fontSize: 9, letterSpacing: '.32em', textTransform: 'uppercase', color: '#9c7a3e' }}>El Salón · {houseName}</div>
             <div style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ece6d6' }}>Mesa de {houseName}</div>
           </div>
           <div style={{ fontSize: 11, color: 'rgba(232,226,212,.45)', borderLeft: '1px solid rgba(255,255,255,.1)', paddingLeft: 13 }}>Ciegas {activeSB} / {activeBB}</div>
@@ -990,7 +990,7 @@ function PokerLobby({ houses, wallet, lobbyHouse, setLobbyHouse, busy, error, on
           <div style={{ fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e', marginTop: 18 }}>El Casino · Salas de póker</div>
           <h1 className="page-title" style={{ margin: '6px 0 4px' }}>Casinos por Casa</h1>
           <p className="muted" style={{ marginTop: 0, maxWidth: 560 }}>
-            Cada Casa abre su propio salón de póker. Elige dónde sentarte. Tu billetera:{' '}
+            Cada ciudad abre su propio salón de póker. Elige dónde sentarte. Tu billetera:{' '}
             <span className="aurelios">⟡ {wallet?.toLocaleString() ?? '—'}</span>
           </p>
           {houses.length === 0 && <p className="muted">Cargando casinos…</p>}
@@ -1036,7 +1036,7 @@ function PokerLobby({ houses, wallet, lobbyHouse, setLobbyHouse, busy, error, on
   return (
     <div style={{ minHeight: '100svh', padding: '28px 18px 48px', background: lobbyBg }}>
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
-        <button onClick={() => setLobbyHouse(null)} style={lobbyBack}>← Casinos por Casa</button>
+        <button onClick={() => setLobbyHouse(null)} style={lobbyBack}>← Casinos por ciudad</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginTop: 18 }}>
           <div style={{ width: 50, height: 50, borderRadius: 14, flex: '0 0 auto', display: 'grid', placeItems: 'center', fontFamily: 'Marcellus,serif', fontSize: 24, color: '#fff', background: `linear-gradient(160deg, ${c}, ${c}99)`, boxShadow: `0 0 18px -2px ${c}` }}>{name.charAt(0)}</div>
           <div>

@@ -40,7 +40,7 @@ export function LobbyScreen() {
               <tr>
                 <th>#</th>
                 <th>Miembro</th>
-                <th>Casa</th>
+                <th>Ciudad</th>
                 <th>Rango</th>
                 <th style={{ textAlign: 'right' }}>Influencia</th>
               </tr>

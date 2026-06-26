@@ -71,7 +71,7 @@ export function AjedrezLobby({
             <div style={{ minWidth: 0 }}>
               <div style={kicker}>Jugador</div>
               <div style={playerName}>{alias}</div>
-              <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.6)' }}>{houseName !== 'Sin Casa' ? `Casa ${houseName}` : 'Sin Casa'}</div>
+              <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.6)' }}>{houseName}</div>
             </div>
           </div>
 

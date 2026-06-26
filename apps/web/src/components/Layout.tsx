@@ -6,7 +6,7 @@ import { Isologo } from './Isologo';
 
 const NAV = [
   { to: '/', label: 'Inicio', end: true },
-  { to: '/casas', label: 'Las Casas' },
+  { to: '/casas', label: 'Las Ciudades' },
   { to: '/tessera', label: 'Tessera' },
   { to: '/wallet', label: 'Billetera' },
   { to: '/casino', label: 'El Casino' },

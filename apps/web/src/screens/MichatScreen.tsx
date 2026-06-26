@@ -26,7 +26,7 @@ export function MichatScreen() {
   const { profile, user } = useAuth();
   const [balance, setBalance] = useState(0);
   const [loan, setLoan] = useState<Loan | null>(null);
-  const [houseName, setHouseName] = useState('tu Casa');
+  const [houseName, setHouseName] = useState('tu ciudad');
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [extra, setExtra] = useState<Record<string, Bubble[]>>({});

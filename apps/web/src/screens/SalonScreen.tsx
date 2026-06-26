@@ -115,9 +115,9 @@ export function SalonScreen() {
           <div style={cardMain('gold')}>{profile?.alias}</div>
           <div style={cardBottom}>
             <div>
-              <div style={miniLabel('gold')}>Casa</div>
+              <div style={miniLabel('gold')}>Ciudad</div>
               <div style={miniVal('gold')}>
-                {houses.find((h) => h.id === profile?.house_id)?.name.replace(/^Casa /, '') ?? 'Sin Casa'}
+                {houses.find((h) => h.id === profile?.house_id)?.name.replace(/^Casa /, '') ?? 'Sin ciudad'}
               </div>
             </div>
             <div style={{ textAlign: 'right' }}>
@@ -202,9 +202,9 @@ export function SalonScreen() {
 
       {/* ===== CASAS ===== */}
       <div style={{ margin: '2.8rem 0 0.6rem' }}>
-        <h2 style={sectionTitle}>Las Casas</h2>
+        <h2 style={sectionTitle}>Las Ciudades</h2>
         <p className="muted" style={{ maxWidth: 660, marginTop: 6 }}>
-          Tu Casa es tu bandera: cualquiera puede entrar a cualquiera. Cada día, una Casa al azar recibe un{' '}
+          Tu ciudad es tu bandera: cualquiera puede entrar a cualquiera. Cada día, una ciudad al azar recibe un{' '}
           <strong style={{ color: '#ecd9a5' }}>desafío</strong> que reparte Aurelios. Elige por cuál luchar.
         </p>
       </div>
@@ -229,7 +229,7 @@ export function SalonScreen() {
             <div key={h.id} style={houseCard(isMine)}>
               <div style={{ position: 'absolute', inset: 0, backgroundImage: `url('${HOUSE_IMG[h.code]}')`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c' }} />
               <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.1) 0%, rgba(8,8,10,.45) 48%, rgba(8,8,10,.96) 100%)' }} />
-              {isMine && <span style={tuCasaBadge}>✓ Tu Casa</span>}
+              {isMine && <span style={tuCasaBadge}>✓ Tu ciudad</span>}
               <div style={{ position: 'relative', zIndex: 1, marginTop: 'auto', padding: 16, width: '100%' }}>
                 <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' }}>{h.city}</div>
                 <div style={{ fontFamily: 'Marcellus,serif', fontSize: 21, color: '#f3eddd', margin: '2px 0 10px' }}>{h.name.replace(/^Casa /, '')}</div>

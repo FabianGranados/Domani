@@ -32,7 +32,7 @@ export function HouseSelectScreen() {
       await chooseHouse(selected);
       await refreshProfile();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'No se pudo elegir la Casa');
+      setError(err instanceof Error ? err.message : 'No se pudo elegir la ciudad');
       setBusy(false);
     }
   }
@@ -52,10 +52,10 @@ export function HouseSelectScreen() {
           Jura lealtad
         </div>
         <h1 style={{ fontFamily: "'Cormorant Garamond',serif", fontSize: 'clamp(38px,6vw,56px)', lineHeight: 1.05, margin: '12px 0 10px', color: '#f3eddd' }}>
-          Elige tu Casa
+          Elige tu ciudad
         </h1>
         <p style={{ fontSize: 15, lineHeight: 1.6, color: 'rgba(232,226,212,.6)' }}>
-          Tu Casa es tu bandera en el Círculo. Define tu identidad y tus rivales. Elige con cuidado.
+          Tu ciudad es tu bandera en el Círculo. Define tu identidad y tus rivales. Elige con cuidado.
         </p>
       </div>
 
@@ -135,7 +135,7 @@ export function HouseSelectScreen() {
               Elegiste <strong style={{ color: '#ecd9a5' }}>{houses.find((h) => h.code === selected)?.name}</strong>
             </>
           ) : (
-            'Selecciona una Casa para continuar'
+            'Selecciona una ciudad para continuar'
           )}
         </span>
         <button
@@ -154,7 +154,7 @@ export function HouseSelectScreen() {
             boxShadow: '0 14px 34px -12px rgba(201,163,91,.55)',
           }}
         >
-          {busy ? 'Uniéndote…' : 'Unirme a esta Casa'}
+          {busy ? 'Uniéndote…' : 'Unirme a esta ciudad'}
         </button>
       </div>
 

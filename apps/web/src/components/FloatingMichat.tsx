@@ -33,7 +33,7 @@ export function FloatingMichat() {
 
   const [balance, setBalance] = useState(0);
   const [loan, setLoan] = useState<Loan | null>(null);
-  const [houseName, setHouseName] = useState('tu Casa');
+  const [houseName, setHouseName] = useState('tu ciudad');
 
   const [open, setOpen] = useState(false);
   const [convId, setConvId] = useState<string | null>(null);

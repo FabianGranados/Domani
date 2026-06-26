@@ -155,7 +155,7 @@ export function EscritorioScreen() {
   }
 
   const myHouse = useMemo(() => houses.find((h) => h.id === profile?.house_id) ?? null, [houses, profile?.house_id]);
-  const houseName = myHouse ? myHouse.name.replace(/^Casa /, '') : 'Sin Casa';
+  const houseName = myHouse ? myHouse.name.replace(/^Casa /, '') : 'Sin ciudad';
   const houseColor = myHouse?.color_primary ?? '#c9a35b';
 
   const alias = profile?.alias ?? 'Ciudadano';
