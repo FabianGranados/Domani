@@ -32,6 +32,7 @@ export function FloatingNav() {
   const [open, setOpen] = useState(false);
 
   if (location.pathname.startsWith('/poker')) return null;
+  const isHome = location.pathname === '/';
 
   function go(to: string) {
     setOpen(false);
@@ -56,7 +57,11 @@ export function FloatingNav() {
         </div>
       )}
 
-      <div style={fixedWrap}>
+      <div style={cluster}>
+        {/* Flecha de volver (convive con el menú, mismo dorado) */}
+        {!isHome && !open && (
+          <button onClick={() => navigate(-1)} style={backBtn} aria-label="Volver atrás">←</button>
+        )}
         <button onClick={() => setOpen((v) => !v)} style={bubble} aria-label="Navegar por Domani">
           <span style={specular} />
           {open ? <span style={{ fontSize: 26, color: '#2c2415', fontWeight: 300, lineHeight: 1 }}>×</span> : <GridGlyph />}
@@ -67,18 +72,25 @@ export function FloatingNav() {
 }
 
 // ---- estilos ----
-const fixedWrap: React.CSSProperties = {
+const cluster: React.CSSProperties = {
   position: 'fixed', zIndex: 951,
   left: 'calc(env(safe-area-inset-left) + 18px)',
   bottom: 'calc(env(safe-area-inset-bottom) + 18px)',
-  width: 58, height: 58,
+  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
 };
 const bubble: React.CSSProperties = {
-  position: 'relative', width: '100%', height: '100%', borderRadius: '50%', cursor: 'pointer',
+  position: 'relative', width: 58, height: 58, borderRadius: '50%', cursor: 'pointer',
   border: '1px solid rgba(255,240,200,.5)',
   background: 'radial-gradient(circle at 34% 28%, #f7e7ad, #d8b466 40%, #a8843f 78%, #7a5e2a 100%)',
   boxShadow: '0 12px 30px -8px rgba(120,90,30,.7), inset 0 3px 9px rgba(255,255,255,.5), inset 0 -7px 14px rgba(0,0,0,.35)',
   display: 'grid', placeItems: 'center',
+};
+const backBtn: React.CSSProperties = {
+  width: 46, height: 46, borderRadius: '50%', cursor: 'pointer',
+  border: '1px solid rgba(255,240,200,.5)',
+  background: 'radial-gradient(circle at 34% 28%, #f7e7ad, #d8b466 42%, #a8843f 82%)',
+  color: '#2c2415', fontSize: 21, fontWeight: 700, display: 'grid', placeItems: 'center',
+  boxShadow: '0 8px 22px -8px rgba(120,90,30,.65), inset 0 2px 6px rgba(255,255,255,.45)',
 };
 const specular: React.CSSProperties = {
   position: 'absolute', top: 8, left: 13, width: 22, height: 13, borderRadius: '50%',
