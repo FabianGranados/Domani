@@ -8,9 +8,11 @@ import {
   getLedger,
   claimRenta,
   getRentaClaimedToday,
+  getFeed,
   avatarSrc,
   type Loan,
   type SetAvatarResult,
+  type FeedEvent,
 } from '../lib/api';
 import type { House, LedgerTransaction } from '../lib/types';
 import { PremiumCards } from '../components/PremiumCards';
@@ -111,11 +113,22 @@ export function EscritorioScreen() {
 
   const [photoIdx, setPhotoIdx] = useState(0);
   const [wordIdx, setWordIdx] = useState(0);
+  const [feed, setFeed] = useState<FeedEvent[]>([]);
+  const [feedIdx, setFeedIdx] = useState(0);
   useEffect(() => {
     const a = setInterval(() => setPhotoIdx((i) => (i + 1) % HERO_IMAGES.length), 5000);
     const b = setInterval(() => setWordIdx((i) => (i + 1) % HERO_WORDS.length), 3200);
     return () => { clearInterval(a); clearInterval(b); };
   }, []);
+  // Titulares de DDN rotando (las noticias que generan los ciudadanos).
+  useEffect(() => {
+    getFeed(20).then(setFeed).catch(() => {});
+  }, []);
+  useEffect(() => {
+    if (feed.length < 2) return;
+    const t = setInterval(() => setFeedIdx((i) => (i + 1) % feed.length), 4200);
+    return () => clearInterval(t);
+  }, [feed.length]);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -345,8 +358,10 @@ export function EscritorioScreen() {
         <img src="/assets/ddn-news.webp" alt="DDN · Domani Day News" style={ddnImg} />
         <div style={ddnTicker}>
           <span style={ddnDot}>●</span>
-          <span style={ddnTickerText}>Próximamente · las noticias de tu ciudad, eventos y avisos de Hacienda, cada día</span>
-          <span style={mallSoon}>Pronto</span>
+          <span key={feed[feedIdx]?.id ?? 'x'} style={{ ...ddnTickerText, animation: 'domWordIn .5s ease' }}>
+            {feed.length ? feed[feedIdx]?.headline : 'En vivo · las noticias de tu ciudad, cada día'}
+          </span>
+          <span style={ddnLiveTag}>● EN VIVO</span>
         </div>
       </div>
 
@@ -627,6 +642,7 @@ const ddnTicker: React.CSSProperties = {
 };
 const ddnDot: React.CSSProperties = { color: '#ff5a5a', fontSize: 10, animation: 'domPulse 1.6s ease-in-out infinite' };
 const ddnTickerText: React.CSSProperties = { flex: 1, minWidth: 0, fontSize: 12.5, color: '#f3e3e0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+const ddnLiveTag: React.CSSProperties = { flex: '0 0 auto', fontSize: 9.5, fontWeight: 800, letterSpacing: '.12em', color: '#ffd9d6', padding: '3px 8px', borderRadius: 999, border: '1px solid rgba(255,150,150,.4)', background: 'rgba(0,0,0,.2)' };
 
 const mallSoon: React.CSSProperties = {
   position: 'absolute', top: 12, right: 12, zIndex: 2,

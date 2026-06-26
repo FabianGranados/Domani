@@ -37,6 +37,24 @@ export async function chooseHouse(houseCode: string): Promise<Profile> {
   return data as Profile;
 }
 
+// --- DDN News: feed de noticias/actividad generado por los ciudadanos-bot ---
+export interface FeedEvent {
+  id: string;
+  kind: 'game' | 'big_win' | 'chatter' | 'city';
+  headline: string;
+  amount: number;
+  created_at: string;
+}
+export async function getFeed(limit = 20): Promise<FeedEvent[]> {
+  const { data, error } = await supabase
+    .from('feed_events')
+    .select('id, kind, headline, amount, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  if (error) throw error;
+  return (data ?? []) as FeedEvent[];
+}
+
 // --- Mudanza (cambiar de ciudad): 1ª gratis, luego 10% del patrimonio con
 // escalada y enfriamiento. Todo server-side (impuesto = sumidero). ---
 export interface MudanzaQuote {
