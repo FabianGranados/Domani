@@ -22,6 +22,7 @@ const LEVELS: Level[] = [
 
 const SECTIONS = [
   { id: 'niveles', label: 'Los 5 Niveles', sub: 'El examen' },
+  { id: 'mesa', label: 'Mesa abierta', sub: 'Reta a un ciudadano' },
   { id: 'vitrina', label: 'Vitrina de Trofeos', sub: 'Tus logros' },
   { id: 'multimesa', label: 'Multimesa', sub: '5 a la vez · Rush' },
   { id: 'amigos', label: 'Jugar con amigos', sub: 'Invita y reta' },
@@ -42,10 +43,10 @@ function useIsMobile(): boolean {
 }
 
 export function AjedrezLobby({
-  alias, avatarSrc, balance, houseName, bg = '/assets/ajedrez-bg.webp', onPlay, onExit,
+  alias, avatarSrc, balance, houseName, bg = '/assets/ajedrez-bg.webp', onPlay, onChallengeCitizen, onExit,
 }: {
   alias: string; avatarSrc: string; balance: number | null; houseName: string;
-  bg?: string; onPlay: (stakeIndex: number, timeMs: number) => void; onExit: () => void;
+  bg?: string; onPlay: (stakeIndex: number, timeMs: number) => void; onChallengeCitizen?: () => void; onExit: () => void;
 }) {
   const isMobile = useIsMobile();
   const [section, setSection] = useState('niveles');
@@ -173,6 +174,24 @@ export function AjedrezLobby({
                     Juega 5 partidas simultáneas contra reloj, como el Rush del póker. Gana <b style={{ color: '#ecd9a5' }}>al menos una</b> y te llevas el <b style={{ color: '#ecd9a5' }}>trofeo de Multimesa</b>.
                   </p>
                   <span style={soonPill}>Próximamente</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ----- MESA ABIERTA · ciudadano al azar ----- */}
+          {section === 'mesa' && (
+            <div style={{ marginTop: 16 }}>
+              <div style={sectionLabel}>Mesa abierta · te toca quien ande por ahí</div>
+              <div style={featureCard}>
+                <div style={{ fontSize: 40 }}>♟️</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: 'Marcellus,serif', fontSize: 20, color: '#f3eddd' }}>Reta a un ciudadano</div>
+                  <p style={{ fontSize: 13, color: 'rgba(232,226,212,.7)', margin: '4px 0 8px', lineHeight: 1.45 }}>
+                    No eliges rival: te sientas y te toca un <b style={{ color: '#ecd9a5' }}>ciudadano al azar</b> de Domani.
+                    Mientras más Influencia tenga, más fuerte juega. Apuesta baja, partida tranquila.
+                  </p>
+                  <button onClick={() => onChallengeCitizen?.()} style={challengeBtn}>Buscar contendor</button>
                 </div>
               </div>
             </div>

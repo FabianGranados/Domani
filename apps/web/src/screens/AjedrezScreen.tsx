@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chess, type Move, type Square } from 'chess.js';
 import { useAuth } from '../auth/AuthProvider';
-import { getWallet, pokerBuyin, pokerCashout, listHouses, avatarSrc } from '../lib/api';
+import { getWallet, pokerBuyin, pokerCashout, listHouses, avatarSrc, getChessOpponent } from '../lib/api';
+import type { House } from '../lib/types';
 import { bestMove } from '../lib/chessBot';
 import { AjedrezLobby } from '../components/AjedrezLobby';
 
@@ -103,13 +104,30 @@ export function AjedrezScreen() {
   const lastTickRef = useRef<number | null>(null);
   const flaggedRef = useRef(false);
 
+  const [houses, setHouses] = useState<House[]>([]);
   useEffect(() => {
     if (user) getWallet(user.id).then((w) => setBalance(w?.balance ?? 0));
     listHouses().then((hs) => {
+      setHouses(hs);
       const h = hs.find((x) => x.id === profile?.house_id);
       if (h) setHouseName(h.name.replace(/^Casa /, ''));
     });
   }, [user, profile?.house_id]);
+
+  // Reta a un CIUDADANO al azar del ecosistema (no eliges, te toca quien ande
+  // por ahí). Más Influencia → más fuerte. Apuesta baja, partida tranquila.
+  async function retarCiudadano() {
+    const opp = await getChessOpponent().catch(() => null);
+    if (!opp) return;
+    const city = houses.find((h) => h.id === opp.house_id)?.name.replace(/^Casa /, '') ?? 'Domani';
+    const elo = 1000 + Math.min(1500, opp.influence ?? 0);
+    const level = (elo < 1200 ? 1 : elo < 1500 ? 2 : elo < 1900 ? 3 : elo < 2300 ? 4 : 5) as 1 | 2 | 3 | 4 | 5;
+    const s: Stake = {
+      id: 'cit-' + opp.id, name: 'Mesa abierta', bet: 100, depth: Math.min(4, level), level,
+      opp: { name: opp.alias, title: 'Ciudadano', casa: city, elo, img: avatarSrc(opp.avatar_code) },
+    };
+    await sentarse(s);
+  }
 
   const alias = profile?.alias ?? 'Tú';
   const myAvatar = avatarSrc(profile?.avatar_code);
@@ -304,6 +322,7 @@ export function AjedrezScreen() {
         balance={balance}
         houseName={houseName}
         onPlay={(i, ms) => sentarse(STAKES[i], ms)}
+        onChallengeCitizen={retarCiudadano}
         onExit={() => navigate('/')}
       />
     );

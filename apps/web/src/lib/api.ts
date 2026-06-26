@@ -51,6 +51,20 @@ export async function getPokerCitizens(houseId: string | null, count: number): P
   return arr.slice(0, count);
 }
 
+// --- Contendor de ajedrez: un ciudadano al azar del ecosistema -----------
+export interface ChessOpponent { id: string; alias: string; avatar_code: string; influence: number; house_id: string | null }
+export async function getChessOpponent(): Promise<ChessOpponent | null> {
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, alias, avatar_code, influence, house_id')
+    .eq('is_bot', true)
+    .limit(80);
+  if (error) throw error;
+  const arr = (data ?? []) as ChessOpponent[];
+  if (!arr.length) return null;
+  return arr[Math.floor(Math.random() * arr.length)];
+}
+
 // --- Sala de Control (admin) ---------------------------------------------
 export type AppConfig = Record<string, unknown>;
 export async function getAppConfig(): Promise<AppConfig> {
