@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import {
   getLedger,
@@ -109,13 +108,9 @@ export function DomanibankScreen() {
 
   return (
     <div style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-      <div style={topRow}>
-        <Link to="/" style={backLink}>← Volver</Link>
-        <div style={{ textAlign: 'center' }}>
-          <div style={eyebrow}>Banco</div>
-          <h1 className="page-title" style={{ margin: '2px 0 0' }}>Domanibank</h1>
-        </div>
-        <div style={{ width: 72 }} />
+      <div style={{ textAlign: 'center', paddingTop: 'env(safe-area-inset-top)' }}>
+        <div style={eyebrow}>Banco</div>
+        <h1 className="page-title" style={{ margin: '2px 0 0' }}>Domanibank</h1>
       </div>
 
       {/* ===== Tarjeta de cuenta ===== */}
@@ -267,11 +262,6 @@ export function DomanibankScreen() {
 }
 
 // ---- estilos ----
-const topRow: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-  paddingTop: 'env(safe-area-inset-top)',
-};
-const backLink: React.CSSProperties = { width: 72, fontSize: 13.5, color: '#d8b96b', textDecoration: 'none', fontWeight: 600 };
 const eyebrow: React.CSSProperties = { fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e' };
 const cardKicker: React.CSSProperties = { fontSize: 10, letterSpacing: '.24em', textTransform: 'uppercase', color: 'rgba(0,0,0,.55)' };
 
