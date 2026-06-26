@@ -12,6 +12,7 @@ import {
 } from '../lib/api';
 import type { House, LedgerTransaction } from '../lib/types';
 import { PremiumCards } from '../components/PremiumCards';
+import { ValenteCoach } from '../components/ValenteCoach';
 import { Carousel } from '../components/Carousel';
 
 const GOLD_GRAD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
@@ -37,7 +38,7 @@ const HERO_WORDS = ['Donde el lujo es ley', 'El juego te espera', 'Construye tu 
 // "Tus apps": banners con arte propio (texto/CTA integrados).
 const HUBS = [
   { key: 'casinos', img: '/assets/hub-casinos.webp', to: '/casino' },
-  { key: 'millon', img: '/assets/hub-millonaurelios.webp', to: '/millonaurelios' },
+  { key: 'academia', img: '/assets/game-academia.webp', to: '/millonaurelios' },
   { key: 'mercado', img: '/assets/hub-mercado.webp', to: '/banco' },
 ];
 
@@ -58,9 +59,9 @@ type GameTile = {
 };
 const GAMES: GameTile[] = [
   { key: 'ajedrez', title: 'Ajedrez', tag: 'La guerra de la mente.', glyph: '♛', img: '/assets/game-ajedrez.webp', d: { c: 'span 2', r: 'span 2' }, m: { c: 'span 2', r: 'span 1' } },
-  { key: 'damas', title: 'Damas', tag: 'Atrapa y corona.', glyph: '⛀', grad: 'linear-gradient(155deg,#26354a,#10151e)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
-  { key: 'parques', title: 'Parqués', tag: 'Sácala o que te saquen.', glyph: '🎲', grad: 'linear-gradient(155deg,#3a2330,#190f16)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
-  { key: 'domino', title: 'Dominó', tag: 'La mesa habla.', glyph: '🁢', grad: 'linear-gradient(155deg,#1f3a2e,#0f1a15)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
+  { key: 'parques', title: 'Parqués', tag: 'Sácala o que te saquen.', glyph: '🎲', img: '/assets/game-parques.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
+  { key: 'domino', title: 'Dominó', tag: 'La mesa habla.', glyph: '🁢', img: '/assets/game-domino.webp', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
+  { key: 'damas', title: 'Damas chinas', tag: 'Estrella de estrategas.', glyph: '⛀', grad: 'linear-gradient(155deg,#26354a,#10151e)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 1', r: 'span 1' } },
   { key: 'mas', title: 'Y muchos más', tag: 'Backgammon, cartas, go…', glyph: '✦', grad: 'linear-gradient(155deg,#2a2536,#13111b)', d: { c: 'span 1', r: 'span 1' }, m: { c: 'span 2', r: 'span 1' } },
 ];
 
@@ -218,8 +219,10 @@ export function EscritorioScreen() {
         </div>
       </header>
 
-      {/* ════════ ZONA 2 · TU TESSERA ════════ */}
-      <SectionTitle title="Tu Tessera" hint="Tu identidad Domani" />
+      {/* ════════ ZONA 2 · BIENVENIDA (Valente) + TESSERA ════════ */}
+      <SectionTitle title="Tu Tessera" hint="Quién eres en Domani" />
+      <ValenteCoach />
+      <div style={{ height: 14 }} />
       <PremiumCards
         alias={alias}
         houses={houses}
@@ -256,17 +259,6 @@ export function EscritorioScreen() {
             <span style={soonPill}>Pronto</span>
           </div>
         ))}
-      </div>
-
-      {/* Aprende a jugar — Valente */}
-      <div style={learnBanner(isDesktop)}>
-        <img src="/assets/valente_cut.webp" alt="Valente" style={valenteImg(isDesktop)} />
-        <div style={learnText(isDesktop)}>
-          <div style={eyebrow}>Domani · Academia</div>
-          <h3 style={learnTitle}>Aprende a jugar en Domani</h3>
-          <p style={learnSub}>¿Nuevo en la mesa? <strong style={{ color: '#ecd9a5' }}>Valente</strong> te enseña cada juego, paso a paso.</p>
-          <span style={learnPill}>Pronto</span>
-        </div>
       </div>
 
       {/* ════════ ZONA 5 · ZONA FINANCIERA ════════ */}
@@ -520,32 +512,6 @@ const soonPill: React.CSSProperties = {
   fontWeight: 700, color: '#1a1405', background: 'rgba(236,217,165,.88)', padding: '3px 8px', borderRadius: 999,
 };
 
-// Aprende a jugar — Valente
-function learnBanner(isDesktop: boolean): React.CSSProperties {
-  return {
-    position: 'relative', overflow: 'hidden', marginTop: 14, borderRadius: 18,
-    minHeight: isDesktop ? 200 : 226, padding: isDesktop ? '26px 30px' : '20px 16px',
-    border: '1px solid rgba(201,163,91,.3)',
-    background:
-      'radial-gradient(70% 110% at 100% 100%, rgba(201,163,91,.14), transparent 60%), radial-gradient(90% 120% at 0% 0%, rgba(31,58,46,.5), transparent 55%), linear-gradient(120deg,#171320,#100e17)',
-    boxShadow: '0 20px 50px -28px rgba(0,0,0,.9)',
-  };
-}
-function valenteImg(isDesktop: boolean): React.CSSProperties {
-  return {
-    position: 'absolute', right: isDesktop ? 28 : -14, bottom: 0, height: isDesktop ? '132%' : '112%',
-    objectFit: 'contain', objectPosition: 'bottom', pointerEvents: 'none', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,.6))',
-  };
-}
-function learnText(isDesktop: boolean): React.CSSProperties {
-  return { position: 'relative', zIndex: 1, maxWidth: isDesktop ? '60%' : '66%' };
-}
-const learnTitle: React.CSSProperties = { fontFamily: "'Cormorant Garamond',serif", fontSize: 28, color: '#f3eddd', margin: '4px 0 6px', lineHeight: 1.1 };
-const learnSub: React.CSSProperties = { fontSize: 13.5, color: 'rgba(232,226,212,.72)', lineHeight: 1.45, margin: 0, maxWidth: 340 };
-const learnPill: React.CSSProperties = {
-  display: 'inline-block', marginTop: 14, fontSize: 10, letterSpacing: '.12em', textTransform: 'uppercase', fontWeight: 700,
-  color: 'rgba(236,230,214,.8)', border: '1px solid rgba(201,163,91,.4)', background: 'rgba(8,8,10,.4)', padding: '6px 13px', borderRadius: 999,
-};
 
 // Zona financiera
 function finGrid(isDesktop: boolean): React.CSSProperties {
