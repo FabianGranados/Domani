@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../auth/AuthProvider';
 
 // ============================================================
 // Lanzador de navegación global (espejo de la burbuja de Michat).
@@ -29,10 +30,14 @@ function GridGlyph({ size = 24 }: { size?: number }) {
 export function FloatingNav() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { profile } = useAuth();
   const [open, setOpen] = useState(false);
 
   if (location.pathname.startsWith('/poker') || location.pathname.startsWith('/ajedrez')) return null;
   const isHome = location.pathname === '/';
+  const destinos = profile?.is_admin
+    ? [...DESTINOS, { label: 'Sala de Control', to: '/admin', glyph: '⚙' }]
+    : DESTINOS;
 
   function go(to: string) {
     setOpen(false);
@@ -44,7 +49,7 @@ export function FloatingNav() {
       {open && (
         <div style={panel}>
           <div style={panelTitle}>Ir a…</div>
-          {DESTINOS.map((d) => {
+          {destinos.map((d) => {
             const active = d.to === '/' ? location.pathname === '/' : location.pathname.startsWith(d.to);
             return (
               <button key={d.to} onClick={() => go(d.to)} style={{ ...row, ...(active ? rowActive : null) }}>

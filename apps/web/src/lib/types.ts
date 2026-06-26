@@ -326,6 +326,7 @@ export type Database = {
           house_id: string | null
           id: string
           influence: number
+          is_admin: boolean
           is_bot: boolean
           membership: Database["public"]["Enums"]["membership_tier"]
           membership_expires_at: string | null

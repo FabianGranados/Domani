@@ -37,6 +37,36 @@ export async function chooseHouse(houseCode: string): Promise<Profile> {
   return data as Profile;
 }
 
+// --- Sala de Control (admin) ---------------------------------------------
+export type AppConfig = Record<string, unknown>;
+export async function getAppConfig(): Promise<AppConfig> {
+  const { data, error } = await supabase.from('app_config').select('key, value');
+  if (error) throw error;
+  const out: AppConfig = {};
+  (data ?? []).forEach((r: { key: string; value: unknown }) => { out[r.key] = r.value; });
+  return out;
+}
+export async function adminSetConfig(key: string, value: unknown): Promise<void> {
+  const { error } = await supabase.rpc('admin_set_config', { p_key: key, p_value: value });
+  if (error) throw error;
+}
+export async function adminPostNews(headline: string, kind = 'city'): Promise<void> {
+  const { error } = await supabase.rpc('admin_post_news', { p_headline: headline, p_kind: kind });
+  if (error) throw error;
+}
+export async function adminRunBotTick(): Promise<void> {
+  const { error } = await supabase.rpc('admin_run_bot_tick');
+  if (error) throw error;
+}
+export interface AdminMetrics {
+  humanos: number; bots: number; circulante: number; noticias_24h: number; mudanzas: number; avatares: number;
+}
+export async function adminMetrics(): Promise<AdminMetrics> {
+  const { data, error } = await supabase.rpc('admin_metrics');
+  if (error) throw error;
+  return data as AdminMetrics;
+}
+
 // --- DDN News: feed de noticias/actividad generado por los ciudadanos-bot ---
 export interface FeedEvent {
   id: string;
