@@ -8,9 +8,7 @@ import {
   getLedger,
   claimRenta,
   getRentaClaimedToday,
-  getMillonToday,
   type Loan,
-  type MillonToday,
 } from '../lib/api';
 import type { House } from '../lib/types';
 import { PremiumCards } from '../components/PremiumCards';
@@ -19,16 +17,8 @@ import { Carousel } from '../components/Carousel';
 const GOLD_GRAD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
 const fmt = (n: number) => n.toLocaleString('es-CO');
 
-// Imagen de respaldo de la Casa del usuario.
-const HOUSE_IMG: Record<string, string> = {
-  bacata: '/assets/casa-bacata.webp',
-  empire: '/assets/casa-empire.webp',
-  plata: '/assets/casa-plata.webp',
-  morro: '/assets/casa-morro.webp',
-  roma: '/assets/casa-roma.webp',
-  osaka: '/assets/casa-osaka.webp',
-  aztlan: '/assets/casa-aztlan.webp',
-};
+// Avatar provisional (uno solo, mientras construimos el selector).
+const AVATAR_IMG = '/assets/avatar-1.webp';
 
 const RANK_LABELS: Record<string, string> = {
   ciudadano_nuevo: 'Ciudadano Nuevo',
@@ -38,21 +28,13 @@ const RANK_LABELS: Record<string, string> = {
   consigliere: 'Consigliere',
   don: 'Don',
 };
-// Hitos de Influencia (solo para la barra de progreso visual).
 const INFLUENCE_MILESTONES = [50, 150, 400, 1000, 2500];
 
 // Fotos del hero (cinematográfico, con crossfade + Ken Burns).
-const HERO_IMAGES = [
-  '/assets/hero-1.webp',
-  '/assets/hero-2.webp',
-  '/assets/hero-3.webp',
-  '/assets/hero-4.webp',
-];
-// Palabra rotativa del titular (texto animado dinámico).
+const HERO_IMAGES = ['/assets/hero-1.webp', '/assets/hero-2.webp', '/assets/hero-3.webp', '/assets/hero-4.webp'];
 const HERO_WORDS = ['Donde el lujo es ley', 'El juego te espera', 'Construye tu poder', 'El Círculo observa'];
 
-// Hubs principales (banners con arte propio). Enlace provisional: la 3ra
-// imagen es de Mercadoliebre; por ahora la mandamos a Domanibank.
+// "Tus apps": banners con arte propio (texto/CTA integrados).
 const HUBS = [
   { key: 'casinos', img: '/assets/hub-casinos.webp', to: '/casino' },
   { key: 'millon', img: '/assets/hub-millonaurelios.webp', to: '/millonaurelios' },
@@ -90,10 +72,12 @@ export function EscritorioScreen() {
   const [houses, setHouses] = useState<House[]>([]);
   const [loan, setLoan] = useState<Loan | null>(null);
   const [rentaClaimed, setRentaClaimed] = useState<boolean | null>(null);
-  const [millon, setMillon] = useState<MillonToday | null>(null);
   const [rentaBusy, setRentaBusy] = useState(false);
+  // Resumen financiero (de los últimos movimientos del ledger).
+  const [finIn, setFinIn] = useState(0);
+  const [finOut, setFinOut] = useState(0);
+  const [finCount, setFinCount] = useState(0);
 
-  // Rotación cinematográfica del hero (fotos cada 5s, palabra cada 3.2s).
   const [photoIdx, setPhotoIdx] = useState(0);
   const [wordIdx, setWordIdx] = useState(0);
   useEffect(() => {
@@ -104,26 +88,25 @@ export function EscritorioScreen() {
 
   const load = useCallback(async () => {
     if (!user) return;
-    const [w, hs, ln, claimed, mt, led] = await Promise.all([
+    const [w, hs, ln, claimed, led] = await Promise.all([
       getWallet(user.id),
       listHouses(),
       getActiveLoan(user.id).catch(() => null),
       getRentaClaimedToday(user.id).catch(() => false),
-      getMillonToday(user.id).catch(() => null),
       getLedger(user.id, 50).catch(() => []),
     ]);
     setBalance(w?.balance ?? 0);
     setHouses(hs);
     setLoan(ln);
     setRentaClaimed(claimed);
-    setMillon(mt);
     const today = new Date().toISOString().slice(0, 10);
     setTodayDelta(led.filter((tx) => tx.created_at.slice(0, 10) === today).reduce((s, tx) => s + tx.amount, 0));
+    setFinIn(led.filter((tx) => tx.amount > 0).reduce((s, tx) => s + tx.amount, 0));
+    setFinOut(led.filter((tx) => tx.amount < 0).reduce((s, tx) => s - tx.amount, 0));
+    setFinCount(led.length);
   }, [user]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   async function onClaimRenta() {
     if (rentaBusy || rentaClaimed) return;
@@ -134,37 +117,32 @@ export function EscritorioScreen() {
       setRentaClaimed(true);
       setTodayDelta((d) => d + r.amount);
     } catch {
-      setRentaClaimed(true); // ya estaba reclamada
+      setRentaClaimed(true);
     } finally {
       setRentaBusy(false);
     }
   }
 
-  const myHouse = useMemo(
-    () => houses.find((h) => h.id === profile?.house_id) ?? null,
-    [houses, profile?.house_id]
-  );
+  const myHouse = useMemo(() => houses.find((h) => h.id === profile?.house_id) ?? null, [houses, profile?.house_id]);
   const houseName = myHouse ? myHouse.name.replace(/^Casa /, '') : 'Sin Casa';
   const houseColor = myHouse?.color_primary ?? '#c9a35b';
-  const myHouseImg = myHouse ? HOUSE_IMG[myHouse.code] ?? '/assets/casa-bacata.webp' : '/assets/casa-bacata.webp';
 
   const alias = profile?.alias ?? 'Ciudadano';
   const initial = alias.trim().charAt(0).toUpperCase() || 'D';
   const influence = profile?.influence ?? 0;
   const rankLabel = RANK_LABELS[profile?.rank ?? ''] ?? 'Ciudadano';
 
-  // Progreso de Influencia hacia el próximo hito (visual).
   const nextMs = INFLUENCE_MILESTONES.find((m) => m > influence) ?? null;
   const prevMs = [...INFLUENCE_MILESTONES].reverse().find((m) => m <= influence) ?? 0;
   const progress = nextMs ? Math.min(1, (influence - prevMs) / (nextMs - prevMs)) : 1;
 
-  const millonPlayed = millon && millon.status !== 'in_progress';
+  const finTotal = finIn + finOut;
+  const inDeg = finTotal > 0 ? (finIn / finTotal) * 360 : 0;
 
   return (
     <div style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
       {/* ════════ ZONA 1 · HERO CINEMATOGRÁFICO ════════ */}
       <header style={heroCard(isDesktop)}>
-        {/* capas de foto: crossfade + Ken Burns */}
         {HERO_IMAGES.map((src, i) => (
           <div key={src} style={heroPhoto(src, i === photoIdx, i)} />
         ))}
@@ -180,7 +158,6 @@ export function EscritorioScreen() {
               <h1 className="page-title" style={{ margin: '2px 0 3px', fontSize: isDesktop ? 36 : 29 }}>
                 Yo <span style={shimmerName}>{alias}</span>
               </h1>
-              {/* titular rotativo animado */}
               <div style={taglineWrap}>
                 <span key={wordIdx} style={taglineWord}>{HERO_WORDS[wordIdx]}</span>
               </div>
@@ -192,9 +169,7 @@ export function EscritorioScreen() {
                 </span>
               </div>
               <div style={{ maxWidth: 320 }}>
-                <div style={inflTrack}>
-                  <div style={{ ...inflFill, width: `${progress * 100}%` }} />
-                </div>
+                <div style={inflTrack}><div style={{ ...inflFill, width: `${progress * 100}%` }} /></div>
                 <div style={inflLabel}>
                   Influencia <strong style={{ color: '#ece6d6' }}>{influence}</strong>
                   {nextMs ? <span style={{ color: 'rgba(232,226,212,.45)' }}> → {nextMs}</span> : <span style={{ color: '#ecd9a5' }}> · cúspide</span>}
@@ -203,7 +178,6 @@ export function EscritorioScreen() {
             </div>
           </div>
 
-          {/* Billetera (panel de vidrio sobre la foto) */}
           <div style={walletBlock(isDesktop)}>
             <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: 'rgba(232,226,212,.6)' }}>Billetera</div>
             <div style={{ fontFamily: 'Marcellus,serif', fontSize: isDesktop ? 34 : 30, color: '#ecd9a5', lineHeight: 1.05 }}>
@@ -215,15 +189,13 @@ export function EscritorioScreen() {
                   {todayDelta > 0 ? '▲' : '▼'} hoy {todayDelta > 0 ? '+' : ''}{fmt(todayDelta)}
                 </span>
               )}
-              {loan && (
-                <Link to="/banco" style={debtPill}>Debes ⟡ {fmt(loan.outstanding)}</Link>
-              )}
+              {loan && <Link to="/banco" style={debtPill}>Debes ⟡ {fmt(loan.outstanding)}</Link>}
             </div>
           </div>
         </div>
       </header>
 
-      {/* ════════ ZONA 2 · TU TESSERA (tarjetas premium) ════════ */}
+      {/* ════════ ZONA 2 · TU TESSERA ════════ */}
       <SectionTitle title="Tu Tessera" hint="Tu identidad Domani" />
       <PremiumCards
         alias={alias}
@@ -237,56 +209,73 @@ export function EscritorioScreen() {
         rentaDone={rentaClaimed === true}
       />
 
-      {/* ════════ ZONA 3 · HOY EN DOMANI (hubs con foto) ════════ */}
-      <SectionTitle title="Hoy en Domani" hint="Entra a tu Domani" />
+      {/* ════════ ZONA 3 · TUS APPS (banners) ════════ */}
+      <SectionTitle title="Tus apps" hint="Entra a tu Domani" />
       <Carousel>
         {HUBS.map((h) => (
           <Link key={h.key} to={h.to} style={{ textDecoration: 'none', scrollSnapAlign: 'start' }}>
-            <div style={hubCard(h.img)}>
-              <div style={hubSheen} />
-            </div>
+            <div style={hubCard(h.img)}><div style={hubSheen} /></div>
           </Link>
         ))}
       </Carousel>
 
-      {/* ════════ ZONA 4 · TUS APPS ════════ */}
-      <SectionTitle title="Tus apps" hint="Todo a un toque" />
-      <div style={appsGrid}>
-        <AppTile
-          to="/casino"
-          img="/assets/casino-mesa.webp"
-          label="Jugar"
-          title="Sala de Juegos"
-          value="Texas Hold'em y más"
-          valueColor="rgba(232,226,212,.72)"
-        />
-        <AppTile
-          to="/banco"
-          img="/assets/emblema-aurelio.webp"
-          label="Banco"
-          title="Domanibank"
-          value={loan ? `Debes ⟡ ${fmt(loan.outstanding)}` : `⟡ ${balance != null ? fmt(balance) : '—'}`}
-          valueColor={loan ? '#ff9a9a' : '#7ee0a6'}
-        />
-        <AppTile
-          to="/millonaurelios"
-          img="/assets/bar-vip.webp"
-          label="Concurso"
-          title="Millonaurelios"
-          value={millonPlayed ? 'Jugado hoy' : 'Disponible hoy'}
-          valueColor={millonPlayed ? 'rgba(232,226,212,.6)' : '#7ee0a6'}
-        />
+      {/* ════════ ZONA 4 · ZONA FINANCIERA ════════ */}
+      <SectionTitle title="Zona financiera" hint="Tu banco y tus movimientos" />
+      <div style={finGrid}>
+        {/* Avatar del usuario */}
+        <div style={avatarTile}>
+          <img src={AVATAR_IMG} alt="Tu avatar" style={avatarImg} />
+          <div style={tileScrim} />
+          <div style={tileFoot}>
+            <div style={tileEyebrow}>Tu avatar</div>
+            <div style={tileTitle}>{alias}</div>
+            <span style={rankChip}>{rankLabel}</span>
+          </div>
+        </div>
+
+        {/* Domanibank */}
+        <Link to="/banco" style={{ textDecoration: 'none' }}>
+          <div style={{ ...photoTile, backgroundImage: `url('/assets/fin-bank.webp')` }}>
+            <div style={tileScrim} />
+            <div style={tileFoot}>
+              <div style={tileEyebrow}>Banco</div>
+              <div style={tileTitleGold}>Domanibank</div>
+              <div style={tileSub}>⟡ {balance != null ? fmt(balance) : '—'} {loan ? `· Debes ⟡ ${fmt(loan.outstanding)}` : '· Entrar'}</div>
+            </div>
+          </div>
+        </Link>
+
+        {/* Movimientos financieros */}
+        <Link to="/banco" style={{ textDecoration: 'none' }}>
+          <div style={movTile}>
+            <div style={tileEyebrow}>Tus movimientos</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 12 }}>
+              <div style={donutWrap(inDeg)}>
+                <div style={donutHole}>
+                  <span style={{ fontSize: 10, color: 'rgba(232,226,212,.55)' }}>movs</span>
+                  <span style={{ fontFamily: 'Marcellus,serif', fontSize: 20, color: '#ece6d6' }}>{finCount}</span>
+                </div>
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <div style={legendRow}><span style={{ ...legendDot, background: '#3fe0a0' }} /> Ingresos<br /><b style={{ color: '#7ee0a6' }}>⟡ {fmt(finIn)}</b></div>
+                <div style={legendRow}><span style={{ ...legendDot, background: '#c45464' }} /> Egresos<br /><b style={{ color: '#ff9a9a' }}>⟡ {fmt(finOut)}</b></div>
+              </div>
+            </div>
+            <div style={tileSub}>Comprado, vendido y más en Domanibank →</div>
+          </div>
+        </Link>
       </div>
 
-      {/* ════════ ZONA 4 · TU MUNDO ════════ */}
-      <SectionTitle title="Tu mundo" hint="Tu identidad y tus bienes" />
-      <div style={worldGrid}>
-        <SmallTile to="/casas" img={myHouseImg} title="Tu Casa" sub={houseName} />
-        <SmallTile img="/assets/lobby-domani.webp" title="Propiedades" sub="Próximamente" locked />
-        <SmallTile img="/assets/via-mercado.webp" title="Mercadoliebre" sub="Próximamente" locked />
+      {/* ════════ ZONA 5 · HOY EN DOMANI (próximamente) ════════ */}
+      <SectionTitle title="Hoy en Domani" hint="Novedades del día" />
+      <div style={placeholderBox}>
+        <div style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ece6d6' }}>Pronto</div>
+        <p className="muted" style={{ margin: '6px 0 0', maxWidth: 460 }}>
+          Aquí llegarán las novedades, misiones y eventos del día en Domani.
+        </p>
       </div>
 
-      {/* ════════ ZONA 5 · EL CÍRCULO ════════ */}
+      {/* ════════ ZONA 6 · EL CÍRCULO ════════ */}
       <div style={circuloBar}>
         <div style={circuloShine} />
         <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -312,51 +301,9 @@ function SectionTitle({ title, hint }: { title: string; hint: string }) {
   );
 }
 
-function AppTile({
-  to, img, label, title, value, valueColor, badge,
-}: {
-  to: string; img: string; label: string; title: string; value: string; valueColor: string; badge?: string;
-}) {
-  return (
-    <Link to={to} style={{ textDecoration: 'none' }}>
-      <div style={appTile}>
-        <div style={{ position: 'relative', flex: '0 0 auto' }}>
-          <div style={{ ...appThumb, backgroundImage: `url('${img}')` }} />
-          {badge && <span style={tileBadge}>{badge}</span>}
-        </div>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={tileLabel}>{label}</div>
-          <div style={tileTitle}>{title}</div>
-          <div style={{ ...tileValue, color: valueColor }}>{value}</div>
-        </div>
-        <span style={tileArrow}>›</span>
-      </div>
-    </Link>
-  );
-}
-
-function SmallTile({
-  to, img, title, sub, locked,
-}: {
-  to?: string; img: string; title: string; sub: string; locked?: boolean;
-}) {
-  const inner = (
-    <div style={smallTile(!!locked)}>
-      <div style={{ position: 'absolute', inset: 0, backgroundImage: `url('${img}')`, backgroundSize: 'cover', backgroundPosition: 'center', filter: locked ? 'saturate(.5) brightness(.8)' : 'none' }} />
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.1), rgba(8,8,10,.55) 55%, rgba(8,8,10,.94))' }} />
-      <div style={{ position: 'relative', zIndex: 1, marginTop: 'auto', padding: 12 }}>
-        <div style={{ fontFamily: 'Marcellus,serif', fontSize: 16, color: '#f3eddd' }}>{title}</div>
-        <div style={{ fontSize: 11.5, color: locked ? 'rgba(232,226,212,.5)' : '#d8b96b' }}>{sub}</div>
-      </div>
-    </div>
-  );
-  return to ? <Link to={to} style={{ textDecoration: 'none' }}>{inner}</Link> : <div>{inner}</div>;
-}
-
 // ════════ estilos ════════
 const eyebrow: React.CSSProperties = { fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e' };
 
-// Alto del hero: generoso para que las fotos 16:9 luzcan sin comerse las caras.
 function heroCard(isDesktop: boolean): React.CSSProperties {
   return {
     position: 'relative', overflow: 'hidden', isolation: 'isolate',
@@ -374,14 +321,11 @@ function heroPhoto(src: string, active: boolean, i: number): React.CSSProperties
     animation: `domKen 18s ease-in-out ${i * -4.5}s infinite alternate`,
   };
 }
-// Oscurece sobre todo abajo (donde va el texto); arriba casi transparente
-// para no tapar las caras.
 const heroScrim: React.CSSProperties = {
   position: 'absolute', inset: 0,
   backgroundImage:
     'linear-gradient(180deg, rgba(7,6,11,.18) 0%, rgba(7,6,11,.08) 32%, rgba(7,6,11,.55) 70%, rgba(7,6,11,.93) 100%), radial-gradient(120% 70% at 82% 4%, rgba(201,163,91,.14), transparent 50%)',
 };
-// Contenido anclado ABAJO: las caras de arriba quedan despejadas.
 function heroContent(isDesktop: boolean): React.CSSProperties {
   return {
     position: 'relative', zIndex: 1, minHeight: isDesktop ? 'clamp(440px, 52vh, 560px)' : 'clamp(420px, 64vh, 520px)',
@@ -400,16 +344,17 @@ const taglineWord: React.CSSProperties = {
   display: 'inline-block', fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic',
   fontSize: 18, color: '#e7d6a8', letterSpacing: '.02em', animation: 'domWordIn .6s ease-out',
 };
-function avatarRing(color: string): React.CSSProperties {
-  return { flex: '0 0 auto', width: 66, height: 66, borderRadius: '50%', padding: 3, background: `linear-gradient(135deg, ${color}, ${color}88)`, boxShadow: `0 8px 24px -10px ${color}` };
-}
+const avatarRing = (color: string): React.CSSProperties => ({
+  flex: '0 0 auto', width: 66, height: 66, borderRadius: '50%', padding: 3,
+  background: `linear-gradient(135deg, ${color}, ${color}88)`, boxShadow: `0 8px 24px -10px ${color}`,
+});
 const avatarInner: React.CSSProperties = {
   width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(160deg,#211b2e,#14111c)',
   display: 'grid', placeContent: 'center', fontFamily: 'Marcellus, serif', fontSize: 27, color: '#ecd9a5',
 };
 const rankChip: React.CSSProperties = {
   fontSize: 11, fontWeight: 700, letterSpacing: '.06em', padding: '4px 10px', borderRadius: 999,
-  background: GOLD_GRAD, color: '#2c2415',
+  background: GOLD_GRAD, color: '#2c2415', alignSelf: 'flex-start',
 };
 const houseChip: React.CSSProperties = {
   display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12, color: '#ece6d6',
@@ -426,8 +371,7 @@ function walletBlock(isDesktop: boolean): React.CSSProperties {
     display: 'flex', flexDirection: 'column', alignItems: isDesktop ? 'flex-end' : 'flex-start',
     padding: '12px 16px', borderRadius: 14,
     background: 'rgba(10,8,14,.5)', border: '1px solid rgba(201,163,91,.3)',
-    backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
-    boxShadow: '0 10px 30px -16px rgba(0,0,0,.8)',
+    backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)', boxShadow: '0 10px 30px -16px rgba(0,0,0,.8)',
   };
 }
 const debtPill: React.CSSProperties = {
@@ -437,8 +381,7 @@ const debtPill: React.CSSProperties = {
 
 const sectionTitle: React.CSSProperties = { fontFamily: "'Cormorant Garamond',serif", fontSize: 27, margin: 0, color: '#ece6d6' };
 
-// Banner-hub (arte propio con texto integrado): mostramos la imagen
-// completa como tarjeta clickeable, con marco dorado y brillo tipo Tessera.
+// Banners "Tus apps"
 function hubCard(img: string): React.CSSProperties {
   return {
     position: 'relative', overflow: 'hidden', flex: '0 0 auto',
@@ -454,34 +397,43 @@ const hubSheen: React.CSSProperties = {
   transform: 'skewX(-16deg)', animation: 'domShimmer 7s ease-in-out infinite', pointerEvents: 'none',
 };
 
-const appsGrid: React.CSSProperties = { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' };
-const appTile: React.CSSProperties = {
-  display: 'flex', alignItems: 'center', gap: 13, padding: 12, borderRadius: 16,
-  border: '1px solid rgba(201,163,91,.2)', background: 'linear-gradient(160deg,#181423,#110f18)',
-  boxShadow: '0 14px 34px -24px rgba(0,0,0,.85)', cursor: 'pointer',
+// Zona financiera
+const finGrid: React.CSSProperties = { display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))' };
+const tileBase: React.CSSProperties = {
+  position: 'relative', overflow: 'hidden', aspectRatio: '4 / 5', borderRadius: 18,
+  border: '1px solid rgba(201,163,91,.28)', boxShadow: '0 18px 44px -26px rgba(0,0,0,.9)', cursor: 'pointer',
 };
-const appThumb: React.CSSProperties = {
-  width: 60, height: 60, borderRadius: 13, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c',
-  border: '1px solid rgba(201,163,91,.25)',
-};
-const tileBadge: React.CSSProperties = {
-  position: 'absolute', top: -6, right: -6, minWidth: 22, height: 22, padding: '0 6px', borderRadius: 999,
-  background: GOLD_GRAD, color: '#2c2415', fontSize: 12, fontWeight: 800, display: 'grid', placeContent: 'center',
-  boxShadow: '0 3px 10px -3px rgba(0,0,0,.7)',
-};
-const tileLabel: React.CSSProperties = { fontSize: 9.5, letterSpacing: '.2em', textTransform: 'uppercase', color: '#9c7a3e' };
-const tileTitle: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 19, color: '#f3eddd', margin: '1px 0 2px' };
-const tileValue: React.CSSProperties = { fontSize: 13, fontWeight: 600 };
-const tileArrow: React.CSSProperties = { flex: '0 0 auto', fontSize: 24, color: 'rgba(201,163,91,.5)', paddingRight: 4 };
+const avatarTile: React.CSSProperties = { ...tileBase, cursor: 'default', background: 'radial-gradient(120% 90% at 50% 0%, #1e6f4a55, #12101a 70%)' };
+const avatarImg: React.CSSProperties = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' };
+const photoTile: React.CSSProperties = { ...tileBase, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c' };
+const tileScrim: React.CSSProperties = { position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.05) 40%, rgba(8,8,10,.6) 72%, rgba(8,8,10,.95) 100%)' };
+const tileFoot: React.CSSProperties = { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, zIndex: 1 };
+const tileEyebrow: React.CSSProperties = { fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' };
+const tileTitle: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 22, color: '#f3eddd', margin: '2px 0 8px' };
+const tileTitleGold: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 23, color: '#ecd9a5', margin: '2px 0 3px' };
+const tileSub: React.CSSProperties = { fontSize: 12.5, color: 'rgba(232,226,212,.72)', marginTop: 6 };
 
-const worldGrid: React.CSSProperties = { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))' };
-function smallTile(locked: boolean): React.CSSProperties {
+const movTile: React.CSSProperties = {
+  ...tileBase, aspectRatio: '4 / 5', padding: 16, display: 'flex', flexDirection: 'column',
+  background: 'linear-gradient(160deg,#181423,#110f18)',
+};
+function donutWrap(inDeg: number): React.CSSProperties {
   return {
-    position: 'relative', display: 'flex', aspectRatio: '16 / 11', borderRadius: 14, overflow: 'hidden',
-    border: locked ? '1px solid rgba(255,255,255,.06)' : '1px solid rgba(201,163,91,.22)',
-    boxShadow: '0 12px 30px -22px rgba(0,0,0,.85)', cursor: locked ? 'default' : 'pointer',
+    position: 'relative', width: 96, height: 96, borderRadius: '50%', flex: '0 0 auto',
+    background: `conic-gradient(#3fe0a0 0deg ${inDeg}deg, #c45464 ${inDeg}deg 360deg)`,
+    display: 'grid', placeItems: 'center',
   };
 }
+const donutHole: React.CSSProperties = {
+  width: 62, height: 62, borderRadius: '50%', background: '#13111b',
+  display: 'grid', placeItems: 'center', lineHeight: 1.1, textAlign: 'center',
+};
+const legendRow: React.CSSProperties = { fontSize: 11.5, color: 'rgba(232,226,212,.7)', lineHeight: 1.25 };
+const legendDot: React.CSSProperties = { display: 'inline-block', width: 9, height: 9, borderRadius: '50%', marginRight: 6 };
+
+const placeholderBox: React.CSSProperties = {
+  padding: 22, borderRadius: 16, border: '1px dashed rgba(201,163,91,.3)', background: 'rgba(255,255,255,.015)',
+};
 
 const circuloBar: React.CSSProperties = {
   position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
