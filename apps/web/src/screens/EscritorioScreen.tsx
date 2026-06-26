@@ -14,6 +14,7 @@ import {
 } from '../lib/api';
 import type { House } from '../lib/types';
 import { PremiumCards } from '../components/PremiumCards';
+import { Carousel } from '../components/Carousel';
 
 const GOLD_GRAD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
 const fmt = (n: number) => n.toLocaleString('es-CO');
@@ -49,6 +50,14 @@ const HERO_IMAGES = [
 ];
 // Palabra rotativa del titular (texto animado dinámico).
 const HERO_WORDS = ['Donde el lujo es ley', 'El juego te espera', 'Construye tu poder', 'El Círculo observa'];
+
+// Hubs principales (banners con arte propio). Enlace provisional: la 3ra
+// imagen es de Mercadoliebre; por ahora la mandamos a Domanibank.
+const HUBS = [
+  { key: 'casinos', img: '/assets/hub-casinos.webp', to: '/casino' },
+  { key: 'millon', img: '/assets/hub-millonaurelios.webp', to: '/millonaurelios' },
+  { key: 'mercado', img: '/assets/hub-mercado.webp', to: '/banco' },
+];
 
 function greeting(): string {
   const h = typeof window !== 'undefined' ? new Date().getHours() : 20;
@@ -151,8 +160,6 @@ export function EscritorioScreen() {
 
   const millonPlayed = millon && millon.status !== 'in_progress';
 
-  const daysToDue = loan ? Math.max(0, Math.ceil((new Date(loan.due_date).getTime() - Date.now()) / 86400000)) : 0;
-
   return (
     <div style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
       {/* ════════ ZONA 1 · HERO CINEMATOGRÁFICO ════════ */}
@@ -230,52 +237,19 @@ export function EscritorioScreen() {
         rentaDone={rentaClaimed === true}
       />
 
-      {/* ════════ ZONA 3 · HOY EN DOMANI ════════ */}
-      <SectionTitle title="Hoy en Domani" hint="Tu rutina del día" />
-      <div style={todayRow}>
-        {/* Renta */}
-        <button
-          onClick={onClaimRenta}
-          disabled={rentaClaimed === true || rentaBusy}
-          style={todayChip(rentaClaimed === false, false)}
-        >
-          <span style={todayIcon(rentaClaimed === false)}>⟡</span>
-          <span style={{ textAlign: 'left' }}>
-            <span style={todayChipTitle}>Renta Ciudadana</span>
-            <span style={todayChipSub}>
-              {rentaClaimed == null ? '…' : rentaClaimed ? 'Reclamada hoy ✓' : rentaBusy ? 'Reclamando…' : 'Reclama ⟡ 50'}
-            </span>
-          </span>
-        </button>
-
-        {/* Concurso */}
-        <Link to="/millonaurelios" style={{ textDecoration: 'none' }}>
-          <div style={todayChip(!millonPlayed, false)}>
-            <span style={todayIcon(!millonPlayed)}>🎯</span>
-            <span style={{ textAlign: 'left' }}>
-              <span style={todayChipTitle}>Millonaurelios</span>
-              <span style={todayChipSub}>
-                {millon == null ? 'Concurso disponible' : millonPlayed ? `Jugado · ⟡ ${fmt(millon.prize)}` : 'Partida en curso'}
-              </span>
-            </span>
-          </div>
-        </Link>
-
-        {/* Crédito (solo si hay) */}
-        {loan && (
-          <Link to="/banco" style={{ textDecoration: 'none' }}>
-            <div style={todayChip(false, true)}>
-              <span style={{ ...todayIcon(false), color: '#ff9a9a', borderColor: 'rgba(255,138,138,.4)' }}>!</span>
-              <span style={{ textAlign: 'left' }}>
-                <span style={todayChipTitle}>Crédito activo</span>
-                <span style={todayChipSub}>Vence en {daysToDue} día{daysToDue === 1 ? '' : 's'}</span>
-              </span>
+      {/* ════════ ZONA 3 · HOY EN DOMANI (hubs con foto) ════════ */}
+      <SectionTitle title="Hoy en Domani" hint="Entra a tu Domani" />
+      <Carousel>
+        {HUBS.map((h) => (
+          <Link key={h.key} to={h.to} style={{ textDecoration: 'none', scrollSnapAlign: 'start' }}>
+            <div style={hubCard(h.img)}>
+              <div style={hubSheen} />
             </div>
           </Link>
-        )}
-      </div>
+        ))}
+      </Carousel>
 
-      {/* ════════ ZONA 3 · TUS APPS ════════ */}
+      {/* ════════ ZONA 4 · TUS APPS ════════ */}
       <SectionTitle title="Tus apps" hint="Todo a un toque" />
       <div style={appsGrid}>
         <AppTile
@@ -463,27 +437,22 @@ const debtPill: React.CSSProperties = {
 
 const sectionTitle: React.CSSProperties = { fontFamily: "'Cormorant Garamond',serif", fontSize: 27, margin: 0, color: '#ece6d6' };
 
-const todayRow: React.CSSProperties = { display: 'flex', gap: 10, flexWrap: 'wrap' };
-function todayChip(active: boolean, alert: boolean): React.CSSProperties {
+// Banner-hub (arte propio con texto integrado): mostramos la imagen
+// completa como tarjeta clickeable, con marco dorado y brillo tipo Tessera.
+function hubCard(img: string): React.CSSProperties {
   return {
-    display: 'inline-flex', alignItems: 'center', gap: 11, padding: '12px 16px', borderRadius: 14, cursor: 'pointer',
-    minWidth: 180, flex: '1 1 200px', maxWidth: 280,
-    border: `1px solid ${alert ? 'rgba(255,138,138,.4)' : active ? 'rgba(201,163,91,.55)' : 'rgba(255,255,255,.08)'}`,
-    background: active ? 'linear-gradient(135deg, rgba(201,163,91,.14), rgba(201,163,91,.05))' : 'rgba(255,255,255,.02)',
-    boxShadow: active ? '0 0 0 0 rgba(201,163,91,.4)' : 'none',
-    animation: active && !alert ? 'domPulse 2.4s ease-in-out infinite' : 'none',
-    fontFamily: "'Hanken Grotesk',sans-serif",
+    position: 'relative', overflow: 'hidden', flex: '0 0 auto',
+    width: 'clamp(280px, 86vw, 440px)', scrollSnapAlign: 'start', aspectRatio: '16 / 10',
+    borderRadius: 16, border: '1px solid rgba(201,163,91,.4)',
+    backgroundImage: `url('${img}')`, backgroundSize: 'cover', backgroundPosition: 'center',
+    backgroundColor: '#14111c', boxShadow: '0 22px 50px -22px rgba(0,0,0,.85)',
   };
 }
-function todayIcon(active: boolean): React.CSSProperties {
-  return {
-    flex: '0 0 auto', width: 34, height: 34, borderRadius: 10, display: 'grid', placeContent: 'center', fontSize: 16,
-    background: active ? GOLD_GRAD : 'rgba(255,255,255,.04)', color: active ? '#2c2415' : '#d8b96b',
-    border: active ? 'none' : '1px solid rgba(201,163,91,.3)',
-  };
-}
-const todayChipTitle: React.CSSProperties = { display: 'block', fontSize: 14, color: '#f3eddd', fontWeight: 600 };
-const todayChipSub: React.CSSProperties = { display: 'block', fontSize: 12, color: 'rgba(232,226,212,.62)', marginTop: 1 };
+const hubSheen: React.CSSProperties = {
+  position: 'absolute', top: 0, left: 0, width: '45%', height: '100%',
+  background: 'linear-gradient(90deg, transparent, rgba(255,255,255,.28), transparent)',
+  transform: 'skewX(-16deg)', animation: 'domShimmer 7s ease-in-out infinite', pointerEvents: 'none',
+};
 
 const appsGrid: React.CSSProperties = { display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' };
 const appTile: React.CSSProperties = {
