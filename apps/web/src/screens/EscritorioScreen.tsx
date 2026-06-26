@@ -73,6 +73,7 @@ export function EscritorioScreen() {
   const [loan, setLoan] = useState<Loan | null>(null);
   const [rentaClaimed, setRentaClaimed] = useState<boolean | null>(null);
   const [rentaBusy, setRentaBusy] = useState(false);
+  const [showAvatar, setShowAvatar] = useState(false);
   // Resumen financiero (de los últimos movimientos del ledger).
   const [finIn, setFinIn] = useState(0);
   const [finOut, setFinOut] = useState(0);
@@ -128,7 +129,6 @@ export function EscritorioScreen() {
   const houseColor = myHouse?.color_primary ?? '#c9a35b';
 
   const alias = profile?.alias ?? 'Ciudadano';
-  const initial = alias.trim().charAt(0).toUpperCase() || 'D';
   const influence = profile?.influence ?? 0;
   const rankLabel = RANK_LABELS[profile?.rank ?? ''] ?? 'Ciudadano';
 
@@ -150,9 +150,12 @@ export function EscritorioScreen() {
 
         <div style={heroContent(isDesktop)}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
-            <div style={avatarRing(houseColor)}>
-              <div style={avatarInner}>{initial}</div>
-            </div>
+            <button onClick={() => setShowAvatar(true)} style={avatarRingBtn(houseColor)} aria-label="Gestionar tu avatar">
+              <span style={avatarCircle}>
+                <img src={AVATAR_IMG} alt="" style={avatarPortrait} />
+              </span>
+              <span style={avatarEditDot}>✎</span>
+            </button>
             <div style={{ minWidth: 0, flex: 1 }}>
               <div style={eyebrow}>{greeting()}</div>
               <h1 className="page-title" style={{ margin: '2px 0 3px', fontSize: isDesktop ? 36 : 29 }}>
@@ -222,17 +225,6 @@ export function EscritorioScreen() {
       {/* ════════ ZONA 4 · ZONA FINANCIERA ════════ */}
       <SectionTitle title="Zona financiera" hint="Tu banco y tus movimientos" />
       <div style={finGrid}>
-        {/* Avatar del usuario */}
-        <div style={avatarTile}>
-          <img src={AVATAR_IMG} alt="Tu avatar" style={avatarImg} />
-          <div style={tileScrim} />
-          <div style={tileFoot}>
-            <div style={tileEyebrow}>Tu avatar</div>
-            <div style={tileTitle}>{alias}</div>
-            <span style={rankChip}>{rankLabel}</span>
-          </div>
-        </div>
-
         {/* Domanibank */}
         <Link to="/banco" style={{ textDecoration: 'none' }}>
           <div style={{ ...photoTile, backgroundImage: `url('/assets/fin-bank.webp')` }}>
@@ -287,6 +279,27 @@ export function EscritorioScreen() {
         </div>
         <span style={circuloPill}>Acceso restringido</span>
       </div>
+
+      {/* ════════ Modal: gestionar avatar ════════ */}
+      {showAvatar && (
+        <div style={modalOverlay} onClick={() => setShowAvatar(false)}>
+          <div style={modalCard} onClick={(e) => e.stopPropagation()}>
+            <button style={modalClose} onClick={() => setShowAvatar(false)} aria-label="Cerrar">×</button>
+            <div style={modalAvatar}>
+              <img src={AVATAR_IMG} alt="" style={avatarPortrait} />
+            </div>
+            <div style={{ textAlign: 'center' }}>
+              <div style={eyebrow}>Tu avatar</div>
+              <h3 style={{ fontFamily: 'Marcellus,serif', fontSize: 24, color: '#f3eddd', margin: '4px 0 2px' }}>{alias}</h3>
+              <p className="muted" style={{ margin: '0 auto 16px', maxWidth: 300, fontSize: 13 }}>
+                Tu primer avatar es <strong style={{ color: '#7ee0a6' }}>gratis</strong>. Para cambiarlo de nuevo, entra al
+                Mercado de Avatares — se paga con Aurelios.
+              </p>
+              <button style={marketBtn} disabled>Mercado de Avatares · Próximamente</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -344,13 +357,24 @@ const taglineWord: React.CSSProperties = {
   display: 'inline-block', fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic',
   fontSize: 18, color: '#e7d6a8', letterSpacing: '.02em', animation: 'domWordIn .6s ease-out',
 };
-const avatarRing = (color: string): React.CSSProperties => ({
-  flex: '0 0 auto', width: 66, height: 66, borderRadius: '50%', padding: 3,
-  background: `linear-gradient(135deg, ${color}, ${color}88)`, boxShadow: `0 8px 24px -10px ${color}`,
+// Círculo del avatar en el hero (más grande, clickeable para gestionarlo).
+const avatarRingBtn = (color: string): React.CSSProperties => ({
+  position: 'relative', flex: '0 0 auto', width: 88, height: 88, borderRadius: '50%', padding: 3,
+  border: 'none', cursor: 'pointer', display: 'block',
+  background: `linear-gradient(135deg, ${color}, ${color}88)`, boxShadow: `0 10px 28px -10px ${color}`,
 });
-const avatarInner: React.CSSProperties = {
-  width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(160deg,#211b2e,#14111c)',
-  display: 'grid', placeContent: 'center', fontFamily: 'Marcellus, serif', fontSize: 27, color: '#ecd9a5',
+// Fondo plano DETRÁS del avatar (rellena la transparencia del PNG).
+const avatarCircle: React.CSSProperties = {
+  display: 'block', position: 'relative', width: '100%', height: '100%', borderRadius: '50%', overflow: 'hidden',
+  background: 'radial-gradient(120% 100% at 50% 0%, #1e6f4a, #14111c 72%)',
+};
+const avatarPortrait: React.CSSProperties = {
+  position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center',
+};
+const avatarEditDot: React.CSSProperties = {
+  position: 'absolute', right: -2, bottom: -2, width: 26, height: 26, borderRadius: '50%',
+  background: GOLD_GRAD, color: '#2c2415', fontSize: 12, fontWeight: 700,
+  display: 'grid', placeItems: 'center', border: '2px solid #14111c',
 };
 const rankChip: React.CSSProperties = {
   fontSize: 11, fontWeight: 700, letterSpacing: '.06em', padding: '4px 10px', borderRadius: 999,
@@ -403,13 +427,10 @@ const tileBase: React.CSSProperties = {
   position: 'relative', overflow: 'hidden', aspectRatio: '4 / 5', borderRadius: 18,
   border: '1px solid rgba(201,163,91,.28)', boxShadow: '0 18px 44px -26px rgba(0,0,0,.9)', cursor: 'pointer',
 };
-const avatarTile: React.CSSProperties = { ...tileBase, cursor: 'default', background: 'radial-gradient(120% 90% at 50% 0%, #1e6f4a55, #12101a 70%)' };
-const avatarImg: React.CSSProperties = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'top center' };
 const photoTile: React.CSSProperties = { ...tileBase, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c' };
 const tileScrim: React.CSSProperties = { position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.05) 40%, rgba(8,8,10,.6) 72%, rgba(8,8,10,.95) 100%)' };
 const tileFoot: React.CSSProperties = { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, zIndex: 1 };
 const tileEyebrow: React.CSSProperties = { fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' };
-const tileTitle: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 22, color: '#f3eddd', margin: '2px 0 8px' };
 const tileTitleGold: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 23, color: '#ecd9a5', margin: '2px 0 3px' };
 const tileSub: React.CSSProperties = { fontSize: 12.5, color: 'rgba(232,226,212,.72)', marginTop: 6 };
 
@@ -447,4 +468,28 @@ const circuloPill: React.CSSProperties = {
   flex: '0 0 auto', fontSize: 10, letterSpacing: '.1em', textTransform: 'uppercase', fontWeight: 700,
   color: 'rgba(236,230,214,.7)', padding: '6px 12px', borderRadius: 999,
   border: '1px solid rgba(201,163,91,.3)', background: 'rgba(8,8,10,.4)',
+};
+
+// Modal de avatar
+const modalOverlay: React.CSSProperties = {
+  position: 'fixed', inset: 0, zIndex: 1200, display: 'grid', placeItems: 'center', padding: 20,
+  background: 'rgba(6,5,9,.72)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
+};
+const modalCard: React.CSSProperties = {
+  position: 'relative', width: 'min(380px, 100%)', padding: '28px 24px 24px', borderRadius: 20,
+  border: '1px solid rgba(201,163,91,.3)', background: 'linear-gradient(160deg,#181425,#100e17)',
+  boxShadow: '0 30px 70px -30px rgba(0,0,0,.9)', animation: 'domSheetUp .22s ease-out',
+};
+const modalClose: React.CSSProperties = {
+  position: 'absolute', top: 12, right: 12, width: 32, height: 32, borderRadius: 10,
+  border: '1px solid rgba(201,163,91,.3)', background: 'transparent', color: '#d8b96b', fontSize: 18, cursor: 'pointer',
+};
+const modalAvatar: React.CSSProperties = {
+  position: 'relative', width: 132, height: 132, borderRadius: '50%', overflow: 'hidden', margin: '4px auto 16px',
+  background: 'radial-gradient(120% 100% at 50% 0%, #1e6f4a, #14111c 72%)',
+  border: '3px solid', borderColor: 'rgba(201,163,91,.5)', boxShadow: '0 12px 30px -12px rgba(30,177,120,.5)',
+};
+const marketBtn: React.CSSProperties = {
+  padding: '11px 20px', borderRadius: 11, border: '1px solid rgba(201,163,91,.4)',
+  background: 'rgba(201,163,91,.08)', color: '#d8b96b', fontWeight: 700, fontSize: 13.5, cursor: 'not-allowed',
 };
