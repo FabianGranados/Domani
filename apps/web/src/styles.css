@@ -312,7 +312,8 @@ th { color: var(--muted); font-weight: 500; }
 }
 .carousel-arrow {
   position: absolute;
-  top: 50%;
+  /* Compensa el padding-bottom del track (10px) para centrar sobre las tarjetas. */
+  top: calc(50% - 5px);
   transform: translateY(-50%);
   z-index: 6;
   width: 44px;
