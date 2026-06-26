@@ -169,7 +169,7 @@ input[type='text'], input[type='email'], input[type='password'], input[type='num
   bottom: 0;
   z-index: 40;
   width: 24px;
-  display: flex;
+  display: none; /* menú lateral oculto: la navegación vive en el Escritorio */
   flex-direction: column;
   gap: 0.2rem;
   padding: 1.2rem 0;
@@ -307,6 +307,8 @@ th { color: var(--muted); font-weight: 500; }
   scroll-snap-type: x mandatory;
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
+  /* Centra cuando caben; si desbordan, se comporta como inicio (scroll). */
+  justify-content: safe center;
 }
 .carousel-arrow {
   position: absolute;
