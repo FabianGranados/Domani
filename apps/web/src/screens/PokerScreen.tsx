@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
-import { getWallet, listHouses, pokerBuyin, pokerCashout } from '../lib/api';
+import { getWallet, listHouses, pokerBuyin, pokerCashout, getPokerCitizens, avatarSrc } from '../lib/api';
 import {
   startHand, applyAction, legalActions, botAction,
   evaluate7, handCategory, HAND_NAME, RANK_LABEL, isRed,
@@ -18,6 +18,13 @@ import { Carousel } from '../components/Carousel';
 const DEFAULT_TIER = STAKE_LADDER.find((t) => t.id === 'media')!;
 const SB = DEFAULT_TIER.sb;
 const BB = DEFAULT_TIER.bb;
+
+// Banco de frases de mesa para las respuestas de los ciudadanos (sin IA generativa).
+const TABLE_QUIPS = [
+  'jaja, suerte con esa', 'no me tientes', 'esa la tenía', '¿en serio?', 'tranquilo, ya caerás',
+  'bien jugado', 'la mesa está caliente esta noche', 'voy con todo', 'respeto', 'me huele a farol',
+  'no te confíes', 'salud por esa', 'qué frío juegas', 'aquí se viene a ganar', 'bienvenido a mi ciudad',
+];
 
 const BOTS: { name: string; ring: string; style: Player['style'] }[] = [
   { name: 'Dunia', ring: '#b9c2cc', style: 'conservador' },
@@ -161,6 +168,12 @@ export function PokerScreen() {
   const [fly, setFly] = useState<{ x: number; y: number; fromX: number; fromY: number; amount: number; key: number } | null>(null);
   const [drawer, setDrawer] = useState(false);
   const [railOpen, setRailOpen] = useState(true);
+  // Chat de la mesa (escribes y los ciudadanos responden).
+  const [chat, setChat] = useState<{ id: number; who: string; mine: boolean; text: string }[]>([]);
+  const [chatInput, setChatInput] = useState('');
+  const chatIdRef = useRef(1);
+  // ¿Mostraste tus cartas al final de la mano?
+  const [youReveal, setYouReveal] = useState(false);
   const [dealing, setDealing] = useState(false);
   const [handKey, setHandKey] = useState(0);
   const [turnLeft, setTurnLeft] = useState<number | null>(null);
@@ -198,10 +211,19 @@ export function PokerScreen() {
       setHouseName(house.name.replace(/^Casa /, ''));
       setHouseColor(house.color_primary ?? undefined);
       setFeltPath(feltForTable(t));
+      // Sienta CIUDADANOS reales de tu ciudad (con su cara). Si no hay, usa los de respaldo.
+      const cits = await getPokerCitizens(house.id, 7).catch(() => []);
+      const styles: Player['style'][] = ['conservador', 'normal', 'agresivo'];
+      const botPlayers: Player[] = cits.length
+        ? cits.map((c, i) => ({ id: c.id, name: c.alias, avatar: c.avatar_code, isBot: true, style: styles[(i + Math.floor(Math.random() * 3)) % 3], stack, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false }))
+        : BOTS.map((b) => ({ id: b.name, name: b.name, isBot: true, style: b.style, stack, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false }));
       const players: Player[] = [
-        { id: 'you', name: profile?.alias ?? 'Tú', isBot: false, style: 'normal', stack, bet: 0, hole: [], folded: false, allIn: false, acted: false },
-        ...BOTS.map((b) => ({ id: b.name, name: b.name, isBot: true, style: b.style, stack, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false })),
+        { id: 'you', name: profile?.alias ?? 'Tú', avatar: profile?.avatar_code, isBot: false, style: 'normal', stack, bet: 0, hole: [], folded: false, allIn: false, acted: false },
+        ...botPlayers,
       ];
+      chatIdRef.current = 1;
+      setChat([{ id: 0, who: 'Crupier', mine: false, text: `Bienvenido a la mesa, ${profile?.alias ?? 'jugador'}. Saluda a los presentes.` }]);
+      setYouReveal(false);
       const d = Math.floor(Math.random() * players.length);
       setDealer(d);
       startStackRef.current = stack;
@@ -241,8 +263,32 @@ export function PokerScreen() {
     setDealer(nd);
     startStackRef.current = game.players.find((p) => p.id === 'you')?.stack ?? 0;
     recordedRef.current = false;
+    setYouReveal(false);
     setGame(startHand(game.players, nd, activeSB, activeBB));
     setHandKey((k) => k + 1);
+  }
+
+  // Chat de la mesa: escribes y los ciudadanos responden (con sabor, sin IA generativa).
+  function sendChat() {
+    const text = chatInput.trim();
+    if (!text || !game) return;
+    setChatInput('');
+    const meName = profile?.alias ?? 'Tú';
+    setChat((c) => [...c, { id: chatIdRef.current++, who: meName, mine: true, text }]);
+    const bots = game.players.filter((p) => p.isBot && !p.folded);
+    if (!bots.length) return;
+    const replies = 1 + (Math.random() < 0.4 ? 1 : 0);
+    for (let i = 0; i < replies; i++) {
+      const b = bots[Math.floor(Math.random() * bots.length)];
+      const q = TABLE_QUIPS[Math.floor(Math.random() * TABLE_QUIPS.length)];
+      const txt = Math.random() < 0.3 ? `${meName}, ${q}` : q;
+      window.setTimeout(() => setChat((c) => [...c, { id: chatIdRef.current++, who: b.name, mine: false, text: txt }]), 600 + i * 900 + Math.random() * 800);
+    }
+  }
+
+  function mostrarCartas() {
+    setYouReveal(true);
+    setChat((c) => [...c, { id: chatIdRef.current++, who: 'Crupier', mine: false, text: `${profile?.alias ?? 'El jugador'} mostró sus cartas.` }]);
   }
 
   // Bots juegan en automático
@@ -484,6 +530,14 @@ export function PokerScreen() {
               ? `Te llevas el bote · +⟡${game!.winners.find((w) => w.id === 'you')!.amount.toLocaleString()}`
               : `Ganó ${game!.players[winnerIdx]?.name ?? '—'}`}
           </div>
+          {/* Mostrar/ocultar tus cartas al final, si quieres */}
+          {you.hole.length === 2 && (
+            <div style={{ marginBottom: 8 }}>
+              {youReveal
+                ? <span style={{ fontSize: 12, color: '#7fb89a' }}>Mostraste tus cartas ✓</span>
+                : <button onClick={mostrarCartas} style={{ padding: '8px 16px', borderRadius: 999, border: '1px solid rgba(201,163,91,.4)', background: 'rgba(201,163,91,.12)', color: '#ecd9a5', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Mostrar mis cartas</button>}
+            </div>
+          )}
           {you.stack > 0
             ? <div style={{ fontSize: 12, color: 'rgba(232,226,212,.45)', fontStyle: 'italic', fontFamily: "'Cormorant Garamond',serif" }}>El crupier reparte la siguiente mano…</div>
             : <button className="btn" style={{ maxWidth: 280, margin: '0 auto' }} onClick={levantarse}>Sin fichas — salir</button>}
@@ -598,7 +652,7 @@ export function PokerScreen() {
       <>
         <div style={playerPanel}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 13 }}>
-            <div style={{ width: 50, height: 50, borderRadius: '50%', display: 'grid', placeItems: 'center', fontFamily: 'Marcellus,serif', fontSize: 22, color: '#5fc795', background: 'radial-gradient(circle at 35% 30%,#2b2c34,#121317)', boxShadow: 'inset 0 0 0 1.5px #2fa06a' }}>{(profile?.alias ?? 'T').charAt(0)}</div>
+            <div style={{ width: 50, height: 50, borderRadius: '50%', display: 'grid', placeItems: 'center', fontFamily: 'Marcellus,serif', fontSize: 22, color: '#5fc795', background: 'radial-gradient(circle at 35% 30%,#2b2c34,#121317)', boxShadow: 'inset 0 0 0 1.5px #2fa06a', overflow: 'hidden' }}>{profile?.avatar_code ? <img src={avatarSrc(profile.avatar_code)} alt="" style={seatFaceImg} /> : (profile?.alias ?? 'T').charAt(0)}</div>
             <div>
               <div style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ece6d6' }}>{profile?.alias ?? 'Tú'}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
@@ -616,18 +670,24 @@ export function PokerScreen() {
           </div>
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <div style={{ fontSize: 10, letterSpacing: '.28em', textTransform: 'uppercase', color: '#9c7a3e', marginBottom: 12 }}>Historial de manos</div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 9, overflowY: 'auto' }}>
-            {history.length === 0 && <div style={{ fontSize: 12, color: 'rgba(232,226,212,.4)' }}>Aún no hay manos jugadas.</div>}
-            {history.map((h, i) => (
-              <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '11px 13px', borderRadius: 11, background: h.youWon ? 'rgba(47,160,106,.06)' : 'rgba(255,255,255,.025)', border: `1px solid ${h.youWon ? 'rgba(47,160,106,.2)' : 'rgba(255,255,255,.06)'}` }}>
-                <div>
-                  <div style={{ fontSize: 12, color: 'rgba(232,226,212,.78)' }}>Mano #{h.n} · {h.title}</div>
-                  <div style={{ fontSize: 10, color: 'rgba(232,226,212,.4)', marginTop: 2 }}>{h.sub}</div>
-                </div>
-                <span style={{ fontWeight: 600, fontSize: 12, color: h.delta > 0 ? '#5fc795' : 'rgba(232,226,212,.55)' }}>{h.delta > 0 ? '+' : ''}{h.delta.toLocaleString()}</span>
+          <div style={{ fontSize: 10, letterSpacing: '.28em', textTransform: 'uppercase', color: '#9c7a3e', marginBottom: 12 }}>Chat de la mesa</div>
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7, overflowY: 'auto', paddingRight: 2 }}>
+            {chat.map((m) => (
+              <div key={m.id} style={{ alignSelf: m.mine ? 'flex-end' : 'flex-start', maxWidth: '88%' }}>
+                {!m.mine && <div style={{ fontSize: 9.5, color: '#9c7a3e', margin: '0 0 1px 2px' }}>{m.who}</div>}
+                <div style={{ padding: '7px 11px', borderRadius: 12, fontSize: 12.5, lineHeight: 1.35, color: m.mine ? '#16241c' : '#e8e2d0', background: m.mine ? 'linear-gradient(135deg,#9ff0bf,#4fbf83)' : 'rgba(255,255,255,.05)', border: m.mine ? 'none' : '1px solid rgba(255,255,255,.07)' }}>{m.text}</div>
               </div>
             ))}
+          </div>
+          <div style={{ display: 'flex', gap: 7, marginTop: 10 }}>
+            <input
+              value={chatInput}
+              onChange={(e) => setChatInput(e.target.value)}
+              onKeyDown={(e) => { if (e.key === 'Enter') sendChat(); }}
+              placeholder="Escribe a la mesa…"
+              style={{ flex: 1, minWidth: 0, padding: '9px 12px', background: 'rgba(255,255,255,.05)', border: '1px solid rgba(255,255,255,.12)', borderRadius: 10, color: '#ece6d6', fontSize: 13, outline: 'none', fontFamily: "'Hanken Grotesk',sans-serif" }}
+            />
+            <button onClick={sendChat} disabled={!chatInput.trim()} style={{ padding: '9px 14px', borderRadius: 10, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 13, color: '#16241c', background: 'linear-gradient(135deg,#9ff0bf,#4fbf83)', opacity: chatInput.trim() ? 1 : 0.5 }}>Enviar</button>
           </div>
         </div>
       </>
@@ -724,7 +784,7 @@ export function PokerScreen() {
                       boxShadow: `inset 0 0 0 1.5px ${RINGS[idx]}`,
                       ...(acting ? { animation: 'domSeatPulse 2.2s ease-in-out infinite' } : {}),
                       ...(isWin ? { animation: 'domWinGlow 1s ease-in-out infinite' } : {}),
-                    }}>{p.name.charAt(0)}</div>
+                    }}>{p.avatar ? <img src={avatarSrc(p.avatar)} alt="" style={seatFaceImg} /> : p.name.charAt(0)}</div>
                     {idx === game.dealer && <span style={{ ...dealerBtn, width: 16, height: 16, fontSize: 8.5 }}>D</span>}
                     {acting && <TimerRing />}
                   </div>
@@ -931,7 +991,7 @@ export function PokerScreen() {
                     boxShadow: `inset 0 0 0 1.5px ${RINGS[idx]}`,
                     ...(acting ? { animation: 'domSeatPulse 2.2s ease-in-out infinite' } : {}),
                     ...(isWinner ? { animation: 'domWinGlow 1s ease-in-out infinite' } : {}),
-                  }}>{p.name.charAt(0)}</div>
+                  }}>{p.avatar ? <img src={avatarSrc(p.avatar)} alt="" style={seatFaceImg} /> : p.name.charAt(0)}</div>
                   {idx === game.dealer && <span style={dealerBtn}>D</span>}
                   {acting && <TimerRing />}
                 </div>
@@ -1309,6 +1369,7 @@ const chipPill: React.CSSProperties = { display: 'flex', alignItems: 'center', g
 const stage: React.CSSProperties = { position: 'relative', flex: '1 1 560px', minWidth: 320, aspectRatio: '1448 / 1086', alignSelf: 'center' };
 const tableImg: React.CSSProperties = { position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', width: '100%', height: '100%', objectFit: 'contain', userSelect: 'none', pointerEvents: 'none' };
 const rail: React.CSSProperties = { flex: '1 1 290px', minWidth: 260, borderLeft: '1px solid rgba(255,255,255,.05)', background: 'linear-gradient(180deg,rgba(255,255,255,.018),transparent)', padding: '22px 20px', display: 'flex', flexDirection: 'column', gap: 18 };
+const seatFaceImg: React.CSSProperties = { width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' };
 const playerPanel: React.CSSProperties = { padding: 18, borderRadius: 16, background: 'linear-gradient(160deg,rgba(201,163,91,.07),rgba(255,255,255,.012))', border: '1px solid rgba(201,163,91,.18)' };
 const controls: React.CSSProperties = { display: 'flex', flexDirection: 'column', gap: 13, padding: '18px 26px 22px', borderTop: '1px solid rgba(255,255,255,.05)', background: 'linear-gradient(0deg,rgba(20,16,12,.5),transparent)', minHeight: 90, justifyContent: 'center', alignItems: 'center' };
 const sizeBtn: React.CSSProperties = { fontSize: 11, letterSpacing: '.06em', color: 'rgba(232,226,212,.55)', padding: '7px 13px', borderRadius: 9, background: 'rgba(255,255,255,.04)', border: '1px solid rgba(255,255,255,.1)', cursor: 'pointer' };

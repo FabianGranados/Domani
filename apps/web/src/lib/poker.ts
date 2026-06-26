@@ -13,6 +13,7 @@ export type BotStyle = 'agresivo' | 'conservador' | 'normal';
 export interface Player {
   id: string;
   name: string;
+  avatar?: string;   // avatar_code del ciudadano (para mostrar su cara)
   isBot: boolean;
   style: BotStyle;
   stack: number;

@@ -37,6 +37,20 @@ export async function chooseHouse(houseCode: string): Promise<Profile> {
   return data as Profile;
 }
 
+// --- Ciudadanos para sentar en una mesa (póker) --------------------------
+export interface PokerCitizen { id: string; alias: string; avatar_code: string }
+export async function getPokerCitizens(houseId: string | null, count: number): Promise<PokerCitizen[]> {
+  // Trae un grupo de ciudadanos-bot (preferiblemente de tu ciudad) y mezcla
+  // en el cliente para variedad; devuelve `count`.
+  let q = supabase.from('profiles').select('id, alias, avatar_code').eq('is_bot', true).limit(60);
+  if (houseId) q = q.eq('house_id', houseId);
+  const { data, error } = await q;
+  if (error) throw error;
+  const arr = (data ?? []) as PokerCitizen[];
+  for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+  return arr.slice(0, count);
+}
+
 // --- Sala de Control (admin) ---------------------------------------------
 export type AppConfig = Record<string, unknown>;
 export async function getAppConfig(): Promise<AppConfig> {
