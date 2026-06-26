@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getAvatarMarket, setAvatar, type MarketAvatar, type SetAvatarResult } from '../lib/api';
 
 // ============================================================
-// Mercado de Avatares. El alias nombra al avatar; aquí el usuario equipa
-// el suyo o compra otro con Aurelios. Primera elección gratis. Los avatares
-// sin arte aún (image_ready=false) se muestran como "Próximamente".
+// Mercado de Avatares. El alias nombra al avatar: aquí NO hay nombre por
+// avatar, solo CATEGORÍAS (el precio lo define la categoría). 10 avatares de
+// bienvenida — el usuario escoge 1 gratis. Los que aún no tienen arte se
+// muestran como "Próximamente".
 // ============================================================
 const fmt = (n: number) => n.toLocaleString('es-CO');
 
@@ -12,6 +13,14 @@ interface Props {
   alias: string;
   balance: number | null;
   onChanged: (r: SetAvatarResult) => void;
+}
+
+interface CatGroup {
+  code: string;
+  label: string;
+  price: number;
+  sort: number;
+  items: MarketAvatar[];
 }
 
 export function AvatarMarket({ alias, balance, onChanged }: Props) {
@@ -28,8 +37,21 @@ export function AvatarMarket({ alias, balance, onChanged }: Props) {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  const equipped = list?.find((a) => a.equipped);
   const freePick = list?.some((a) => a.free_pick_available) ?? false;
+  const starters = useMemo(() => (list ?? []).filter((a) => a.is_starter), [list]);
+
+  // Mercado pagado: agrupado por categoría (excluye los starters cuando aún
+  // se está en el momento de bienvenida gratis).
+  const groups = useMemo<CatGroup[]>(() => {
+    const src = (list ?? []).filter((a) => !(freePick && a.is_starter));
+    const map = new Map<string, CatGroup>();
+    for (const a of src) {
+      let g = map.get(a.category);
+      if (!g) { g = { code: a.category, label: a.category_label, price: a.category_price, sort: a.category_sort, items: [] }; map.set(a.category, g); }
+      g.items.push(a);
+    }
+    return [...map.values()].sort((x, y) => x.sort - y.sort);
+  }, [list, freePick]);
 
   async function act(a: MarketAvatar) {
     if (busy || !a.image_ready || a.equipped) return;
@@ -51,27 +73,50 @@ export function AvatarMarket({ alias, balance, onChanged }: Props) {
       <div style={{ textAlign: 'center', marginBottom: 14 }}>
         <div style={eyebrow}>Mercado de Avatares</div>
         <h3 style={title}>{alias}</h3>
-        <p className="muted" style={{ margin: '2px auto 0', maxWidth: 340, fontSize: 12.5 }}>
+        <p className="muted" style={{ margin: '2px auto 0', maxWidth: 360, fontSize: 12.5 }}>
           {freePick
-            ? <>Tu primera elección es <strong style={{ color: '#7ee0a6' }}>gratis</strong>. Después, cambiar de avatar se paga con Aurelios.</>
-            : <>Compra un nuevo rostro con Aurelios. Los que ya posees, los equipas gratis.</>}
+            ? <>Escoge tu avatar de <strong style={{ color: '#7ee0a6' }}>bienvenida — gratis</strong>. Después puedes comprar otros por categoría.</>
+            : <>Compra un nuevo rostro según su categoría. Los que ya posees, los equipas gratis.</>}
         </p>
         <div style={{ marginTop: 6, fontSize: 12, color: '#d8b96b' }}>Saldo: ⟡ {balance == null ? '—' : fmt(balance)}</div>
       </div>
 
       {err && <div style={errBox}>{err}</div>}
 
-      <div style={grid}>
-        {(list ?? Array.from({ length: 6 }).map(() => null)).map((a, i) =>
-          a ? <AvatarCard key={a.code} a={a} busy={busy === a.code} onClick={() => act(a)} /> : <div key={i} style={skeleton} />
-        )}
-      </div>
+      {!list ? (
+        <div style={grid}>{Array.from({ length: 8 }).map((_, i) => <div key={i} style={skeleton} />)}</div>
+      ) : (
+        <div style={{ maxHeight: '56vh', overflowY: 'auto', padding: 2 }}>
+          {/* Bienvenida: los 10 starters, 1 gratis */}
+          {freePick && (
+            <section style={{ marginBottom: 18 }}>
+              <Header label="Bienvenida" note="Elige 1 · gratis" accent="#7ee0a6" />
+              <div style={grid}>
+                {starters.map((a) => <AvatarCard key={a.code} a={a} busy={busy === a.code} onClick={() => act(a)} />)}
+              </div>
+            </section>
+          )}
 
-      {equipped && (
-        <div style={{ textAlign: 'center', marginTop: 12, fontSize: 11.5, color: 'rgba(232,226,212,.5)' }}>
-          Equipado: <strong style={{ color: '#ece6d6' }}>{equipped.name}</strong>
+          {/* Mercado por categoría */}
+          {groups.map((g) => (
+            <section key={g.code} style={{ marginBottom: 18 }}>
+              <Header label={g.label} note={`⟡ ${fmt(g.price)}`} />
+              <div style={grid}>
+                {g.items.map((a) => <AvatarCard key={a.code} a={a} busy={busy === a.code} onClick={() => act(a)} />)}
+              </div>
+            </section>
+          ))}
         </div>
       )}
+    </div>
+  );
+}
+
+function Header({ label, note, accent }: { label: string; note: string; accent?: string }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '0 0 9px' }}>
+      <span style={{ fontSize: 11, letterSpacing: '.28em', textTransform: 'uppercase', color: accent ?? '#bfa05a' }}>{label}</span>
+      <span style={{ fontSize: 12, fontWeight: 700, color: accent ?? '#d8b96b' }}>{note}</span>
     </div>
   );
 }
@@ -81,9 +126,9 @@ function AvatarCard({ a, busy, onClick }: { a: MarketAvatar; busy: boolean; onCl
   let label: string;
   let tone: 'equip' | 'own' | 'buy' | 'free' | 'soon';
   if (a.equipped) { label = 'Equipado ✓'; tone = 'equip'; }
-  else if (locked) { label = 'Próximamente'; tone = 'soon'; }
+  else if (locked) { label = 'Pronto'; tone = 'soon'; }
   else if (a.owned) { label = 'Equipar'; tone = 'own'; }
-  else if (a.effective_cost === 0) { label = a.free_pick_available ? 'Elegir · gratis' : 'Gratis'; tone = 'free'; }
+  else if (a.effective_cost === 0) { label = 'Elegir'; tone = 'free'; }
   else { label = `⟡ ${fmt(a.effective_cost)}`; tone = 'buy'; }
 
   return (
@@ -91,10 +136,9 @@ function AvatarCard({ a, busy, onClick }: { a: MarketAvatar; busy: boolean; onCl
       <div style={portraitWrap}>
         {locked
           ? <div style={silhouette}>?</div>
-          : <img src={a.image_path} alt={a.name} style={portrait} />}
+          : <img src={a.image_path} alt="" style={portrait} />}
         {a.owned && !a.equipped && <span style={ownedDot}>✓</span>}
       </div>
-      <div style={nameRow}>{a.name}</div>
       <button onClick={onClick} disabled={a.equipped || locked || busy} style={btn(tone)}>
         {busy ? '…' : label}
       </button>
@@ -110,12 +154,11 @@ const errBox: React.CSSProperties = {
   background: 'rgba(255,138,138,.12)', border: '1px solid rgba(255,138,138,.3)', color: '#ffb4b4',
 };
 const grid: React.CSSProperties = {
-  display: 'grid', gap: 12, gridTemplateColumns: 'repeat(auto-fill, minmax(96px, 1fr))',
-  maxHeight: '52vh', overflowY: 'auto', padding: 2,
+  display: 'grid', gap: 10, gridTemplateColumns: 'repeat(auto-fill, minmax(84px, 1fr))',
 };
-const skeleton: React.CSSProperties = { aspectRatio: '0.8 / 1', borderRadius: 14, background: 'rgba(255,255,255,.04)' };
+const skeleton: React.CSSProperties = { aspectRatio: '0.82 / 1', borderRadius: 14, background: 'rgba(255,255,255,.04)' };
 const card: React.CSSProperties = {
-  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, padding: 8,
+  display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 7, padding: 7,
   borderRadius: 14, border: '1px solid rgba(201,163,91,.18)', background: 'rgba(255,255,255,.02)',
 };
 const cardActive: React.CSSProperties = {
@@ -130,14 +173,13 @@ const portraitWrap: React.CSSProperties = {
 const portrait: React.CSSProperties = { width: '100%', height: '100%', objectFit: 'cover' };
 const silhouette: React.CSSProperties = {
   width: '100%', height: '100%', display: 'grid', placeItems: 'center',
-  fontFamily: 'Marcellus,serif', fontSize: 30, color: 'rgba(201,163,91,.35)',
+  fontFamily: 'Marcellus,serif', fontSize: 28, color: 'rgba(201,163,91,.35)',
 };
 const ownedDot: React.CSSProperties = {
   position: 'absolute', top: 5, right: 5, width: 18, height: 18, borderRadius: '50%',
   display: 'grid', placeItems: 'center', fontSize: 10, fontWeight: 800, color: '#0b1d12',
   background: 'linear-gradient(135deg,#9ff0bf,#4fbf83)',
 };
-const nameRow: React.CSSProperties = { fontSize: 11.5, color: '#ece6d6', textAlign: 'center', lineHeight: 1.1, minHeight: 26, display: 'grid', placeItems: 'center' };
 
 function btn(tone: 'equip' | 'own' | 'buy' | 'free' | 'soon'): React.CSSProperties {
   const base: React.CSSProperties = {

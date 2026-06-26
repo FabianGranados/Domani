@@ -336,16 +336,18 @@ export async function getLobbyPlayers(limit = 50): Promise<LobbyPlayer[]> {
 // vez gratis; cambios posteriores se pagan con Aurelios (todo server-side).
 export interface MarketAvatar {
   code: string;
-  name: string;
-  archetype: string;
   image_path: string;
   image_ready: boolean;
-  price: number;
-  sort_order: number;
+  archetype: string;
+  category: string;
+  category_label: string;
+  category_price: number;
+  category_sort: number;
+  is_starter: boolean;
   owned: boolean;
   equipped: boolean;
   effective_cost: number;       // lo que ESTE usuario pagaría ahora
-  free_pick_available: boolean; // ¿le queda su primera-vez-gratis?
+  free_pick_available: boolean; // ¿le queda su pick de bienvenida gratis?
 }
 
 export async function getAvatarMarket(): Promise<MarketAvatar[]> {
