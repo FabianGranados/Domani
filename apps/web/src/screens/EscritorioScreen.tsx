@@ -13,6 +13,7 @@ import {
   type MillonToday,
 } from '../lib/api';
 import type { House } from '../lib/types';
+import { PremiumCards } from '../components/PremiumCards';
 
 const GOLD_GRAD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
 const fmt = (n: number) => n.toLocaleString('es-CO');
@@ -215,7 +216,21 @@ export function EscritorioScreen() {
         </div>
       </header>
 
-      {/* ════════ ZONA 2 · HOY EN DOMANI ════════ */}
+      {/* ════════ ZONA 2 · TU TESSERA (tarjetas premium) ════════ */}
+      <SectionTitle title="Tu Tessera" hint="Tu identidad Domani" />
+      <PremiumCards
+        alias={alias}
+        houses={houses}
+        houseId={profile?.house_id ?? null}
+        rank={profile?.rank ?? 'ciudadano_nuevo'}
+        influence={influence}
+        balance={balance ?? 0}
+        onReclamar={onClaimRenta}
+        rentaBusy={rentaBusy}
+        rentaDone={rentaClaimed === true}
+      />
+
+      {/* ════════ ZONA 3 · HOY EN DOMANI ════════ */}
       <SectionTitle title="Hoy en Domani" hint="Tu rutina del día" />
       <div style={todayRow}>
         {/* Renta */}
