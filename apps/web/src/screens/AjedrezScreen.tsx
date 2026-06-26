@@ -20,15 +20,15 @@ const THEMES: Record<ThemeId, { name: string; img: string; inset: number }> = {
   oro: { name: 'Oro', img: '/assets/board-oro.webp', inset: 10 },
 };
 
-type Stake = { id: string; name: string; bet: number; depth: number; opp: { name: string; title: string; casa: string; elo: number; img: string } };
+type Stake = { id: string; name: string; bet: number; depth: number; level: 1 | 2 | 3 | 4 | 5; opp: { name: string; title: string; casa: string; elo: number; img: string } };
 // 5 niveles (examen), todos abiertos. La apuesta es la ENTRADA; el premio real
 // al vencer se afina con la lógica de trofeos/escalafón (siguiente fase).
 const STAKES: Stake[] = [
-  { id: 'n1', name: 'Nivel 1 · Aprendiz', bet: 100, depth: 2, opp: { name: 'Teo', title: 'Aprendiz', casa: 'Bacatá', elo: 1180, img: '/assets/maestro-1.webp' } },
-  { id: 'n2', name: 'Nivel 2 · Retador', bet: 250, depth: 3, opp: { name: 'Vera', title: 'Estratega', casa: 'Roma', elo: 1480, img: '/assets/maestro-2.webp' } },
-  { id: 'n3', name: 'Nivel 3 · Maestro', bet: 500, depth: 3, opp: { name: 'Severo', title: 'Maestro', casa: 'Osaka', elo: 1820, img: '/assets/maestro-3.webp' } },
-  { id: 'n4', name: 'Nivel 4 · Gran Maestro', bet: 1000, depth: 4, opp: { name: 'Don Aurelio', title: 'Gran Maestro', casa: 'Plata', elo: 2200, img: '/assets/maestro-4.webp' } },
-  { id: 'n5', name: 'Nivel 5 · Campeón Mundial', bet: 2000, depth: 4, opp: { name: 'El Encapuchado', title: 'Campeón Mundial', casa: 'El Círculo', elo: 2600, img: '/assets/maestro-5.webp' } },
+  { id: 'n1', name: 'Nivel 1 · Aprendiz', bet: 100, depth: 2, level: 1, opp: { name: 'Teo', title: 'Aprendiz', casa: 'Bacatá', elo: 1180, img: '/assets/maestro-1.webp' } },
+  { id: 'n2', name: 'Nivel 2 · Retador', bet: 250, depth: 3, level: 2, opp: { name: 'Vera', title: 'Estratega', casa: 'Roma', elo: 1480, img: '/assets/maestro-2.webp' } },
+  { id: 'n3', name: 'Nivel 3 · Maestro', bet: 500, depth: 3, level: 3, opp: { name: 'Severo', title: 'Maestro', casa: 'Osaka', elo: 1820, img: '/assets/maestro-3.webp' } },
+  { id: 'n4', name: 'Nivel 4 · Gran Maestro', bet: 1000, depth: 4, level: 4, opp: { name: 'Don Aurelio', title: 'Gran Maestro', casa: 'Plata', elo: 2200, img: '/assets/maestro-4.webp' } },
+  { id: 'n5', name: 'Nivel 5 · Campeón Mundial', bet: 2000, depth: 4, level: 5, opp: { name: 'El Encapuchado', title: 'Campeón Mundial', casa: 'El Círculo', elo: 2600, img: '/assets/maestro-5.webp' } },
 ];
 
 type TimeControl = { id: string; label: string; ms: number }; // ms = 0 => sin reloj
@@ -227,7 +227,7 @@ export function AjedrezScreen() {
     if (w) {
       const onMsg = (e: MessageEvent) => { w.removeEventListener('message', onMsg); apply(e.data); };
       w.addEventListener('message', onMsg);
-      w.postMessage({ fen, depth: stake.depth });
+      w.postMessage({ fen, level: stake.level });
     } else {
       const bm = bestMove(fen, stake.depth);
       apply(bm ? { from: bm.from, to: bm.to, promotion: bm.promotion } : null);
