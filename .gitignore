@@ -27,3 +27,6 @@ pnpm-debug.log*
 # supabase local
 supabase/.branches/
 supabase/.temp/
+
+# claude code (local settings + agent worktrees — never commit)
+.claude/
