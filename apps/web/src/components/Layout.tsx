@@ -25,10 +25,10 @@ export function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="app-shell">
       <header className="topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <NavLink to="/" end style={{ display: 'flex', alignItems: 'center', gap: 12, textDecoration: 'none', color: 'inherit' }}>
           <Isologo size={34} glow={false} />
           <span className="brand sm">DOMANI</span>
-        </div>
+        </NavLink>
         <div className="topbar-right">
           <span className="aurelios" title="Aurelios (moneda de fantasía)">
             ⟡ {balance ?? '—'} <span className="muted">Aurelios</span>
