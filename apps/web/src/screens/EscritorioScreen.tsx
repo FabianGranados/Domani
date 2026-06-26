@@ -10,7 +10,7 @@ import {
   getRentaClaimedToday,
   type Loan,
 } from '../lib/api';
-import type { House } from '../lib/types';
+import type { House, LedgerTransaction } from '../lib/types';
 import { PremiumCards } from '../components/PremiumCards';
 import { Carousel } from '../components/Carousel';
 
@@ -40,6 +40,15 @@ const HUBS = [
   { key: 'millon', img: '/assets/hub-millonaurelios.webp', to: '/millonaurelios' },
   { key: 'mercado', img: '/assets/hub-mercado.webp', to: '/banco' },
 ];
+
+const REASON_LABELS: Record<string, string> = {
+  renta_ciudadana: 'Renta Ciudadana', academy_reward: 'La Academia', game_win: 'Ganancia',
+  game_loss: 'Pérdida', game_buyin: 'Entrada a mesa', tournament_buyin: 'Entrada a torneo',
+  tournament_prize: 'Premio de torneo', property_buy: 'Compra', property_sell: 'Venta',
+  property_rent: 'Renta de propiedad', tax: 'Impuesto', maintenance: 'Mantenimiento',
+  promo_grant: 'Bono', admin_adjust: 'Ajuste', transfer_in_game: 'Transferencia',
+  loan_disburse: 'Crédito', loan_repay: 'Abono a crédito',
+};
 
 function greeting(): string {
   const h = typeof window !== 'undefined' ? new Date().getHours() : 20;
@@ -77,7 +86,7 @@ export function EscritorioScreen() {
   // Resumen financiero (de los últimos movimientos del ledger).
   const [finIn, setFinIn] = useState(0);
   const [finOut, setFinOut] = useState(0);
-  const [finCount, setFinCount] = useState(0);
+  const [movs, setMovs] = useState<LedgerTransaction[]>([]);
 
   const [photoIdx, setPhotoIdx] = useState(0);
   const [wordIdx, setWordIdx] = useState(0);
@@ -104,7 +113,7 @@ export function EscritorioScreen() {
     setTodayDelta(led.filter((tx) => tx.created_at.slice(0, 10) === today).reduce((s, tx) => s + tx.amount, 0));
     setFinIn(led.filter((tx) => tx.amount > 0).reduce((s, tx) => s + tx.amount, 0));
     setFinOut(led.filter((tx) => tx.amount < 0).reduce((s, tx) => s - tx.amount, 0));
-    setFinCount(led.length);
+    setMovs(led.slice(0, 6));
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
@@ -135,9 +144,6 @@ export function EscritorioScreen() {
   const nextMs = INFLUENCE_MILESTONES.find((m) => m > influence) ?? null;
   const prevMs = [...INFLUENCE_MILESTONES].reverse().find((m) => m <= influence) ?? 0;
   const progress = nextMs ? Math.min(1, (influence - prevMs) / (nextMs - prevMs)) : 1;
-
-  const finTotal = finIn + finOut;
-  const inDeg = finTotal > 0 ? (finIn / finTotal) * 360 : 0;
 
   return (
     <div style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
@@ -224,38 +230,66 @@ export function EscritorioScreen() {
 
       {/* ════════ ZONA 4 · ZONA FINANCIERA ════════ */}
       <SectionTitle title="Zona financiera" hint="Tu banco y tus movimientos" />
-      <div style={finGrid}>
-        {/* Domanibank */}
+      <div style={finGrid(isDesktop)}>
+        {/* Domanibank con el logo sobrepuesto */}
         <Link to="/banco" style={{ textDecoration: 'none' }}>
-          <div style={{ ...photoTile, backgroundImage: `url('/assets/fin-bank.webp')` }}>
+          <div style={bankTile}>
+            <div style={bankTopScrim} />
+            <img src="/assets/logo-domanibank-t.webp" alt="Domanibank" style={bankLogo} />
             <div style={tileScrim} />
             <div style={tileFoot}>
-              <div style={tileEyebrow}>Banco</div>
-              <div style={tileTitleGold}>Domanibank</div>
-              <div style={tileSub}>⟡ {balance != null ? fmt(balance) : '—'} {loan ? `· Debes ⟡ ${fmt(loan.outstanding)}` : '· Entrar'}</div>
+              <div style={tileSub}>
+                ⟡ {balance != null ? fmt(balance) : '—'} {loan ? `· Debes ⟡ ${fmt(loan.outstanding)}` : '· Entrar →'}
+              </div>
             </div>
           </div>
         </Link>
 
-        {/* Movimientos financieros */}
-        <Link to="/banco" style={{ textDecoration: 'none' }}>
-          <div style={movTile}>
-            <div style={tileEyebrow}>Tus movimientos</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginTop: 12 }}>
-              <div style={donutWrap(inDeg)}>
-                <div style={donutHole}>
-                  <span style={{ fontSize: 10, color: 'rgba(232,226,212,.55)' }}>movs</span>
-                  <span style={{ fontFamily: 'Marcellus,serif', fontSize: 20, color: '#ece6d6' }}>{finCount}</span>
-                </div>
+        {/* Estado de cuenta */}
+        <div style={movCard}>
+          <div style={movHeader}>
+            <div>
+              <div style={tileEyebrow}>Domanibank</div>
+              <div style={movTitle}>Tus movimientos</div>
+            </div>
+            <div style={{ display: 'flex', gap: 16 }}>
+              <div style={{ textAlign: 'right' }}>
+                <div style={movSumLabel}>Ingresos</div>
+                <div style={{ ...movSumVal, color: '#7ee0a6' }}>⟡ {fmt(finIn)}</div>
               </div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                <div style={legendRow}><span style={{ ...legendDot, background: '#3fe0a0' }} /> Ingresos<br /><b style={{ color: '#7ee0a6' }}>⟡ {fmt(finIn)}</b></div>
-                <div style={legendRow}><span style={{ ...legendDot, background: '#c45464' }} /> Egresos<br /><b style={{ color: '#ff9a9a' }}>⟡ {fmt(finOut)}</b></div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={movSumLabel}>Egresos</div>
+                <div style={{ ...movSumVal, color: '#ff9a9a' }}>⟡ {fmt(finOut)}</div>
               </div>
             </div>
-            <div style={tileSub}>Comprado, vendido y más en Domanibank →</div>
           </div>
-        </Link>
+
+          <div style={movListWrap}>
+            {movs.length === 0 ? (
+              <div className="muted" style={{ padding: '28px 0', textAlign: 'center', fontSize: 13 }}>
+                Aún no hay movimientos. Reclama tu Renta o juega para empezar.
+              </div>
+            ) : (
+              movs.map((tx) => {
+                const pos = tx.amount >= 0;
+                return (
+                  <div key={tx.id} style={movRow}>
+                    <span style={movIcon(pos)}>{pos ? '↑' : '↓'}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={movReason}>{REASON_LABELS[tx.reason] ?? tx.reason}</div>
+                      <div style={movDate}>{new Date(tx.created_at).toLocaleDateString('es-CO', { day: '2-digit', month: 'short' })}</div>
+                    </div>
+                    <div style={{ ...movAmount, color: pos ? '#8ae0a8' : '#ff8a8a' }}>
+                      {pos ? '+' : '−'}{fmt(Math.abs(tx.amount))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          <Link to="/banco" style={movFooter}>Ver todo en Domanibank →</Link>
+        </div>
       </div>
 
       {/* ════════ ZONA 5 · HOY EN DOMANI (próximamente) ════════ */}
@@ -422,35 +456,51 @@ const hubSheen: React.CSSProperties = {
 };
 
 // Zona financiera
-const finGrid: React.CSSProperties = { display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(230px, 1fr))' };
-const tileBase: React.CSSProperties = {
-  position: 'relative', overflow: 'hidden', aspectRatio: '4 / 5', borderRadius: 18,
-  border: '1px solid rgba(201,163,91,.28)', boxShadow: '0 18px 44px -26px rgba(0,0,0,.9)', cursor: 'pointer',
+function finGrid(isDesktop: boolean): React.CSSProperties {
+  return { display: 'grid', gap: 14, gridTemplateColumns: isDesktop ? '320px 1fr' : '1fr', alignItems: 'stretch' };
+}
+// Tarjeta del banco con el logo sobrepuesto.
+const bankTile: React.CSSProperties = {
+  position: 'relative', overflow: 'hidden', borderRadius: 18, minHeight: 300, height: '100%', cursor: 'pointer',
+  border: '1px solid rgba(201,163,91,.35)', boxShadow: '0 18px 44px -26px rgba(0,0,0,.9)',
+  backgroundImage: "url('/assets/fin-bank.webp')", backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c',
 };
-const photoTile: React.CSSProperties = { ...tileBase, backgroundSize: 'cover', backgroundPosition: 'center', backgroundColor: '#14111c' };
-const tileScrim: React.CSSProperties = { position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.05) 40%, rgba(8,8,10,.6) 72%, rgba(8,8,10,.95) 100%)' };
+const bankTopScrim: React.CSSProperties = {
+  position: 'absolute', top: 0, left: 0, right: 0, height: '48%',
+  background: 'linear-gradient(180deg, rgba(8,8,10,.72), transparent)',
+};
+const bankLogo: React.CSSProperties = {
+  position: 'absolute', top: 20, left: '50%', transform: 'translateX(-50%)', width: '80%', maxWidth: 250,
+  zIndex: 1, filter: 'drop-shadow(0 3px 9px rgba(0,0,0,.65))',
+};
+const tileScrim: React.CSSProperties = { position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(8,8,10,.05) 45%, rgba(8,8,10,.55) 74%, rgba(8,8,10,.95) 100%)' };
 const tileFoot: React.CSSProperties = { position: 'absolute', left: 0, right: 0, bottom: 0, padding: 16, zIndex: 1 };
 const tileEyebrow: React.CSSProperties = { fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: '#d8b96b' };
-const tileTitleGold: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 23, color: '#ecd9a5', margin: '2px 0 3px' };
-const tileSub: React.CSSProperties = { fontSize: 12.5, color: 'rgba(232,226,212,.72)', marginTop: 6 };
+const tileSub: React.CSSProperties = { fontSize: 13, color: '#ecd9a5', marginTop: 6, fontWeight: 600 };
 
-const movTile: React.CSSProperties = {
-  ...tileBase, aspectRatio: '4 / 5', padding: 16, display: 'flex', flexDirection: 'column',
-  background: 'linear-gradient(160deg,#181423,#110f18)',
+// Estado de cuenta (lista de movimientos).
+const movCard: React.CSSProperties = {
+  display: 'flex', flexDirection: 'column', minHeight: 300, padding: 18, borderRadius: 18,
+  border: '1px solid rgba(201,163,91,.22)', background: 'linear-gradient(160deg,#181423,#110f18)',
+  boxShadow: '0 18px 44px -26px rgba(0,0,0,.9)',
 };
-function donutWrap(inDeg: number): React.CSSProperties {
+const movHeader: React.CSSProperties = { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 6 };
+const movTitle: React.CSSProperties = { fontFamily: 'Marcellus,serif', fontSize: 21, color: '#f3eddd', marginTop: 1 };
+const movSumLabel: React.CSSProperties = { fontSize: 9, letterSpacing: '.16em', textTransform: 'uppercase', color: 'rgba(232,226,212,.5)' };
+const movSumVal: React.CSSProperties = { fontSize: 14, fontWeight: 700, fontVariantNumeric: 'tabular-nums', marginTop: 1 };
+const movListWrap: React.CSSProperties = { flex: 1, display: 'flex', flexDirection: 'column', marginTop: 4 };
+const movRow: React.CSSProperties = { display: 'flex', alignItems: 'center', gap: 12, padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,.05)' };
+function movIcon(pos: boolean): React.CSSProperties {
   return {
-    position: 'relative', width: 96, height: 96, borderRadius: '50%', flex: '0 0 auto',
-    background: `conic-gradient(#3fe0a0 0deg ${inDeg}deg, #c45464 ${inDeg}deg 360deg)`,
-    display: 'grid', placeItems: 'center',
+    flex: '0 0 auto', width: 30, height: 30, borderRadius: 9, display: 'grid', placeItems: 'center', fontSize: 15, fontWeight: 700,
+    background: pos ? 'rgba(126,224,166,.14)' : 'rgba(255,138,138,.14)', color: pos ? '#7ee0a6' : '#ff9a9a',
+    border: `1px solid ${pos ? 'rgba(126,224,166,.3)' : 'rgba(255,138,138,.3)'}`,
   };
 }
-const donutHole: React.CSSProperties = {
-  width: 62, height: 62, borderRadius: '50%', background: '#13111b',
-  display: 'grid', placeItems: 'center', lineHeight: 1.1, textAlign: 'center',
-};
-const legendRow: React.CSSProperties = { fontSize: 11.5, color: 'rgba(232,226,212,.7)', lineHeight: 1.25 };
-const legendDot: React.CSSProperties = { display: 'inline-block', width: 9, height: 9, borderRadius: '50%', marginRight: 6 };
+const movReason: React.CSSProperties = { fontSize: 13.5, color: '#ece6d6', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+const movDate: React.CSSProperties = { fontSize: 11, color: 'rgba(232,226,212,.45)', marginTop: 1 };
+const movAmount: React.CSSProperties = { fontSize: 14.5, fontWeight: 700, flex: '0 0 auto', fontVariantNumeric: 'tabular-nums' };
+const movFooter: React.CSSProperties = { textAlign: 'center', padding: '13px 0 2px', marginTop: 'auto', color: '#7ee0a6', fontSize: 13, fontWeight: 700, textDecoration: 'none' };
 
 const placeholderBox: React.CSSProperties = {
   padding: 22, borderRadius: 16, border: '1px dashed rgba(201,163,91,.3)', background: 'rgba(255,255,255,.015)',
