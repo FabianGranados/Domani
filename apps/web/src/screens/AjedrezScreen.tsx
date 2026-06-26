@@ -4,6 +4,7 @@ import { Chess, type Move, type Square } from 'chess.js';
 import { useAuth } from '../auth/AuthProvider';
 import { getWallet, pokerBuyin, pokerCashout, listHouses } from '../lib/api';
 import { bestMove } from '../lib/chessBot';
+import { AjedrezLobby } from '../components/AjedrezLobby';
 
 const GOLD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
 const fmt = (n: number) => n.toLocaleString('es-CO');
@@ -152,7 +153,7 @@ export function AjedrezScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase, clockOn, result, turnTick]);
 
-  async function sentarse(s: Stake) {
+  async function sentarse(s: Stake, timeMs = timeControl.ms) {
     if (busy) return;
     if ((balance ?? 0) < s.bet) { setError('Saldo insuficiente para esta apuesta.'); return; }
     setBusy(true);
@@ -170,8 +171,10 @@ export function AjedrezScreen() {
       setThinking(false);
       flaggedRef.current = false;
       lastTickRef.current = null;
-      setWhiteMs(timeControl.ms);
-      setBlackMs(timeControl.ms);
+      const tc = TIME_CONTROLS.find((t) => t.ms === timeMs) ?? TIME_CONTROLS[0];
+      setTimeControl(tc);
+      setWhiteMs(timeMs);
+      setBlackMs(timeMs);
       setPhase('playing');
       bump();
     } catch (e) {
@@ -288,63 +291,14 @@ export function AjedrezScreen() {
   // ---------- LOBBY ----------
   if (phase === 'lobby') {
     return (
-      <div style={lobbyWrap}>
-        <button onClick={() => navigate('/')} style={exitBtn}>← Salir</button>
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <div style={eyebrow}>El Salón · Juegos de destreza</div>
-          <h1 style={lobbyTitle}>Salón de Ajedrez</h1>
-          <p style={{ color: 'rgba(232,226,212,.6)', fontStyle: 'italic', margin: '4px 0 0' }}>Un movimiento. Una consecuencia.</p>
-          <div style={{ marginTop: 10, fontSize: 13, color: 'rgba(232,226,212,.55)' }}>
-            {houseName} · Billetera <span style={{ color: '#ecd9a5', fontWeight: 700 }}>⟡ {balance != null ? fmt(balance) : '—'}</span>
-          </div>
-        </div>
-
-        {error && <p style={{ color: '#ff9a9a', textAlign: 'center', marginTop: 14 }}>{error}</p>}
-
-        <div style={stakeList}>
-          {STAKES.map((s) => {
-            const tooPoor = (balance ?? 0) < s.bet;
-            return (
-              <div key={s.id} style={stakeRow}>
-                <div style={{ ...oppGlyph }}>{s.opp.glyph}</div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontFamily: 'Marcellus,serif', fontSize: 17, color: '#f3eddd' }}>{s.name}</div>
-                  <div style={{ fontSize: 12.5, color: 'rgba(232,226,212,.6)' }}>
-                    vs <b style={{ color: '#ecd9a5' }}>{s.opp.name}</b> · {s.opp.title} · Casa {s.opp.casa} · ELO {s.opp.elo}
-                  </div>
-                  <div style={{ fontSize: 12, color: 'rgba(232,226,212,.5)', marginTop: 2 }}>
-                    Apuesta <b style={{ color: '#ecd9a5' }}>⟡ {fmt(s.bet)}</b> · el ganador se lleva el bote
-                  </div>
-                </div>
-                <button onClick={() => sentarse(s)} disabled={busy || tooPoor} style={{ ...sitBtn, opacity: busy || tooPoor ? 0.5 : 1 }}>
-                  {tooPoor ? 'Sin saldo' : 'Jugar'}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-
-        <div style={tcWrap}>
-          <div style={{ fontSize: 11, letterSpacing: '.25em', textTransform: 'uppercase', color: '#9c7a3e', marginBottom: 10 }}>
-            Control de tiempo
-          </div>
-          <div style={tcRow}>
-            {TIME_CONTROLS.map((t) => (
-              <button
-                key={t.id}
-                onClick={() => setTimeControl(t)}
-                style={{ ...tcBtn, ...(timeControl.id === t.id ? tcBtnActive : null) }}
-              >
-                {t.label}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <p style={{ textAlign: 'center', fontSize: 11, color: 'rgba(232,226,212,.32)', marginTop: 22 }}>
-          Solo Aurelios (fichas de fantasía). Nunca dinero real. +18.
-        </p>
-      </div>
+      <AjedrezLobby
+        alias={alias}
+        avatarSrc="/assets/avatar-1.webp"
+        balance={balance}
+        houseName={houseName}
+        onPlay={(i, ms) => sentarse(STAKES[i], ms)}
+        onExit={() => navigate('/')}
+      />
     );
   }
 
