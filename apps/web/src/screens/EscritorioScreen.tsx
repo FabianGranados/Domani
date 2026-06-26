@@ -339,9 +339,18 @@ export function EscritorioScreen() {
         </div>
       </div>
 
-      {/* ════════ ZONA 5b · DOMANI MALL + HOY EN DOMANI ════════ */}
-      <SectionTitle title="Más en Domani" hint="Shopping y novedades" />
-      <div style={mallGrid(isDesktop)}>
+      {/* ════════ ZONA 5b · DDN NEWS + DOMANI MALL ════════ */}
+      <SectionTitle title="DDN News" hint="Las noticias del día en Domani" />
+      <div style={ddnCard}>
+        <img src="/assets/ddn-news.webp" alt="DDN · Domani Day News" style={ddnImg} />
+        <div style={ddnTicker}>
+          <span style={ddnDot}>●</span>
+          <span style={ddnTickerText}>Próximamente · las noticias de tu ciudad, eventos y avisos de Hacienda, cada día</span>
+          <span style={mallSoon}>Pronto</span>
+        </div>
+      </div>
+
+      <div style={{ ...mallGrid(isDesktop), marginTop: 14 }}>
         {/* Domani Mall */}
         <div style={mallCard}>
           <div style={mallScrim} />
@@ -352,11 +361,11 @@ export function EscritorioScreen() {
             <div style={{ fontSize: 12.5, color: 'rgba(232,226,212,.75)' }}>Autos, joyas, moda… ve de shopping con tus Aurelios.</div>
           </div>
         </div>
-        {/* Hoy en Domani */}
+        {/* Eventos del día */}
         <div style={placeholderBox}>
-          <div style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ece6d6' }}>Hoy en Domani</div>
+          <div style={{ fontFamily: 'Marcellus,serif', fontSize: 18, color: '#ece6d6' }}>Eventos del día</div>
           <p className="muted" style={{ margin: '6px 0 0' }}>
-            Novedades, misiones y eventos del día. Pronto.
+            Desafíos de ciudad, misiones y bonos. Pronto.
           </p>
         </div>
       </div>
@@ -613,6 +622,20 @@ const mallScrim: React.CSSProperties = {
   position: 'absolute', inset: 0, zIndex: 0,
   background: 'linear-gradient(180deg, rgba(8,6,12,.05) 0%, rgba(8,6,12,.28) 45%, rgba(8,6,12,.88) 100%)',
 };
+// ---- DDN News ----
+const ddnCard: React.CSSProperties = {
+  position: 'relative', overflow: 'hidden', borderRadius: 16, marginTop: 14,
+  border: '1px solid rgba(201,60,60,.35)', background: '#1a0d0e',
+  boxShadow: '0 18px 44px -24px rgba(0,0,0,.85)',
+};
+const ddnImg: React.CSSProperties = { display: 'block', width: '100%', height: 'auto', objectFit: 'cover' };
+const ddnTicker: React.CSSProperties = {
+  display: 'flex', alignItems: 'center', gap: 10, padding: '10px 14px',
+  background: 'linear-gradient(90deg,#7a1418,#3d0c0e)', borderTop: '1px solid rgba(255,120,120,.2)',
+};
+const ddnDot: React.CSSProperties = { color: '#ff5a5a', fontSize: 10, animation: 'domPulse 1.6s ease-in-out infinite' };
+const ddnTickerText: React.CSSProperties = { flex: 1, minWidth: 0, fontSize: 12.5, color: '#f3e3e0', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' };
+
 const mallSoon: React.CSSProperties = {
   position: 'absolute', top: 12, right: 12, zIndex: 2,
   fontSize: 10, letterSpacing: '.14em', textTransform: 'uppercase', fontWeight: 700,
