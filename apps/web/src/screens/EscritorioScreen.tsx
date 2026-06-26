@@ -39,6 +39,17 @@ const RANK_LABELS: Record<string, string> = {
 // Hitos de Influencia (solo para la barra de progreso visual).
 const INFLUENCE_MILESTONES = [50, 150, 400, 1000, 2500];
 
+// Fotos del hero (cinematográfico, con crossfade + Ken Burns). PROVISIONALES:
+// reemplazar por las definitivas que suba el usuario en /assets/hero/.
+const HERO_IMAGES = [
+  '/assets/lobby-domani.webp',
+  '/assets/casino-mesa.webp',
+  '/assets/bar-vip.webp',
+  '/assets/via-mercado.webp',
+];
+// Palabra rotativa del titular (texto animado dinámico).
+const HERO_WORDS = ['Donde el lujo es ley', 'El juego te espera', 'Construye tu poder', 'El Círculo observa'];
+
 function greeting(): string {
   const h = typeof window !== 'undefined' ? new Date().getHours() : 20;
   if (h < 6) return 'Buenas noches';
@@ -72,6 +83,15 @@ export function EscritorioScreen() {
   const [rentaClaimed, setRentaClaimed] = useState<boolean | null>(null);
   const [millon, setMillon] = useState<MillonToday | null>(null);
   const [rentaBusy, setRentaBusy] = useState(false);
+
+  // Rotación cinematográfica del hero (fotos cada 5s, palabra cada 3.2s).
+  const [photoIdx, setPhotoIdx] = useState(0);
+  const [wordIdx, setWordIdx] = useState(0);
+  useEffect(() => {
+    const a = setInterval(() => setPhotoIdx((i) => (i + 1) % HERO_IMAGES.length), 5000);
+    const b = setInterval(() => setWordIdx((i) => (i + 1) % HERO_WORDS.length), 3200);
+    return () => { clearInterval(a); clearInterval(b); };
+  }, []);
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -135,53 +155,63 @@ export function EscritorioScreen() {
 
   return (
     <div style={{ paddingBottom: 'calc(env(safe-area-inset-bottom) + 24px)' }}>
-      {/* ════════ ZONA 1 · IDENTIDAD ════════ */}
+      {/* ════════ ZONA 1 · HERO CINEMATOGRÁFICO ════════ */}
       <header style={heroCard(isDesktop)}>
-        <div style={heroGlow(houseColor)} />
-        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
-          <div style={avatarRing(houseColor)}>
-            <div style={avatarInner}>{initial}</div>
-          </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={eyebrow}>{greeting()}</div>
-            <h1 className="page-title" style={{ margin: '2px 0 6px', fontSize: isDesktop ? 32 : 27 }}>
-              Yo <span style={{ color: '#ecd9a5' }}>{alias}</span>
-            </h1>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 9 }}>
-              <span style={rankChip}>{rankLabel}</span>
-              <span style={{ ...houseChip, borderColor: `${houseColor}66` }}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', background: houseColor, display: 'inline-block' }} />
-                {houseName}
-              </span>
-            </div>
-            {/* barra de Influencia */}
-            <div style={{ maxWidth: 320 }}>
-              <div style={inflTrack}>
-                <div style={{ ...inflFill, width: `${progress * 100}%` }} />
-              </div>
-              <div style={inflLabel}>
-                Influencia <strong style={{ color: '#ece6d6' }}>{influence}</strong>
-                {nextMs ? <span style={{ color: 'rgba(232,226,212,.45)' }}> → {nextMs}</span> : <span style={{ color: '#ecd9a5' }}> · cúspide</span>}
-              </div>
-            </div>
-          </div>
-        </div>
+        {/* capas de foto: crossfade + Ken Burns */}
+        {HERO_IMAGES.map((src, i) => (
+          <div key={src} style={heroPhoto(src, i === photoIdx, i)} />
+        ))}
+        <div style={heroScrim} />
 
-        {/* Billetera */}
-        <div style={walletBlock(isDesktop)}>
-          <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: 'rgba(232,226,212,.5)' }}>Billetera</div>
-          <div style={{ fontFamily: 'Marcellus,serif', fontSize: isDesktop ? 34 : 30, color: '#ecd9a5', lineHeight: 1.05 }}>
-            ⟡ {balance != null ? fmt(balance) : '—'}
+        <div style={heroContent(isDesktop)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 16, flex: 1, minWidth: 0 }}>
+            <div style={avatarRing(houseColor)}>
+              <div style={avatarInner}>{initial}</div>
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={eyebrow}>{greeting()}</div>
+              <h1 className="page-title" style={{ margin: '2px 0 3px', fontSize: isDesktop ? 36 : 29 }}>
+                Yo <span style={shimmerName}>{alias}</span>
+              </h1>
+              {/* titular rotativo animado */}
+              <div style={taglineWrap}>
+                <span key={wordIdx} style={taglineWord}>{HERO_WORDS[wordIdx]}</span>
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', margin: '12px 0 9px' }}>
+                <span style={rankChip}>{rankLabel}</span>
+                <span style={{ ...houseChip, borderColor: `${houseColor}66` }}>
+                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: houseColor, display: 'inline-block' }} />
+                  {houseName}
+                </span>
+              </div>
+              <div style={{ maxWidth: 320 }}>
+                <div style={inflTrack}>
+                  <div style={{ ...inflFill, width: `${progress * 100}%` }} />
+                </div>
+                <div style={inflLabel}>
+                  Influencia <strong style={{ color: '#ece6d6' }}>{influence}</strong>
+                  {nextMs ? <span style={{ color: 'rgba(232,226,212,.45)' }}> → {nextMs}</span> : <span style={{ color: '#ecd9a5' }}> · cúspide</span>}
+                </div>
+              </div>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
-            {todayDelta !== 0 && (
-              <span style={{ fontSize: 12.5, fontWeight: 700, color: todayDelta > 0 ? '#7ee0a6' : '#ff8a8a' }}>
-                {todayDelta > 0 ? '▲' : '▼'} hoy {todayDelta > 0 ? '+' : ''}{fmt(todayDelta)}
-              </span>
-            )}
-            {loan && (
-              <Link to="/banco" style={debtPill}>Debes ⟡ {fmt(loan.outstanding)}</Link>
-            )}
+
+          {/* Billetera (panel de vidrio sobre la foto) */}
+          <div style={walletBlock(isDesktop)}>
+            <div style={{ fontSize: 10, letterSpacing: '.22em', textTransform: 'uppercase', color: 'rgba(232,226,212,.6)' }}>Billetera</div>
+            <div style={{ fontFamily: 'Marcellus,serif', fontSize: isDesktop ? 34 : 30, color: '#ecd9a5', lineHeight: 1.05 }}>
+              ⟡ {balance != null ? fmt(balance) : '—'}
+            </div>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 4, flexWrap: 'wrap' }}>
+              {todayDelta !== 0 && (
+                <span style={{ fontSize: 12.5, fontWeight: 700, color: todayDelta > 0 ? '#7ee0a6' : '#ff8a8a' }}>
+                  {todayDelta > 0 ? '▲' : '▼'} hoy {todayDelta > 0 ? '+' : ''}{fmt(todayDelta)}
+                </span>
+              )}
+              {loan && (
+                <Link to="/banco" style={debtPill}>Debes ⟡ {fmt(loan.outstanding)}</Link>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -340,16 +370,43 @@ const eyebrow: React.CSSProperties = { fontSize: 11, letterSpacing: '.34em', tex
 
 function heroCard(isDesktop: boolean): React.CSSProperties {
   return {
-    position: 'relative', overflow: 'hidden', display: 'flex',
-    flexDirection: isDesktop ? 'row' : 'column', alignItems: isDesktop ? 'center' : 'stretch',
-    gap: 18, padding: isDesktop ? '22px 24px' : '20px 18px', marginTop: 'env(safe-area-inset-top)',
-    borderRadius: 20, border: '1px solid rgba(201,163,91,.22)',
-    background: 'linear-gradient(150deg,#1b1726,#120f19)', boxShadow: '0 22px 54px -30px rgba(0,0,0,.9)',
+    position: 'relative', overflow: 'hidden', isolation: 'isolate',
+    minHeight: isDesktop ? 300 : 380, marginTop: 'env(safe-area-inset-top)',
+    borderRadius: 20, border: '1px solid rgba(201,163,91,.28)',
+    background: '#0f0c16', boxShadow: '0 26px 60px -30px rgba(0,0,0,.95)',
   };
 }
-function heroGlow(color: string): React.CSSProperties {
-  return { position: 'absolute', top: -100, right: -60, width: 280, height: 280, borderRadius: '50%', background: `radial-gradient(circle, ${color}33, transparent 70%)` };
+function heroPhoto(src: string, active: boolean, i: number): React.CSSProperties {
+  return {
+    position: 'absolute', inset: 0, backgroundImage: `url('${src}')`,
+    backgroundSize: 'cover', backgroundPosition: 'center',
+    opacity: active ? 1 : 0, transition: 'opacity 1.5s ease',
+    animation: `domKen 16s ease-in-out ${i * -4}s infinite alternate`,
+  };
 }
+const heroScrim: React.CSSProperties = {
+  position: 'absolute', inset: 0,
+  backgroundImage:
+    'radial-gradient(130% 100% at 82% 8%, rgba(201,163,91,.16), transparent 55%), linear-gradient(120deg, rgba(7,6,11,.92) 0%, rgba(7,6,11,.5) 48%, rgba(7,6,11,.84) 100%)',
+};
+function heroContent(isDesktop: boolean): React.CSSProperties {
+  return {
+    position: 'relative', zIndex: 1, minHeight: isDesktop ? 300 : 380,
+    display: 'flex', flexDirection: isDesktop ? 'row' : 'column',
+    alignItems: isDesktop ? 'center' : 'stretch', justifyContent: 'space-between',
+    gap: 18, padding: isDesktop ? '26px 28px' : '22px 18px',
+  };
+}
+const shimmerName: React.CSSProperties = {
+  backgroundImage: 'linear-gradient(90deg,#c9a35b,#ecd9a5,#fff7e2,#ecd9a5,#c9a35b)',
+  backgroundSize: '200% auto', WebkitBackgroundClip: 'text', backgroundClip: 'text',
+  color: 'transparent', WebkitTextFillColor: 'transparent', animation: 'domShine 4s linear infinite',
+};
+const taglineWrap: React.CSSProperties = { height: 24, overflow: 'hidden' };
+const taglineWord: React.CSSProperties = {
+  display: 'inline-block', fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic',
+  fontSize: 18, color: '#e7d6a8', letterSpacing: '.02em', animation: 'domWordIn .6s ease-out',
+};
 function avatarRing(color: string): React.CSSProperties {
   return { flex: '0 0 auto', width: 66, height: 66, borderRadius: '50%', padding: 3, background: `linear-gradient(135deg, ${color}, ${color}88)`, boxShadow: `0 8px 24px -10px ${color}` };
 }
@@ -371,11 +428,13 @@ const inflLabel: React.CSSProperties = { fontSize: 11.5, color: 'rgba(232,226,21
 
 function walletBlock(isDesktop: boolean): React.CSSProperties {
   return {
-    position: 'relative', zIndex: 1, flex: '0 0 auto', textAlign: isDesktop ? 'right' : 'left',
-    paddingTop: isDesktop ? 0 : 14, marginTop: isDesktop ? 0 : 2,
-    borderTop: isDesktop ? 'none' : '1px solid rgba(255,255,255,.06)',
-    minWidth: isDesktop ? 200 : 'auto',
+    flex: '0 0 auto', minWidth: isDesktop ? 200 : 'auto',
+    alignSelf: isDesktop ? 'auto' : 'stretch', textAlign: isDesktop ? 'right' : 'left',
     display: 'flex', flexDirection: 'column', alignItems: isDesktop ? 'flex-end' : 'flex-start',
+    padding: '12px 16px', borderRadius: 14,
+    background: 'rgba(10,8,14,.5)', border: '1px solid rgba(201,163,91,.3)',
+    backdropFilter: 'blur(10px)', WebkitBackdropFilter: 'blur(10px)',
+    boxShadow: '0 10px 30px -16px rgba(0,0,0,.8)',
   };
 }
 const debtPill: React.CSSProperties = {
