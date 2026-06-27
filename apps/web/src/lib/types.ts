@@ -483,6 +483,17 @@ export type Database = {
           won: boolean
         }[]
       }
+      spin_roulette: {
+        Args: { p_bets: Json }
+        Returns: {
+          result_number: number
+          is_red: boolean
+          total_staked: number
+          total_return: number
+          net: number
+          balance: number
+        }[]
+      }
     }
     Enums: {
       aureli_bucket: "earned" | "promotional" | "invested" | "locked" | "purchased"
