@@ -18,6 +18,7 @@ import { AcademyScreen } from './screens/AcademyScreen';
 import { RouletteScreen } from './screens/RouletteScreen';
 import { LobbyScreen } from './screens/LobbyScreen';
 import { AdminScreen } from './screens/AdminScreen';
+import { LaboratorioScreen } from './screens/LaboratorioScreen';
 import { IosInstallHint } from './components/IosInstallHint';
 import { FloatingMichat } from './components/FloatingMichat';
 import { FloatingNav } from './components/FloatingNav';
@@ -99,6 +100,7 @@ function AppRoutes({ loading, session, profile }: AppRoutesProps) {
               <Route path="/ruleta" element={<RouletteScreen />} />
               <Route path="/lobby" element={<LobbyScreen />} />
               {profile.is_admin && <Route path="/admin" element={<AdminScreen />} />}
+              {profile.is_admin && <Route path="/laboratorio" element={<LaboratorioScreen />} />}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </Layout>

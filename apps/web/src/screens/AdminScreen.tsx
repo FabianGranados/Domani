@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import {
   getAppConfig, adminSetConfig, adminPostNews, adminRunBotTick, adminMetrics,
@@ -59,6 +60,12 @@ export function AdminScreen() {
       <div style={{ fontSize: 11, letterSpacing: '.34em', textTransform: 'uppercase', color: '#9c7a3e' }}>Solo el dueño</div>
       <h1 className="page-title" style={{ marginTop: 6 }}>Sala de Control</h1>
       <p className="muted" style={{ marginTop: 4 }}>Administra Domani sin tocar código. Los cambios toman efecto en vivo.</p>
+
+      <Link to="/laboratorio" style={{
+        display: 'inline-block', margin: '6px 0 14px', padding: '8px 16px', borderRadius: 8,
+        background: '#1d1812', border: '1px solid #5a4a2a', color: '#e8c87a',
+        fontSize: 13, textDecoration: 'none', fontWeight: 600,
+      }}>🧠 Laboratorio de Cerebros · prueba los 10 Pioneros →</Link>
 
       {/* Métricas */}
       <div style={metricRow}>
