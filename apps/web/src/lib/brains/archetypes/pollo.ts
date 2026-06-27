@@ -17,7 +17,7 @@ export const POLLO: BrainSpec = {
   gustos:      { jugar: 0.80, trabajar: 0.25, invertir: 0.25, social: 0.72 },
   fortalezas:  { cognicion: 0.30, finanzas: 0.25, percepcion: 0.30, disciplina: 0.25 },
   debilidades: { tilt: 0.45, codicia: 0.55, impaciencia: 0.80, fatiga: 0.25 },
-  estilo:      { agresividad: 0.45, farol: 0.15, riesgo: 0.55, exhibicion: 0.35 },
+  estilo:      { agresividad: 0.28, farol: 0.15, riesgo: 0.50, exhibicion: 0.35 },
   timing:      { velocidadBase: 0.85, pensarEnDuro: 0.15, varianza: 0.45 },
   voz:         { locuacidad: 0.72, bancoVoz: 'pollo', patronApodo: 'apodo_novato' },
   variacion:   { jitter: 0.10 },

@@ -427,13 +427,14 @@ export interface BotPersona {
 // Mapea un cerebro (arquetipo) a la persona de póker del motor. Determinista.
 const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 export function pokerPersonaFromBrain(b: BrainSpec): BotPersona {
+  // Mapeo POLARIZADO: que los extremos se noten (nit vs maniaco, farolero vs roca).
   return {
-    // disciplina sube tightness; codicia la baja (Roca nit, Ludópata jugona)
-    tightness: clamp01(0.25 + b.fortalezas.disciplina * 0.5 - b.debilidades.codicia * 0.35),
-    aggression: clamp01(b.estilo.agresividad),
-    bluff: clamp01(0.04 + b.estilo.farol * 0.42),
-    // calling station = paga todo: codicia + indisciplina (Ludópata altísimo)
-    station: clamp01(0.12 + b.debilidades.codicia * 0.6 + (1 - b.fortalezas.disciplina) * 0.2),
+    // disciplina sube tightness; codicia la baja (Roca nit ~.73, Ludópata ~0)
+    tightness: clamp01(0.20 + b.fortalezas.disciplina * 0.6 - b.debilidades.codicia * 0.45),
+    aggression: clamp01(b.estilo.agresividad * 1.08),
+    bluff: clamp01(0.02 + b.estilo.farol * 0.6),                 // Galán ~.50, Roca ~.07
+    // calling station = paga todo: codicia + indisciplina (Ludópata ~1.0)
+    station: clamp01(0.08 + b.debilidades.codicia * 0.75 + (1 - b.fortalezas.disciplina) * 0.25),
     risk: clamp01(b.estilo.riesgo),
   };
 }
@@ -583,9 +584,9 @@ function preflopDecision(
 ): Action {
   const pos = positionScore(g);          // 0..1
   // Umbral de juego para manos MARGINALES. Las fuertes lo ignoran (abajo).
-  // Tope más bajo que antes: nadie tira manos jugables por ser muy selectivo.
-  let playThresh = 0.22 + per.tightness * 0.20 - pos * 0.12 - tilt * 0.08;
-  playThresh = Math.max(0.10, Math.min(0.46, playThresh));
+  // tightness pesa MUCHO: el nit (≈.73) juega poquísimo, el maniaco (≈0) casi todo.
+  let playThresh = 0.10 + per.tightness * 0.48 - pos * 0.12 - tilt * 0.10;
+  playThresh = Math.max(0.06, Math.min(0.58, playThresh));
 
   const facingRaise = g.currentBet > g.bb + 0.5; // alguien ya subió
   // Escala Chen normalizada: AA=1.0 KK=.81 QQ=.71 AKs=.67 JJ=.62 AKo/AQs/KQs=.57 TT=.52
@@ -600,29 +601,34 @@ function preflopDecision(
     return { type: 'fold' };
   }
 
-  const openMult = 2.2 + per.risk * 1.3 + rng() * 0.4;
+  // El de riesgo alto (maniaco) abre/3-betea mucho más grande que el cauto.
+  const openMult = 2.0 + per.risk * 2.2 + rng() * 0.5;
   const openTotal = g.currentBet * openMult;
-  const threeBetTotal = g.currentBet * (2.6 + per.aggression * 0.9 + rng() * 0.3);
+  const threeBetTotal = g.currentBet * (2.5 + per.aggression * 1.4 + per.risk * 0.6 + rng() * 0.3);
 
   if (facingRaise) {
-    // Frente a una subida: 3-bet con premium; premium y strong SIEMPRE pagan
-    // (un humano no tira AK/AQs a una sola subida); el resto por pot odds.
-    const threeBetChance = per.aggression * 0.6 + tilt * 0.2;
-    if (premium && la.canRaise && rng() < 0.45 + threeBetChance) {
+    // 3-bet de valor con premium; los muy agresivos también 3-bet-farol con strong.
+    const threeBetChance = per.aggression * 0.7 + tilt * 0.25;
+    if (premium && la.canRaise && rng() < 0.4 + threeBetChance) {
+      return raiseTo(g, la, threeBetTotal);
+    }
+    if (strong && la.canRaise && rng() < per.aggression * 0.28 + tilt * 0.2) {
       return raiseTo(g, la, threeBetTotal);
     }
     const potOdds = la.callAmount / (g.pot + la.callAmount || 1);
-    // Los pagones (station alto = pollos) pagan subidas mucho más anchas.
-    const callOk = premium || strong || (playable && potOdds < 0.42 + per.station * 0.32) ||
-      (speculative && potOdds < 0.24 + per.station * 0.22 && rng() < 0.6);
+    // Premium/strong SIEMPRE pagan; los pagones (pollos) pagan subidas anchísimas.
+    const callOk = premium || strong || (playable && potOdds < 0.40 + per.station * 0.45) ||
+      (speculative && potOdds < 0.24 + per.station * 0.28 && rng() < 0.6);
     if (callOk) return { type: 'call' };
     if (la.canCheck) return { type: 'check' };
     return { type: 'fold' };
   }
 
-  // Sin subida previa (limpers o solo ciegas): abrir con valor, nunca foldear.
+  // Sin subida previa: el AGRESIVO abre; el PASIVO limpea (paga la ciega sin subir).
+  // La frecuencia de subida depende casi toda de la agresividad -> aparece el
+  // pagón pasivo (limpea/paga) frente al maniaco (sube).
   if (la.canRaise) {
-    const openChance = (strong ? 0.9 : 0.42) * (0.55 + per.aggression) + tilt * 0.15;
+    const openChance = per.aggression * 0.55 + (strong ? 0.22 : 0) + tilt * 0.2;
     if (rng() < openChance) return raiseTo(g, la, openTotal);
   }
   if (la.canCheck) return { type: 'check' };
@@ -645,8 +651,9 @@ function postflopDecision(
   const madeMedium = cat === 1 || cat === 2; // par / doble par
   const madeWeak = cat === 0;             // carta alta
 
-  // Tamaño de apuesta según personalidad (0.4x..1.0x el bote aprox).
-  const sizeFrac = 0.45 + per.risk * 0.5 + rng() * 0.15;
+  // Tamaño de apuesta MUY ligado a la personalidad: el cauto apuesta ~1/3 bote,
+  // el maniaco sobrepasa el bote (overbet). Así se ve distinto en la mesa.
+  const sizeFrac = 0.33 + per.risk * 0.85 + rng() * 0.15;
   const potBet = Math.max(g.bb, Math.round((g.pot) * sizeFrac));
 
   if (la.canCheck) {
@@ -665,9 +672,9 @@ function postflopDecision(
       }
       return { type: 'check' };
     }
-    // mano débil o solo proyecto: farol con frecuencia de personalidad
-    const semiBluff = draw > 0 ? 0.18 : 0;
-    const bluffChance = per.bluff + semiBluff + tilt * 0.12;
+    // mano débil o solo proyecto: farol según personalidad (Galán farolea seguido).
+    const semiBluff = draw > 0 ? 0.22 : 0;
+    const bluffChance = per.bluff * 1.35 + semiBluff + tilt * 0.15;
     if (la.canRaise && rng() < bluffChance) {
       return raiseTo(g, la, p.bet + Math.round(potBet * (0.6 + per.risk * 0.4)));
     }
