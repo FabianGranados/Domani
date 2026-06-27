@@ -1095,6 +1095,16 @@ export function PokerScreen() {
           <div style={{ fontSize: 11, color: 'rgba(232,226,212,.45)', borderLeft: '1px solid rgba(255,255,255,.1)', paddingLeft: 13 }}>Ciegas {activeSB} / {activeBB}</div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {profile?.is_admin && (
+            <button onClick={() => setDebugReveal((v) => !v)} title="Pruebas: ver cartas de todos" style={{ padding: '8px 12px', borderRadius: 999, border: `1px solid ${debugReveal ? 'rgba(236,210,142,.6)' : 'rgba(255,255,255,.12)'}`, background: debugReveal ? 'rgba(236,210,142,.14)' : 'rgba(255,255,255,.04)', color: debugReveal ? '#ecd9a5' : 'rgba(232,226,212,.7)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              👁 {debugReveal ? 'Cartas' : 'Ocultas'}
+            </button>
+          )}
+          {profile?.is_admin && (
+            <button onClick={() => setShowRoles((v) => !v)} title="Pruebas: ver el rol/arquetipo en vez del nombre" style={{ padding: '8px 12px', borderRadius: 999, border: `1px solid ${showRoles ? 'rgba(236,210,142,.6)' : 'rgba(255,255,255,.12)'}`, background: showRoles ? 'rgba(236,210,142,.14)' : 'rgba(255,255,255,.04)', color: showRoles ? '#ecd9a5' : 'rgba(232,226,212,.7)', cursor: 'pointer', fontSize: 12, fontWeight: 600 }}>
+              🎭 {showRoles ? 'Roles' : 'Nombres'}
+            </button>
+          )}
           <div style={chipPill}>
             <Chip kind="gold" size={18} />
             <span style={{ fontWeight: 600, fontSize: 14, color: '#ecd9a5' }}>{you.stack.toLocaleString()}</span>
