@@ -15,7 +15,7 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 
 // --- Límites (futuras perillas de admin) ---
-export const POKER_MAX_MS = 12000; // tope del "tanque" en un spot cerrado
+export const POKER_MAX_MS = 9000; // tope del "tanque" en un spot cerrado
 export const CHESS_MIN_MS = 1800;
 export const CHESS_MAX_MS = 11000; // acotado: el humano espera al bot
 

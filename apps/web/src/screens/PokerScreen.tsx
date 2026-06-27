@@ -206,13 +206,6 @@ export function PokerScreen() {
   // identificar a cada jugador por su forma de jugar.
   const [showRoles, setShowRoles] = useState(false);
   const nameOf = (p: Player) => (showRoles && p.brainKey ? (pioneroByKey(p.brainKey)?.nombre ?? p.name) : p.name);
-  // Recap de la última mano (para repasar lo que pasó sin afán).
-  type LastHandView = {
-    n: number; pot: number; board: Card[];
-    players: { name: string; brainKey?: string; avatar?: string; hole: Card[]; folded: boolean; handName: string | null; won: boolean; isYou: boolean }[];
-  };
-  const [lastHand, setLastHand] = useState<LastHandView | null>(null);
-  const [showRecap, setShowRecap] = useState(false);
   const foldedRef = useRef<boolean[]>([]);
   const muckSeqRef = useRef(0);
   const isMobile = useIsMobile();
@@ -542,28 +535,22 @@ export function PokerScreen() {
         { n: handNoRef.current, title: youWon ? 'Ganaste tú' : `Ganó ${winner?.name ?? '—'}`, sub, delta, youWon },
         ...h,
       ].slice(0, 8));
-      // Snapshot completo de la mano para el recap.
-      setLastHand({
-        n: handNoRef.current,
-        pot: total,
-        board: [...game.board],
-        players: game.players.map((p) => ({
-          name: p.name, brainKey: p.brainKey, avatar: p.avatar,
-          hole: [...p.hole], folded: p.folded,
-          handName: (!p.folded && game.board.length >= 5 && p.hole.length === 2)
-            ? HAND_NAME(handCategory(evaluate7([...p.hole, ...game.board]))) : null,
-          won: game.winners.some((x) => x.id === p.id),
-          isYou: p.id === 'you',
-        })),
+      // Resultado de la mano AL CHAT (lo ven todos, sin afán).
+      const winNames = game.winners.map((x) => {
+        const pl = game.players.find((p) => p.id === x.id);
+        return pl ? (pl.id === 'you' ? 'Tú' : nameOf(pl)) : '?';
       });
+      const showdown = game.phase === 'showdown';
+      const handDesc = showdown && winner?.lastAction ? ` con ${winner.lastAction}` : (game.board.length === 0 ? ' (los demás se retiraron)' : '');
+      const verb = game.winners.length > 1 ? 'se reparten' : 'gana';
+      setChat((c) => [...c, { id: chatIdRef.current++, who: 'Crupier', mine: false, text: `🏆 ${winNames.join(', ')} ${verb} el bote · ⟡${total.toLocaleString()}${handDesc}` }]);
       handNoRef.current += 1;
       const tFly = setTimeout(() => setFly(null), 1300);
       // El crupier reparte la siguiente mano solo (como en vivo). Si te
-      // quedaste sin fichas, no auto-avanza: se ofrece salir.
+      // quedaste sin fichas, no auto-avanza: se ofrece salir/recargar.
       const youAlive = (game.players.find((p) => p.id === 'you')?.stack ?? 0) > 0;
       const reveal = game.phase === 'showdown';
-      // Más aire en el showdown para alcanzar a ver las cartas.
-      const tNext = youAlive ? setTimeout(() => nextHand(), reveal ? 5200 : 2600) : undefined;
+      const tNext = youAlive ? setTimeout(() => nextHand(), reveal ? 4200 : 2400) : undefined;
       return () => { clearTimeout(tFly); if (tNext) clearTimeout(tNext); };
     }
     if (!game.handOver) setFly(null);
@@ -611,40 +598,6 @@ export function PokerScreen() {
       ⟡ Recargar {rebuyAmt.toLocaleString()} fichas
     </button>
   ) : null;
-
-  // Modal de recap de la última mano: cartas de todos, ganador y jugada.
-  const renderRecap = () => {
-    if (!showRecap || !lastHand) return null;
-    const disp = (pl: LastHandView['players'][number]) =>
-      pl.isYou ? 'Tú' : (showRoles && pl.brainKey ? (pioneroByKey(pl.brainKey)?.nombre ?? pl.name) : pl.name);
-    return (
-      <div onClick={() => setShowRecap(false)} style={{ position: 'fixed', inset: 0, zIndex: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,.6)', padding: 16 }}>
-        <div onClick={(e) => e.stopPropagation()} style={{ width: 'min(560px, 94vw)', maxHeight: '88vh', overflowY: 'auto', background: 'linear-gradient(180deg,#15161e,#0c0c11)', border: '1px solid rgba(201,163,91,.28)', borderRadius: 16, padding: 18 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <strong style={{ color: '#ecd9a5', fontSize: 16 }}>Mano #{lastHand.n} · Bote ⟡{lastHand.pot.toLocaleString()}</strong>
-            <button onClick={() => setShowRecap(false)} style={{ padding: '6px 12px', borderRadius: 9, border: '1px solid rgba(255,255,255,.15)', background: 'none', color: 'rgba(232,226,212,.7)', cursor: 'pointer', fontSize: 13 }}>Cerrar</button>
-          </div>
-          <div style={{ display: 'flex', gap: 6, justifyContent: 'center', marginBottom: 14 }}>
-            {lastHand.board.length ? lastHand.board.map((c, i) => <CardFace key={i} c={c} w={34} />) : <span style={{ color: '#6a6253', fontSize: 12, fontStyle: 'italic' }}>— la mano terminó antes del flop —</span>}
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: 8 }}>
-            {lastHand.players.map((pl, i) => (
-              <div key={i} style={{ background: pl.won ? '#1d2417' : '#171410', border: `1px solid ${pl.won ? 'rgba(236,210,142,.5)' : '#2a261f'}`, borderRadius: 10, padding: 8, opacity: pl.folded ? 0.55 : 1 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: 12, color: pl.isYou ? '#9ff0bf' : '#e8dcc0', fontWeight: 600 }}>{disp(pl)}</span>
-                  {pl.won && <span style={{ fontSize: 10, color: '#1a1510', background: '#e8c87a', borderRadius: 999, padding: '1px 7px', fontWeight: 700 }}>ganó</span>}
-                </div>
-                <div style={{ display: 'flex', gap: 4, margin: '6px 0' }}>
-                  {pl.hole.length ? pl.hole.map((c, j) => <CardFace key={j} c={c} w={24} />) : <span style={{ fontSize: 11, color: '#6a6253' }}>—</span>}
-                </div>
-                <div style={{ fontSize: 10, color: pl.folded ? 'rgba(232,160,160,.7)' : '#9a8f78' }}>{pl.folded ? 'se retiró' : (pl.handName ?? '—')}</div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  };
 
   // clamp raise slider
   const minR = la ? la.minRaiseTo : activeBB * 2;
@@ -802,6 +755,13 @@ export function PokerScreen() {
           ))}
         </div>
 
+        {/* recargar fichas (siempre disponible si tienes saldo y vas corto) */}
+        {!!game && !!table && (game.players.find((p) => p.id === 'you')?.stack ?? 0) < table.tier.buyin && (wallet ?? 0) > 0 && (
+          <button onClick={() => { recargar(); close(); }} disabled={busy} style={{ marginTop: 6, padding: '14px', borderRadius: 13, border: '1px solid rgba(201,163,91,.5)', background: 'linear-gradient(135deg,#e8c87a,#c9a35b)', color: '#1a1510', cursor: 'pointer', fontSize: 15, fontWeight: 700 }}>
+            ⟡ Recargar {rebuyAmt.toLocaleString()} fichas
+          </button>
+        )}
+
         {/* salir */}
         <button onClick={() => { close(); levantarse(); }} style={{ marginTop: 6, padding: '15px', borderRadius: 13, border: '1px solid rgba(177,73,99,.4)', background: 'rgba(177,73,99,.12)', color: '#f0c7d0', cursor: 'pointer', fontSize: 15, fontWeight: 600, letterSpacing: '.02em' }}>
           Salir de la mesa
@@ -837,10 +797,7 @@ export function PokerScreen() {
           </div>
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <span style={{ fontSize: 10, letterSpacing: '.28em', textTransform: 'uppercase', color: '#9c7a3e' }}>Chat de la mesa</span>
-            {lastHand && <button onClick={() => setShowRecap(true)} style={{ padding: '4px 10px', borderRadius: 8, border: '1px solid rgba(255,255,255,.14)', background: 'rgba(255,255,255,.03)', color: 'rgba(232,226,212,.7)', fontSize: 11, cursor: 'pointer' }}>↶ Última mano</button>}
-          </div>
+          <div style={{ fontSize: 10, letterSpacing: '.28em', textTransform: 'uppercase', color: '#9c7a3e', marginBottom: 12 }}>Chat de la mesa</div>
           <div ref={chatScrollRef} style={{ flex: '1 1 0', minHeight: 0, maxHeight: 'clamp(140px, 32vh, 360px)', display: 'flex', flexDirection: 'column', gap: 7, overflowY: 'auto', paddingRight: 6, scrollbarWidth: 'thin', scrollbarColor: '#9c7a3e transparent' }}>
             {chat.map((m) => (
               <div key={m.id} style={{ alignSelf: m.mine ? 'flex-end' : 'flex-start', maxWidth: '88%' }}>
@@ -1004,11 +961,6 @@ export function PokerScreen() {
                 🎭 {showRoles ? 'Roles' : 'Nombres'}
               </button>
             )}
-            {lastHand && (
-              <button onClick={() => setShowRecap(true)} title="Ver la mano anterior" style={{ flexShrink: 0, padding: '9px 11px', borderRadius: 11, border: '1px solid rgba(255,255,255,.14)', background: 'rgba(255,255,255,.03)', color: 'rgba(232,226,212,.75)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                ↶ Última mano
-              </button>
-            )}
             <button onClick={() => setDrawer(true)} aria-label="Menú de mesa" style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 11, border: '1px solid rgba(201,163,91,.45)', background: 'rgba(201,163,91,.08)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
               <span style={{ display: 'block', width: 15, height: 1.6, background: '#ecd9a5', borderRadius: 2, boxShadow: '0 5px 0 #ecd9a5, 0 -5px 0 #ecd9a5' }} />
             </button>
@@ -1093,7 +1045,6 @@ export function PokerScreen() {
             </div>
           </div>
         )}
-        {renderRecap()}
       </div>
     );
   }
@@ -1226,7 +1177,6 @@ export function PokerScreen() {
       <p style={{ textAlign: 'center', fontSize: 11, color: 'rgba(232,226,212,.32)', margin: '14px 0 0' }}>
         Solo Aurelios (fichas de fantasía). Nunca dinero real. +18.
       </p>
-      {renderRecap()}
     </div>
   );
 }
