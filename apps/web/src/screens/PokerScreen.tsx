@@ -7,7 +7,21 @@ import {
   evaluate7, handCategory, HAND_NAME, RANK_LABEL, isRed,
   type Game, type Player, type Card,
 } from '../lib/poker';
-import { fieldArchetype, citizenAge, pioneroByKey } from '../lib/brains';
+import { fieldArchetype, citizenAge, pioneroByKey, PIONEROS } from '../lib/brains';
+
+// Leyenda de estilos: qué hace cada rol (para el modo 🎭 Roles).
+const ROLE_BEHAVIOR: Record<string, string> = {
+  tiburon: 'Tight-agresivo: pocas manos, sube y farolea fuerte.',
+  don: 'Élite: sólido, juega poco, casi no farolea.',
+  veterano: 'Paciente: pocas manos, paga, va lento.',
+  pollo: 'Pagón pasivo: limpea y paga, casi nunca sube. (el pez)',
+  tilteado: 'Se descontrola al perder: maniaco cuando se quema.',
+  frio: 'Roca de hielo: foldea casi todo, sin errores.',
+  galan: 'Suelto y farolero: apuesta, presume y enseña cartas.',
+  ludopata: 'Maniaca: entra a todo y sobre-apuesta, no se retira.',
+  roca: 'Nit: foldea el ~90%; si ELLA sube, ya perdiste.',
+  erratico: 'Impredecible: ritmos raros, jugadas locas.',
+};
 import { humanPokerDelayMs } from '../lib/humanTiming';
 import { unlockSfx, sfxDeal, sfxChips, sfxCheck, sfxYourTurn, sfxTimeWarning, sfxWin } from '../lib/sfx';
 import type { House } from '../lib/types';
@@ -724,6 +738,21 @@ export function PokerScreen() {
           </div>
           <span style={{ fontSize: 9.5, letterSpacing: '.14em', textTransform: 'uppercase', color: '#5fc795', border: '1px solid rgba(47,160,106,.4)', borderRadius: 999, padding: '4px 9px' }}>En juego</span>
         </div>
+
+        {/* leyenda de estilos (modo Roles) */}
+        {profile?.is_admin && (
+          <>
+            <div style={{ fontSize: 10, letterSpacing: '.28em', textTransform: 'uppercase', color: '#9c7a3e', marginTop: 4 }}>Estilos de juego (🎭 Roles)</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {PIONEROS.map((b) => (
+                <div key={b.key} style={{ display: 'flex', gap: 9, padding: '8px 11px', borderRadius: 10, background: 'rgba(255,255,255,.025)', border: '1px solid rgba(255,255,255,.06)' }}>
+                  <strong style={{ fontSize: 12.5, color: '#e8dcc0', minWidth: 96, flexShrink: 0 }}>{b.nombre}</strong>
+                  <span style={{ fontSize: 11.5, color: 'rgba(232,226,212,.62)', lineHeight: 1.35 }}>{ROLE_BEHAVIOR[b.key] ?? b.lema}</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
 
         {/* últimas manos */}
         <div style={{ fontSize: 10, letterSpacing: '.28em', textTransform: 'uppercase', color: '#9c7a3e', marginTop: 4 }}>Últimas manos</div>
