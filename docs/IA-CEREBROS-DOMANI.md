@@ -168,3 +168,29 @@ fuego del conocimiento a la ciudad).
 - Memoria + relaciones desde la Fase 1.
 - Personalidad (arquetipo) y oficio se **componen**.
 - Parámetros del cerebro = **perillas de la Sala de Control** ("entrenar" = afinar y ver).
+- **El molde (BrainSpec) se define ANTES que los 10** — los Pioneros son el mismo
+  molde con valores distintos (§13). Implementado en `apps/web/src/lib/brains/`.
+- **Círculo-ready desde Fase 1:** los bancos de voz / aperturas / plantillas se
+  escriben a mano AHORA, pero con el formato que un Pionero rellenaría desde el LLM
+  en el futuro → el día del puente generativo no se reescribe nada.
+
+## 13. El molde: BrainSpec (implementado) ⭐
+Un ciudadano = **un cerebro = data determinista**. Ejes en [0,1], seis familias:
+- **Gustos** (jugar / trabajar / invertir / social) → utilidad base por acción.
+- **Fortalezas** (cognición / finanzas / percepción / disciplina).
+- **Debilidades** (tilt / codicia / impaciencia / fatiga) → de aquí sale la emergencia.
+- **Estilo** (agresividad / farol / riesgo / exhibición) → la cara en la mesa.
+- **Timing** (velocidadBase / pensarEnDuro / varianza) → arregla la sincronía.
+- **Voz** (locuacidad / bancoVoz / patrónApodo) → arregla los nombres genéricos.
+
+**1 arquetipo → muchos ciudadanos:** `citizenBrain(arquetipo, uuid)` aplica un
+*jitter* sembrado por el UUID (determinista, reproducible → depurable y observable).
+
+**Mapeos cerebro → motor** (el cerebro es agnóstico del juego):
+- `chessFromBrain` → nivel 1..5 (compatible con `LEVELS` de `chessBot.ts`).
+- `pokerFromBrain` → `{tightness, aggression, bluff, tilt, style}` (compatible con `poker.ts`).
+- `thinkDelayMs` → retraso humano por decisión (criticidad + varianza sembrada).
+
+**Pionero #1 ya vaciado:** `archetypes/tiburon.ts` (El Tiburón) + su banco de voz.
+Los otros 9 son el mismo molde con otros números. Validación = abrirlo en la Sala
+de Control y ver su comportamiento derivado.
