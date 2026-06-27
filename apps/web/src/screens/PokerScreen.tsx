@@ -197,6 +197,30 @@ export function PokerScreen() {
   const [dealing, setDealing] = useState(false);
   const [handKey, setHandKey] = useState(0);
   const [turnLeft, setTurnLeft] = useState<number | null>(null);
+  // Reveal escalonado del board: boardShown = cuántas comunitarias se ven;
+  // boardBusy bloquea las acciones mientras se abren las cartas.
+  const [boardShown, setBoardShown] = useState(0);
+  const [boardBusy, setBoardBusy] = useState(false);
+  // Cuando el motor suma cartas al board, las revelamos con ritmo (no de golpe).
+  useEffect(() => {
+    const total = game?.board.length ?? 0;
+    if (total <= boardShown) { if (total < boardShown) { setBoardShown(total); setBoardBusy(false); } return; }
+    const isRunout = !!game?.handOver; // all-in: el motor corrió todo el board
+    setBoardBusy(true);
+    const timers: number[] = [];
+    let t = 0;
+    for (let i = 1; i <= total - boardShown; i++) {
+      let step: number;
+      if (isRunout) step = 6000 / (total - boardShown);            // all-in: ~6s en total
+      else if (boardShown === 0) step = i === 1 ? 700 : 1650;      // flop: 1 carta, luego 2 (~4s)
+      else step = 1300;                                            // turn / river
+      t += step;
+      const shownAt = boardShown + i;
+      timers.push(window.setTimeout(() => { setBoardShown(shownAt); sfxDeal(); }, t));
+    }
+    timers.push(window.setTimeout(() => setBoardBusy(false), t + (isRunout ? 700 : 1000))); // 1s sin apuestas
+    return () => timers.forEach(clearTimeout);
+  }, [game?.board.length, game?.handOver]); // eslint-disable-line react-hooks/exhaustive-deps
   // Alarma escalada en los últimos 5 segundos de tu turno (beep por segundo).
   useEffect(() => { if (turnLeft != null && turnLeft > 0 && turnLeft <= 5) sfxTimeWarning(); }, [turnLeft]);
   // Fanfarria cuando ganas un bote (una vez por mano).
@@ -375,7 +399,7 @@ export function PokerScreen() {
 
   // Bots juegan en automático
   useEffect(() => {
-    if (!game || game.handOver || dealing) return;
+    if (!game || game.handOver || dealing || boardBusy || boardShown < game.board.length) return;
     const cur = game.players[game.toAct];
     if (cur.isBot && !cur.folded && !cur.allIn) {
       // Ritmo humano: variable, más lento, se tanquea en spots difíciles.
@@ -390,12 +414,12 @@ export function PokerScreen() {
       }, wait);
       return () => clearTimeout(t);
     }
-  }, [game, dealing]);
+  }, [game, dealing, boardBusy, boardShown]);
 
   // Turno del humano: cuenta regresiva visible. Si no actúa a tiempo, se
   // auto-resuelve (check o fold) para que la mesa no se congele esperándolo.
   useEffect(() => {
-    if (!game || game.handOver || dealing || game.players[game.toAct].id !== 'you') {
+    if (!game || game.handOver || dealing || boardBusy || boardShown < game.board.length || game.players[game.toAct].id !== 'you') {
       setTurnLeft(null);
       return;
     }
@@ -418,7 +442,7 @@ export function PokerScreen() {
       });
     }, TURN_SECONDS * 1000);
     return () => { clearInterval(iv); clearTimeout(to); };
-  }, [game, dealing, preCheckFold]);
+  }, [game, dealing, boardBusy, boardShown, preCheckFold]);
 
   // Reparto: al iniciar cada mano, el crupier (arriba-centro) reparte cada
   // carta hacia su asiento, en orden real (CP primero, en sentido horario,
@@ -531,10 +555,11 @@ export function PokerScreen() {
     };
   }, [phase]);
 
-  // Fin de mano: animar fichas al ganador + registrar historial + repartir sola
+  // Fin de mano: animar fichas al ganador + registrar historial + repartir sola.
+  // Espera a que termine el reveal del board (all-in) antes de resolver.
   useEffect(() => {
     if (!game) return;
-    if (game.handOver && !recordedRef.current && game.winners.length) {
+    if (game.handOver && boardShown >= game.board.length && !recordedRef.current && game.winners.length) {
       recordedRef.current = true;
       const w = game.winners[0];
       const idx = game.players.findIndex((p) => p.id === w.id);
@@ -568,7 +593,7 @@ export function PokerScreen() {
       return () => { clearTimeout(tFly); if (tNext) clearTimeout(tNext); };
     }
     if (!game.handOver) setFly(null);
-  }, [game?.handOver]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [game?.handOver, boardShown]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- Lobby: casinos por Casa -> mesas ----------
   if (phase === 'lobby') {
@@ -591,8 +616,9 @@ export function PokerScreen() {
   const reveal = game.phase === 'showdown' || game.phase === 'done';
   const yourTurn = !game.handOver && game.players[game.toAct].id === 'you';
   const la = yourTurn ? legalActions(game) : null;
-  const youHandLabel = game.board.length >= 3 && you.hole.length === 2
-    ? HAND_NAME(handCategory(evaluate7([...you.hole, ...game.board])))
+  const shownBoard = game.board.slice(0, boardShown);
+  const youHandLabel = boardShown >= 3 && you.hole.length === 2
+    ? HAND_NAME(handCategory(evaluate7([...you.hole, ...shownBoard])))
     : null;
   const winnerIdx = game.handOver && game.winners[0] ? game.players.findIndex((p) => p.id === game.winners[0].id) : -1;
 
@@ -890,7 +916,7 @@ export function PokerScreen() {
 
             {/* cartas comunitarias */}
             <div style={{ position: 'absolute', left: '50%', top: '47%', transform: 'translate(-50%,-50%)', display: 'flex', gap: 5, zIndex: 2 }}>
-              {[0, 1, 2, 3, 4].map((i) => (game.board[i] ? <CardFace key={i} c={game.board[i]} w={40} /> : <CardSlot key={i} w={40} />))}
+              {[0, 1, 2, 3, 4].map((i) => (i < boardShown && game.board[i] ? <CardFace key={i} c={game.board[i]} w={40} /> : <CardSlot key={i} w={40} />))}
             </div>
 
             {/* bote */}
@@ -921,8 +947,8 @@ export function PokerScreen() {
               if (idx === 0) return null;
               const pos = POS[idx];
               const showCards = debugReveal ? p.hole.length > 0 : (reveal && !p.folded);
-              const handLabel = showCards && game.board.length >= 3 && p.hole.length === 2
-                ? HAND_NAME(handCategory(evaluate7([...p.hole, ...game.board]))) : null;
+              const handLabel = showCards && boardShown >= 3 && p.hole.length === 2
+                ? HAND_NAME(handCategory(evaluate7([...p.hole, ...shownBoard]))) : null;
               const acting = game.toAct === idx && !game.handOver;
               const isWin = idx === winnerIdx;
               return (
@@ -1125,7 +1151,7 @@ export function PokerScreen() {
 
           {/* cartas comunitarias */}
           <div style={{ position: 'absolute', left: '50%', top: '47%', transform: 'translate(-50%,-50%)', display: 'flex', gap: 6, zIndex: 2 }}>
-            {[0, 1, 2, 3, 4].map((i) => (game.board[i] ? <CardFace key={i} c={game.board[i]} w={44} /> : <CardSlot key={i} w={44} />))}
+            {[0, 1, 2, 3, 4].map((i) => (i < boardShown && game.board[i] ? <CardFace key={i} c={game.board[i]} w={44} /> : <CardSlot key={i} w={44} />))}
           </div>
 
           {/* bote */}
@@ -1155,8 +1181,8 @@ export function PokerScreen() {
           {game.players.map((p, idx) => {
             const pos = POS[idx];
             const showCards = p.id === 'you' || (debugReveal ? p.hole.length > 0 : (reveal && !p.folded));
-            const handLabel = p.id !== 'you' && showCards && game.board.length >= 3 && p.hole.length === 2
-              ? HAND_NAME(handCategory(evaluate7([...p.hole, ...game.board]))) : null;
+            const handLabel = p.id !== 'you' && showCards && boardShown >= 3 && p.hole.length === 2
+              ? HAND_NAME(handCategory(evaluate7([...p.hole, ...shownBoard]))) : null;
             const acting = game.toAct === idx && !game.handOver;
             const isWinner = idx === winnerIdx;
             const me = p.id === 'you';
