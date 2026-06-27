@@ -241,6 +241,40 @@ export async function spinRouletteFree(
   return (data as RouletteSpinResult[])[0];
 }
 
+// --- Ruleta con Aurelios reales: apuestas múltiples en un giro ---
+// El RNG vive en el servidor; el cliente sólo anima la bola hasta el
+// número que devuelve este RPC.
+export interface RouletteWagerInput {
+  type: string;
+  /** straight 0..36 · dozen 1..3 · column 1..3 */
+  value?: number;
+  /** Aurelios apostados en esta posición del tapete */
+  stake: number;
+}
+
+export interface RouletteRealResult {
+  result_number: number;
+  is_red: boolean;
+  total_staked: number;
+  total_return: number;
+  net: number;
+  balance: number;
+}
+
+export async function spinRoulette(
+  bets: RouletteWagerInput[]
+): Promise<RouletteRealResult> {
+  const { data, error } = await supabase.rpc('spin_roulette', {
+    p_bets: bets.map((b) => ({
+      type: b.type,
+      value: b.value ?? null,
+      stake: b.stake,
+    })),
+  });
+  if (error) throw error;
+  return (data as RouletteRealResult[])[0];
+}
+
 // --- Póker: buy-in / cash-out en Aurelios ---
 export async function pokerBuyin(amount: number): Promise<number> {
   const { data, error } = await supabase.rpc('poker_buyin', { p_amount: amount });
