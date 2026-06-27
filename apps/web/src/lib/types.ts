@@ -441,6 +441,27 @@ export type Database = {
         }
         Relationships: []
       }
+      roulette_sessions: {
+        Row: {
+          user_id: string
+          chips: number
+          opened_at: string
+          updated_at: string
+        }
+        Insert: {
+          user_id: string
+          chips?: number
+          opened_at?: string
+          updated_at?: string
+        }
+        Update: {
+          user_id?: string
+          chips?: number
+          opened_at?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
@@ -491,8 +512,16 @@ export type Database = {
           total_staked: number
           total_return: number
           net: number
-          balance: number
+          chips: number
         }[]
+      }
+      roulette_buyin: {
+        Args: { p_amount: number }
+        Returns: number
+      }
+      roulette_cashout: {
+        Args: Record<string, never>
+        Returns: number
       }
     }
     Enums: {

@@ -258,7 +258,8 @@ export interface RouletteRealResult {
   total_staked: number;
   total_return: number;
   net: number;
-  balance: number;
+  /** fichas restantes en la mesa tras el giro */
+  chips: number;
 }
 
 export async function spinRoulette(
@@ -273,6 +274,32 @@ export async function spinRoulette(
   });
   if (error) throw error;
   return (data as RouletteRealResult[])[0];
+}
+
+// --- Caja de la ruleta: comprar / retirar fichas de mesa ---
+/** Convierte Aurelios de la billetera en fichas de mesa. Devuelve las fichas totales en la mesa. */
+export async function rouletteBuyin(amount: number): Promise<number> {
+  const { data, error } = await supabase.rpc('roulette_buyin', { p_amount: amount });
+  if (error) throw error;
+  return data as number;
+}
+
+/** Devuelve las fichas restantes a la billetera y cierra la mesa. Devuelve el saldo de billetera. */
+export async function rouletteCashout(): Promise<number> {
+  const { data, error } = await supabase.rpc('roulette_cashout');
+  if (error) throw error;
+  return data as number;
+}
+
+/** Fichas que el usuario ya tiene en la mesa (0 si no hay sesión abierta). */
+export async function getRouletteChips(userId: string): Promise<number> {
+  const { data, error } = await supabase
+    .from('roulette_sessions')
+    .select('chips')
+    .eq('user_id', userId)
+    .maybeSingle();
+  if (error) throw error;
+  return data?.chips ?? 0;
 }
 
 // --- Póker: buy-in / cash-out en Aurelios ---
