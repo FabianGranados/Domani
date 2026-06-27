@@ -73,8 +73,14 @@ function noise(dur: number, gain = 0.08, when = 0) {
 /** Carta que cae sobre el fieltro (susurro corto). */
 export function sfxDeal() { noise(0.09, 0.06); }
 
-/** Fichas apostadas / bote (clic seco doble). */
-export function sfxChips() { tone(420, 0.05, 'square', 0.05); tone(300, 0.06, 'square', 0.05, 0.05); }
+/** Fichas apostadas (clinks rápidos como fichas reales sobre el fieltro). */
+export function sfxChips() {
+  for (let i = 0; i < 3; i++) tone(2300 - i * 220, 0.03, 'triangle', 0.06, i * 0.035);
+  noise(0.05, 0.05, 0.02);
+}
+
+/** Pasar / check (golpe seco en la mesa, como tocar con los nudillos). */
+export function sfxCheck() { tone(190, 0.05, 'sine', 0.11); tone(150, 0.06, 'sine', 0.09, 0.06); }
 
 /** Es tu turno (campanita de dos notas ascendente). */
 export function sfxYourTurn() { tone(660, 0.12, 'sine', 0.14); tone(880, 0.16, 'sine', 0.14, 0.1); }

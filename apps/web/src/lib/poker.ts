@@ -582,16 +582,17 @@ function preflopDecision(
   raw: number, tilt: number, rng: () => number,
 ): Action {
   const pos = positionScore(g);          // 0..1
-  // Umbral de juego: más alto = más selectivo. La posición lo relaja.
-  // Tilt afloja la selección (juega más manos).
-  let playThresh = 0.26 + per.tightness * 0.26 - pos * 0.14 - tilt * 0.10;
-  playThresh = Math.max(0.14, Math.min(0.66, playThresh));
+  // Umbral de juego para manos MARGINALES. Las fuertes lo ignoran (abajo).
+  // Tope más bajo que antes: nadie tira manos jugables por ser muy selectivo.
+  let playThresh = 0.22 + per.tightness * 0.20 - pos * 0.12 - tilt * 0.08;
+  playThresh = Math.max(0.10, Math.min(0.46, playThresh));
 
   const facingRaise = g.currentBet > g.bb + 0.5; // alguien ya subió
-  const premium = raw > 0.78;                    // ~AQ+/TT+/AKs
-  const strong = raw > 0.58;                     // manos de apertura sólidas
-  const playable = raw > playThresh;
-  const speculative = !playable && raw > playThresh - 0.16 && pos > 0.45;
+  // Escala Chen normalizada: AA=1.0 KK=.81 QQ=.71 AKs=.67 JJ=.62 AKo/AQs/KQs=.57 TT=.52
+  const premium = raw > 0.60;            // AA,KK,QQ,JJ,AKs -> suben/3-bet
+  const strong = raw > 0.50;             // +AKo,AQs,KQs,TT -> SIEMPRE se juegan
+  const playable = strong || raw > playThresh;
+  const speculative = !playable && raw > playThresh - 0.14 && pos > 0.4;
 
   // ¿Mano basura? Foldear si hay que pagar; pasar si es gratis (BB).
   if (!playable && !speculative) {
@@ -599,40 +600,34 @@ function preflopDecision(
     return { type: 'fold' };
   }
 
-  // Tamaño de apertura/subida según riesgo (2x..3.5x la apuesta actual).
   const openMult = 2.2 + per.risk * 1.3 + rng() * 0.4;
-  const openTotal = g.currentBet * openMult + g.pot * 0.0;
+  const openTotal = g.currentBet * openMult;
   const threeBetTotal = g.currentBet * (2.6 + per.aggression * 0.9 + rng() * 0.3);
 
   if (facingRaise) {
-    // Frente a una subida: 3-bet con premium, pagar manos fuertes,
-    // foldear el resto salvo especulativas baratas en posición.
+    // Frente a una subida: 3-bet con premium; premium y strong SIEMPRE pagan
+    // (un humano no tira AK/AQs a una sola subida); el resto por pot odds.
     const threeBetChance = per.aggression * 0.6 + tilt * 0.2;
-    if (premium && la.canRaise && rng() < 0.35 + threeBetChance) {
+    if (premium && la.canRaise && rng() < 0.45 + threeBetChance) {
       return raiseTo(g, la, threeBetTotal);
     }
     const potOdds = la.callAmount / (g.pot + la.callAmount || 1);
-    const callOk = strong || (playable && potOdds < 0.33) ||
-      (speculative && potOdds < 0.2 && rng() < 0.5);
+    // Los pagones (station alto = pollos) pagan subidas mucho más anchas.
+    const callOk = premium || strong || (playable && potOdds < 0.42 + per.station * 0.32) ||
+      (speculative && potOdds < 0.24 + per.station * 0.22 && rng() < 0.6);
     if (callOk) return { type: 'call' };
     if (la.canCheck) return { type: 'check' };
     return { type: 'fold' };
   }
 
-  // Sin subida previa (limpers o solo ciegas).
+  // Sin subida previa (limpers o solo ciegas): abrir con valor, nunca foldear.
   if (la.canRaise) {
-    // Abrir subiendo con manos fuertes; los agresivos abren más ancho.
-    const openChance = (strong ? 0.85 : 0.30) * (0.5 + per.aggression) + tilt * 0.15;
-    if ((strong || (playable && rng() < per.aggression * 0.5)) && rng() < openChance) {
-      return raiseTo(g, la, openTotal);
-    }
+    const openChance = (strong ? 0.9 : 0.42) * (0.55 + per.aggression) + tilt * 0.15;
+    if (rng() < openChance) return raiseTo(g, la, openTotal);
   }
-  // Limp/call con especulativas o manos jugables que no abrimos.
   if (la.canCheck) return { type: 'check' };
-  // hay que pagar la ciega: pagar si es jugable, foldear especulativas caras
-  const potOdds = la.callAmount / (g.pot + la.callAmount || 1);
-  if (playable || (speculative && potOdds < 0.18)) return { type: 'call' };
-  return { type: 'fold' };
+  // Hay que pagar la ciega y la mano es jugable/especulativa: paga (no fold).
+  return { type: 'call' };
 }
 
 // ---------- Postflop ----------

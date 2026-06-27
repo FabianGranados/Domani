@@ -7,9 +7,9 @@ import {
   evaluate7, handCategory, HAND_NAME, RANK_LABEL, isRed,
   type Game, type Player, type Card,
 } from '../lib/poker';
-import { fieldArchetype, citizenAge } from '../lib/brains';
+import { fieldArchetype, citizenAge, pioneroByKey } from '../lib/brains';
 import { humanPokerDelayMs } from '../lib/humanTiming';
-import { unlockSfx, sfxDeal, sfxYourTurn, sfxTimeWarning, sfxWin } from '../lib/sfx';
+import { unlockSfx, sfxDeal, sfxChips, sfxCheck, sfxYourTurn, sfxTimeWarning, sfxWin } from '../lib/sfx';
 import type { House } from '../lib/types';
 import {
   STAKE_LADDER, tablesForHouse, seatedCount, tableRoster,
@@ -183,8 +183,8 @@ export function PokerScreen() {
   const [dealing, setDealing] = useState(false);
   const [handKey, setHandKey] = useState(0);
   const [turnLeft, setTurnLeft] = useState<number | null>(null);
-  // Aviso sonoro cuando se acaba el tiempo de pensar.
-  useEffect(() => { if (turnLeft === 5) sfxTimeWarning(); }, [turnLeft]);
+  // Alarma escalada en los últimos 5 segundos de tu turno (beep por segundo).
+  useEffect(() => { if (turnLeft != null && turnLeft > 0 && turnLeft <= 5) sfxTimeWarning(); }, [turnLeft]);
   // Fanfarria cuando ganas un bote (una vez por mano).
   const wonHandRef = useRef(-1);
   useEffect(() => {
@@ -202,6 +202,10 @@ export function PokerScreen() {
   // Pre-acción: marcas "pasar/retirarme" mientras los demás piensan y se
   // ejecuta sola en tu turno (pasa si es gratis, se retira si hay apuesta).
   const [preCheckFold, setPreCheckFold] = useState(false);
+  // Modo pruebas (admin): mostrar el ROL/arquetipo en vez del nombre, para
+  // identificar a cada jugador por su forma de jugar.
+  const [showRoles, setShowRoles] = useState(false);
+  const nameOf = (p: Player) => (showRoles && p.brainKey ? (pioneroByKey(p.brainKey)?.nombre ?? p.name) : p.name);
   const foldedRef = useRef<boolean[]>([]);
   const muckSeqRef = useRef(0);
   const isMobile = useIsMobile();
@@ -363,7 +367,12 @@ export function PokerScreen() {
       // Ritmo humano: variable, más lento, se tanquea en spots difíciles.
       const wait = humanPokerDelayMs(decisionTiming(game));
       const t = setTimeout(() => {
-        setGame((g) => (g && !g.handOver && g.players[g.toAct].isBot ? applyAction(g, botAction(g)) : g));
+        const g = game;
+        if (!g || g.handOver || !g.players[g.toAct].isBot) return;
+        const action = botAction(g);
+        if (action.type === 'raise' || action.type === 'call') sfxChips();
+        else if (action.type === 'check') sfxCheck();
+        setGame(applyAction(g, action));
       }, wait);
       return () => clearTimeout(t);
     }
@@ -684,7 +693,7 @@ export function PokerScreen() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
         <div style={{ textAlign: 'center', color: 'rgba(232,226,212,.5)', fontSize: 14, fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic' }}>
-          {game!.players[game!.toAct].name} está pensando…
+          {nameOf(game!.players[game!.toAct])} está pensando…
         </div>
         {preActionBar()}
       </div>
@@ -898,7 +907,7 @@ export function PokerScreen() {
                     {acting && <TimerRing />}
                   </div>
                   <div style={{ marginTop: 3, padding: '3px 6px', borderRadius: 9, background: 'rgba(8,8,10,.72)', border: `1px solid ${isWin ? 'rgba(236,210,142,.55)' : 'rgba(255,255,255,.08)'}`, backdropFilter: 'blur(3px)', display: 'inline-block' }}>
-                    <div style={{ fontSize: 10, color: 'rgba(232,226,212,.85)' }}>{p.name}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(232,226,212,.85)' }}>{nameOf(p)}</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, marginTop: 1 }}>
                       <Chip kind="gold" size={8} />
                       <span style={{ fontSize: 9, color: '#bfa164' }}>{p.stack.toLocaleString()}</span>
@@ -929,6 +938,11 @@ export function PokerScreen() {
             {profile?.is_admin && (
               <button onClick={() => setDebugReveal((v) => !v)} title="Pruebas: ver cartas de todos" style={{ flexShrink: 0, padding: '9px 11px', borderRadius: 11, border: `1px solid ${debugReveal ? 'rgba(236,210,142,.6)' : 'rgba(255,255,255,.14)'}`, background: debugReveal ? 'rgba(236,210,142,.14)' : 'rgba(255,255,255,.03)', color: debugReveal ? '#ecd9a5' : 'rgba(232,226,212,.6)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
                 👁 {debugReveal ? 'Cartas abiertas' : 'Cartas ocultas'}
+              </button>
+            )}
+            {profile?.is_admin && (
+              <button onClick={() => setShowRoles((v) => !v)} title="Pruebas: ver el rol/arquetipo en vez del nombre" style={{ flexShrink: 0, padding: '9px 11px', borderRadius: 11, border: `1px solid ${showRoles ? 'rgba(236,210,142,.6)' : 'rgba(255,255,255,.14)'}`, background: showRoles ? 'rgba(236,210,142,.14)' : 'rgba(255,255,255,.03)', color: showRoles ? '#ecd9a5' : 'rgba(232,226,212,.6)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                🎭 {showRoles ? 'Roles' : 'Nombres'}
               </button>
             )}
             <button onClick={() => setDrawer(true)} aria-label="Menú de mesa" style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 11, border: '1px solid rgba(201,163,91,.45)', background: 'rgba(201,163,91,.08)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
@@ -982,7 +996,7 @@ export function PokerScreen() {
               </>
             ) : (
               <div style={{ textAlign: 'center', color: 'rgba(232,226,212,.5)', fontStyle: 'italic', fontFamily: "'Cormorant Garamond',serif", fontSize: 15 }}>
-                {game.players[game.toAct].name} está pensando…
+                {nameOf(game.players[game.toAct])} está pensando…
               </div>
             )}
           </div>
@@ -1121,7 +1135,7 @@ export function PokerScreen() {
                 </div>
                 {/* placa */}
                 <div style={{ marginTop: 6, padding: '5px 8px 6px', borderRadius: 11, background: 'rgba(8,8,10,.62)', border: `1px solid ${isWinner ? 'rgba(236,210,142,.55)' : 'rgba(255,255,255,.08)'}`, backdropFilter: 'blur(3px)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: me ? '#ece6d6' : 'rgba(232,226,212,.85)' }}>{p.name}{me && <span style={{ color: 'rgba(232,226,212,.4)' }}> · tú</span>}</div>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: me ? '#ece6d6' : 'rgba(232,226,212,.85)' }}>{me ? p.name : nameOf(p)}{me && <span style={{ color: 'rgba(232,226,212,.4)' }}> · tú</span>}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 2 }}>
                     <Chip kind="gold" size={11} />
                     <span style={{ fontSize: 11, color: '#bfa164' }}>{p.stack.toLocaleString()}</span>
