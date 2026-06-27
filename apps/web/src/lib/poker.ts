@@ -5,6 +5,8 @@
 // para jugar/probar vs bots; se endurecerá en multijugador real.
 // ============================================================
 
+import type { BrainSpec } from './brains';
+
 export type Suit = '♠' | '♥' | '♦' | '♣';
 export interface Card { r: number; s: Suit } // r: 2..14 (11=J,12=Q,13=K,14=A)
 export type Phase = 'preflop' | 'flop' | 'turn' | 'river' | 'showdown' | 'done';
@@ -27,6 +29,15 @@ export interface Player {
   // crearlo: si falta, se trata como 0. Aumenta con malas rachas y
   // hace que el bot juegue algo más suelto/agresivo por un rato.
   tilt?: number;
+  // --- Cerebro (opcional) ---
+  // Si se provee, el motor usa esta persona en vez de derivarla del hash.
+  // Así un ciudadano con cerebro (arquetipo) juega según su personalidad.
+  persona?: BotPersona;
+  // Propensión a tiltearse (0..1). El Don ~0.08, el Tilteado ~0.92. Si falta,
+  // se usa un valor medio. Controla cuánto se calienta al perder un bote.
+  tiltProne?: number;
+  // Key del arquetipo (para la voz y observabilidad). No afecta la lógica.
+  brainKey?: string;
 }
 
 export interface Game {
@@ -327,13 +338,15 @@ function awardSinglePot(g: Game, winners: Player[]) {
   const winnerIds = new Set(winners.map((w) => w.id));
   for (const pl of g.players) {
     if (!pl.isBot) continue;
+    const prone = pl.tiltProne ?? 0.4; // propensión del arquetipo
     const cur = pl.tilt ?? 0;
-    let next = cur * 0.55; // decae con el tiempo
+    // los temperamentales decaen más lento; los fríos se calman rápido
+    let next = cur * (0.70 - prone * 0.25);
     if (!winnerIds.has(pl.id) && pot > 0) {
-      // perder un bote grande respecto al stack calienta más
+      // perder un bote grande respecto al stack calienta más, escalado por prone
       const ref = Math.max(g.bb * 10, pl.stack + 1);
       const sev = Math.min(1, pot / ref);
-      next += 0.5 * sev;
+      next += (0.15 + 0.85 * prone) * sev;
     }
     pl.tilt = Math.max(0, Math.min(1, next));
   }
@@ -390,7 +403,22 @@ export interface BotPersona {
 
 // Deriva la personalidad de un bot de forma determinista. Estable entre
 // manos porque depende solo de id/name + style (no de estado mutable).
+// Mapea un cerebro (arquetipo) a la persona de póker del motor. Determinista.
+const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
+export function pokerPersonaFromBrain(b: BrainSpec): BotPersona {
+  return {
+    // disciplina sube tightness; codicia la baja (Roca nit, Ludópata jugona)
+    tightness: clamp01(0.25 + b.fortalezas.disciplina * 0.5 - b.debilidades.codicia * 0.35),
+    aggression: clamp01(b.estilo.agresividad),
+    bluff: clamp01(0.04 + b.estilo.farol * 0.42),
+    // calling station = paga todo: codicia + indisciplina (Ludópata altísimo)
+    station: clamp01(0.12 + b.debilidades.codicia * 0.6 + (1 - b.fortalezas.disciplina) * 0.2),
+    risk: clamp01(b.estilo.riesgo),
+  };
+}
+
 function persona(p: Player): BotPersona {
+  if (p.persona) return p.persona; // cerebro provisto: úsalo tal cual
   const seed = hashStr(`${p.id}|${p.name}`);
   const rnd = mulberry32(seed);
   // base aleatoria pero estable
