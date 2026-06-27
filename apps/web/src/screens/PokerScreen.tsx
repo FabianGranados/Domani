@@ -7,8 +7,9 @@ import {
   evaluate7, handCategory, HAND_NAME, RANK_LABEL, isRed,
   type Game, type Player, type Card,
 } from '../lib/poker';
-import { fieldArchetype } from '../lib/brains';
+import { fieldArchetype, citizenAge } from '../lib/brains';
 import { humanPokerDelayMs } from '../lib/humanTiming';
+import { unlockSfx, sfxDeal, sfxYourTurn, sfxTimeWarning, sfxWin } from '../lib/sfx';
 import type { House } from '../lib/types';
 import {
   STAKE_LADDER, tablesForHouse, seatedCount, tableRoster,
@@ -174,11 +175,24 @@ export function PokerScreen() {
   const [chat, setChat] = useState<{ id: number; who: string; mine: boolean; text: string }[]>([]);
   const [chatInput, setChatInput] = useState('');
   const chatIdRef = useRef(1);
+  const chatScrollRef = useRef<HTMLDivElement>(null);
+  // Autoscroll al último mensaje cuando llega uno nuevo.
+  useEffect(() => { const el = chatScrollRef.current; if (el) el.scrollTop = el.scrollHeight; }, [chat]);
   // ¿Mostraste tus cartas al final de la mano?
   const [youReveal, setYouReveal] = useState(false);
   const [dealing, setDealing] = useState(false);
   const [handKey, setHandKey] = useState(0);
   const [turnLeft, setTurnLeft] = useState<number | null>(null);
+  // Aviso sonoro cuando se acaba el tiempo de pensar.
+  useEffect(() => { if (turnLeft === 5) sfxTimeWarning(); }, [turnLeft]);
+  // Fanfarria cuando ganas un bote (una vez por mano).
+  const wonHandRef = useRef(-1);
+  useEffect(() => {
+    if (game?.handOver && wonHandRef.current !== handKey && game.winners.some((w) => w.id === 'you')) {
+      wonHandRef.current = handKey;
+      sfxWin();
+    }
+  }, [game?.handOver, handKey]);
   // Cartas volando: reparto (crupier -> asiento) y descarte/fold (asiento -> crupier).
   const [dealCards, setDealCards] = useState<FlyingCard[]>([]);
   const [muckCards, setMuckCards] = useState<FlyingCard[]>([]);
@@ -213,6 +227,7 @@ export function PokerScreen() {
 
   async function sentarse(t: PokerTable, house: House) {
     setBusy(true); setError(null);
+    unlockSfx(); // gesto del usuario: habilita audio
     const stack = t.tier.buyin;
     try {
       const bal = await pokerBuyin(stack);
@@ -223,13 +238,20 @@ export function PokerScreen() {
       setFeltPath(feltForTable(t));
       // Sienta CIUDADANOS reales de tu ciudad (con su cara). Si no hay, usa los de respaldo.
       const cits = await getPokerCitizens(house.id, 7).catch(() => []);
-      // Cada ciudadano hereda un ARQUETIPO (sesgo a pollos) -> campo realista.
+      // Cada ciudadano hereda un ARQUETIPO ponderado por el NIVEL de la mesa, y
+      // una EDAD que matiza su juego (mayor = más tight/menos tilt).
+      const clampN = (x: number) => Math.max(0, Math.min(1, x));
       const seat = (id: string, name: string, avatar: string | undefined): Player => {
-        const arche = fieldArchetype(id);
+        const arche = fieldArchetype(id, t.tier.id);
+        const edad = citizenAge(arche.key, id);
+        const ya = (edad - 40) / 40; // -0.55..+0.9
+        const per = pokerPersonaFromBrain(arche);
+        per.tightness = clampN(per.tightness + ya * 0.10);
+        per.aggression = clampN(per.aggression - ya * 0.06);
         return {
           id, name, avatar, isBot: true, style: 'normal' as Player['style'],
           stack, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false,
-          persona: pokerPersonaFromBrain(arche), tiltProne: arche.debilidades.tilt, brainKey: arche.key,
+          persona: per, tiltProne: clampN(arche.debilidades.tilt - ya * 0.12), brainKey: arche.key, edad,
         };
       };
       const botPlayers: Player[] = cits.length
@@ -272,6 +294,29 @@ export function PokerScreen() {
     setGame(null);
     setPhase('lobby');
   }
+
+  // Recargar fichas SIN salir: rellena hasta un buy-in completo desde la
+  // billetera. Disponible entre manos o cuando te quedas sin fichas.
+  async function recargar() {
+    if (!game || !table) return;
+    const youP = game.players.find((p) => p.id === 'you');
+    if (!youP) return;
+    const need = Math.max(0, table.tier.buyin - youP.stack);
+    if (need <= 0) return;
+    setBusy(true); setError(null);
+    try {
+      const bal = await pokerBuyin(need);
+      setWallet(bal);
+      setGame((g) => g ? { ...g, players: g.players.map((p) => p.id === 'you' ? { ...p, stack: p.stack + need } : p) } : g);
+    } catch {
+      setError('Saldo insuficiente en la billetera para recargar.');
+    } finally { setBusy(false); }
+  }
+  const canRebuy = !!game && !!table && (() => {
+    const y = game.players.find((p) => p.id === 'you');
+    return !!y && y.stack < table.tier.buyin && (game.handOver || y.folded || y.stack <= 0) && (wallet ?? 0) > 0;
+  })();
+  const rebuyAmt = game && table ? Math.max(0, table.tier.buyin - (game.players.find((p) => p.id === 'you')?.stack ?? 0)) : 0;
 
   function nextHand() {
     if (!game) return;
@@ -340,6 +385,7 @@ export function PokerScreen() {
       return;
     }
     setTurnLeft(TURN_SECONDS);
+    sfxYourTurn(); // campanita: es tu turno
     const iv = setInterval(() => setTurnLeft((s) => (s && s > 0 ? s - 1 : 0)), 1000);
     const to = setTimeout(() => {
       setGame((g) => {
@@ -392,10 +438,13 @@ export function PokerScreen() {
     }
     setDealing(true);
     setDealCards(cards);
+    // Sonido: cada carta cae sobre el fieltro (susurro escalonado).
+    const sndTimers: number[] = [];
+    for (let k = 0; k < n; k++) sndTimers.push(window.setTimeout(() => sfxDeal(), k * STEP + FLIGHT * 0.6));
     const total = (n > 0 ? (n - 1) * STEP : 0) + FLIGHT + FLIP + 80;
     const tDone = setTimeout(() => setDealing(false), total);
     const tClear = setTimeout(() => setDealCards([]), total + 60);
-    return () => { clearTimeout(tDone); clearTimeout(tClear); };
+    return () => { clearTimeout(tDone); clearTimeout(tClear); sndTimers.forEach(clearTimeout); };
   }, [handKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Descarte (muck): cuando alguien se retira, sus 2 cartas vuelan al crupier y
@@ -526,6 +575,11 @@ export function PokerScreen() {
       Pasar / retirarme en mi turno
     </label>
   ) : null;
+  const rebuyButton = () => canRebuy ? (
+    <button onClick={recargar} disabled={busy} style={{ padding: '11px 20px', borderRadius: 11, border: '1px solid rgba(201,163,91,.5)', background: 'linear-gradient(135deg,#e8c87a,#c9a35b)', color: '#1a1510', fontSize: 14, fontWeight: 700, cursor: 'pointer' }}>
+      ⟡ Recargar {rebuyAmt.toLocaleString()} fichas
+    </button>
+  ) : null;
 
   // clamp raise slider
   const minR = la ? la.minRaiseTo : activeBB * 2;
@@ -579,9 +633,13 @@ export function PokerScreen() {
                 : <button onClick={mostrarCartas} style={{ padding: '8px 16px', borderRadius: 999, border: '1px solid rgba(201,163,91,.4)', background: 'rgba(201,163,91,.12)', color: '#ecd9a5', fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>Mostrar mis cartas</button>}
             </div>
           )}
-          {you.stack > 0
-            ? <div style={{ fontSize: 12, color: 'rgba(232,226,212,.45)', fontStyle: 'italic', fontFamily: "'Cormorant Garamond',serif" }}>El crupier reparte la siguiente mano…</div>
-            : <button className="btn" style={{ maxWidth: 280, margin: '0 auto' }} onClick={levantarse}>Sin fichas — salir</button>}
+          <div style={{ display: 'flex', gap: 10, alignItems: 'center', justifyContent: 'center', flexWrap: 'wrap' }}>
+            {you.stack > 0
+              ? <div style={{ fontSize: 12, color: 'rgba(232,226,212,.45)', fontStyle: 'italic', fontFamily: "'Cormorant Garamond',serif" }}>El crupier reparte la siguiente mano…</div>
+              : <span style={{ fontSize: 13, color: '#e0894f' }}>Te quedaste sin fichas.</span>}
+            {rebuyButton()}
+            {you.stack <= 0 && <button className="btn" style={{ maxWidth: 200 }} onClick={levantarse}>Salir</button>}
+          </div>
         </div>
       );
     }
@@ -715,7 +773,7 @@ export function PokerScreen() {
         </div>
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div style={{ fontSize: 10, letterSpacing: '.28em', textTransform: 'uppercase', color: '#9c7a3e', marginBottom: 12 }}>Chat de la mesa</div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 7, overflowY: 'auto', paddingRight: 2 }}>
+          <div ref={chatScrollRef} style={{ flex: '1 1 0', minHeight: 0, maxHeight: 'clamp(140px, 32vh, 360px)', display: 'flex', flexDirection: 'column', gap: 7, overflowY: 'auto', paddingRight: 6, scrollbarWidth: 'thin', scrollbarColor: '#9c7a3e transparent' }}>
             {chat.map((m) => (
               <div key={m.id} style={{ alignSelf: m.mine ? 'flex-end' : 'flex-start', maxWidth: '88%' }}>
                 {!m.mine && <div style={{ fontSize: 9.5, color: '#9c7a3e', margin: '0 0 1px 2px' }}>{m.who}</div>}
@@ -898,6 +956,7 @@ export function PokerScreen() {
                 <div style={{ fontSize: 12, fontStyle: 'italic', color: 'rgba(232,226,212,.45)', marginTop: 8 }}>
                   {you.stack > 0 ? 'Repartiendo siguiente mano…' : 'Sin fichas para continuar'}
                 </div>
+                {canRebuy && <div style={{ marginTop: 10, display: 'flex', justifyContent: 'center' }}>{rebuyButton()}</div>}
               </div>
             ) : yourTurn && la ? (
               <>

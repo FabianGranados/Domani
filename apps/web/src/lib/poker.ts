@@ -38,6 +38,8 @@ export interface Player {
   tiltProne?: number;
   // Key del arquetipo (para la voz y observabilidad). No afecta la lógica.
   brainKey?: string;
+  // Edad del ciudadano (variable de sabor; matiza persona/timing al sentarse).
+  edad?: number;
 }
 
 export interface Game {
