@@ -181,12 +181,17 @@ export function PokerScreen() {
   // Cartas volando: reparto (crupier -> asiento) y descarte/fold (asiento -> crupier).
   const [dealCards, setDealCards] = useState<FlyingCard[]>([]);
   const [muckCards, setMuckCards] = useState<FlyingCard[]>([]);
+  // Modo pruebas (solo admin): ver las cartas de TODOS, incluso de quien se
+  // retira, para analizar qué manos foldean / farolean. No afecta la lógica.
+  const [debugReveal, setDebugReveal] = useState(false);
   const foldedRef = useRef<boolean[]>([]);
   const muckSeqRef = useRef(0);
   const isMobile = useIsMobile();
   const isPortrait = useIsPortrait();
   const cashedRef = useRef(false);
   const handNoRef = useRef(1283);
+  // En pruebas, arranca con cartas abiertas para el admin.
+  useEffect(() => { if (profile?.is_admin) setDebugReveal(true); }, [profile?.is_admin]);
   const startStackRef = useRef(0);
   const recordedRef = useRef(false);
 
@@ -771,7 +776,9 @@ export function PokerScreen() {
             {game.players.map((p, idx) => {
               if (idx === 0) return null;
               const pos = POS[idx];
-              const showCards = reveal && !p.folded;
+              const showCards = debugReveal ? p.hole.length > 0 : (reveal && !p.folded);
+              const handLabel = showCards && game.board.length >= 3 && p.hole.length === 2
+                ? HAND_NAME(handCategory(evaluate7([...p.hole, ...game.board]))) : null;
               const acting = game.toAct === idx && !game.handOver;
               const isWin = idx === winnerIdx;
               return (
@@ -781,6 +788,11 @@ export function PokerScreen() {
                       {showCards
                         ? p.hole.map((c, i) => <span key={i} style={holeCardStyle}><CardFace c={c} w={22} tilt={i === 0 ? -8 : 8} /></span>)
                         : p.hole.map((_, i) => <span key={i} style={holeCardStyle}><CardBack w={18} tilt={i === 0 ? -8 : 8} /></span>)}
+                    </div>
+                  )}
+                  {handLabel && (
+                    <div style={{ fontSize: 8, letterSpacing: '.04em', color: p.folded ? 'rgba(232,160,160,.7)' : 'rgba(236,210,142,.9)', marginBottom: 1 }}>
+                      {p.folded ? 'folded: ' : ''}{handLabel}
                     </div>
                   )}
                   <div style={{ position: 'relative', width: 40, height: 40, margin: '0 auto', zIndex: 2 }}>
@@ -824,6 +836,11 @@ export function PokerScreen() {
             <button onClick={levantarse} style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, padding: '9px 10px', borderRadius: 11, border: '1px solid rgba(255,255,255,.14)', background: 'rgba(255,255,255,.03)', color: '#ece6d6', fontSize: 13, fontWeight: 500, cursor: 'pointer' }}>
               <span style={{ fontSize: 16, lineHeight: 0 }}>‹</span> Salir
             </button>
+            {profile?.is_admin && (
+              <button onClick={() => setDebugReveal((v) => !v)} title="Pruebas: ver cartas de todos" style={{ flexShrink: 0, padding: '9px 11px', borderRadius: 11, border: `1px solid ${debugReveal ? 'rgba(236,210,142,.6)' : 'rgba(255,255,255,.14)'}`, background: debugReveal ? 'rgba(236,210,142,.14)' : 'rgba(255,255,255,.03)', color: debugReveal ? '#ecd9a5' : 'rgba(232,226,212,.6)', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                👁 {debugReveal ? 'Cartas abiertas' : 'Cartas ocultas'}
+              </button>
+            )}
             <button onClick={() => setDrawer(true)} aria-label="Menú de mesa" style={{ width: 38, height: 38, flexShrink: 0, borderRadius: 11, border: '1px solid rgba(201,163,91,.45)', background: 'rgba(201,163,91,.08)', cursor: 'pointer', display: 'grid', placeItems: 'center' }}>
               <span style={{ display: 'block', width: 15, height: 1.6, background: '#ecd9a5', borderRadius: 2, boxShadow: '0 5px 0 #ecd9a5, 0 -5px 0 #ecd9a5' }} />
             </button>
