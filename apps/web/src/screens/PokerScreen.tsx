@@ -992,7 +992,9 @@ export function PokerScreen() {
           {/* asientos */}
           {game.players.map((p, idx) => {
             const pos = POS[idx];
-            const showCards = p.id === 'you' || (reveal && !p.folded);
+            const showCards = p.id === 'you' || (debugReveal ? p.hole.length > 0 : (reveal && !p.folded));
+            const handLabel = p.id !== 'you' && showCards && game.board.length >= 3 && p.hole.length === 2
+              ? HAND_NAME(handCategory(evaluate7([...p.hole, ...game.board]))) : null;
             const acting = game.toAct === idx && !game.handOver;
             const isWinner = idx === winnerIdx;
             const me = p.id === 'you';
@@ -1004,6 +1006,11 @@ export function PokerScreen() {
                     {showCards
                       ? p.hole.map((c, i) => <CardFace key={i} c={c} w={me ? 46 : 30} tilt={me ? (i === 0 ? -5 : 5) : (i === 0 ? -8 : 8)} />)
                       : p.hole.map((_, i) => <CardBack key={i} tilt={i === 0 ? -8 : 8} />)}
+                  </div>
+                )}
+                {handLabel && (
+                  <div style={{ fontSize: 8.5, letterSpacing: '.04em', color: p.folded ? 'rgba(232,160,160,.75)' : 'rgba(236,210,142,.92)', marginBottom: 1 }}>
+                    {p.folded ? 'folded: ' : ''}{handLabel}
                   </div>
                 )}
                 {/* avatar */}
