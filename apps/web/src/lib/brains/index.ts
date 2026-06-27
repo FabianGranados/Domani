@@ -44,6 +44,27 @@ export function pioneroByKey(key: string): BrainSpec | undefined {
   return PIONEROS.find((p) => p.key === key);
 }
 
+// Composición del CAMPO en mesas reales: los "pollos" y jugones sueltos son
+// MAYORÍA (juegan mal, suben a todo, no sueltan), los pros tight son raros.
+// Así hay acción y las manos premium reciben pago (más realista).
+const FIELD_WEIGHTS: Record<string, number> = {
+  pollo: 3.2, ludopata: 2.2, galan: 1.6, erratico: 1.5, tilteado: 1.5,
+  tiburon: 1.0, veterano: 1.0, frio: 0.6, roca: 0.6, don: 0.4,
+};
+
+/** Asigna un arquetipo a un ciudadano de forma determinista (sesgado a pollos). */
+export function fieldArchetype(seed: string): BrainSpec {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < seed.length; i++) { h ^= seed.charCodeAt(i); h = Math.imul(h, 0x01000193); }
+  const total = PIONEROS.reduce((a, p) => a + (FIELD_WEIGHTS[p.key] ?? 1), 0);
+  let r = ((h >>> 0) / 4294967296) * total;
+  for (const p of PIONEROS) {
+    r -= FIELD_WEIGHTS[p.key] ?? 1;
+    if (r <= 0) return p;
+  }
+  return PIONEROS[0];
+}
+
 /**
  * Elige una frase determinista del banco de voz, según evento y semilla
  * (mano/turno/uuid). Sin azar: el mismo contexto da la misma frase.

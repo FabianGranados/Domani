@@ -15,35 +15,23 @@ const clamp01 = (x: number) => Math.max(0, Math.min(1, x));
 const clamp = (x: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, x));
 
 // --- Límites (futuras perillas de admin) ---
-export const POKER_MIN_MS = 2000;
-export const POKER_MAX_MS = 20000; // hasta ~20s en un spot durísimo
+export const POKER_MAX_MS = 12000; // tope del "tanque" en un spot cerrado
 export const CHESS_MIN_MS = 1800;
 export const CHESS_MAX_MS = 11000; // acotado: el humano espera al bot
 
-interface PokerCtx {
-  toCall: number;   // cuánto falta por pagar
-  pot: number;      // bote actual
-  stack: number;    // fichas del que actúa
-  street: number;   // 0 preflop, 3 flop, 4 turn, 5 river
-  canCheck: boolean;
-}
-
 /**
- * Retraso humano (ms) para una decisión de póker. `rnd` es un PRNG [0,1) — pasa
- * Math.random para variedad natural entre manos.
+ * Retraso humano (ms) para una decisión de póker, según su DIFICULTAD.
+ * - snap: decisión obvia (basura/monstruo) -> casi instantáneo, "ya decidí".
+ * - difficulty 0..1: marginal frente a presión -> se tanquea.
+ * La mayoría de jugadas son snap o rutina, así la mesa se siente ágil y solo
+ * de vez en cuando alguien se demora de verdad (lo que se ve humano).
  */
-export function humanPokerDelayMs(c: PokerCtx, rnd: () => number = Math.random): number {
-  // Si puede pasar gratis y no hay presión, suele ser rápido.
-  if (c.canCheck && rnd() < 0.6) {
-    return Math.round(clamp(1400 + rnd() * 2400, POKER_MIN_MS, POKER_MAX_MS));
-  }
-  const potOdds = c.toCall / (c.pot + c.toCall + 1);
-  const stackRisk = c.toCall / (c.stack + 1);
-  const crit = clamp01(potOdds * 0.5 + stackRisk * 1.0 + (c.street >= 4 ? 0.2 : 0));
-  const base = 2200 + rnd() * 3200;            // 2.2–5.4s
-  const tank = crit * (5000 + rnd() * 9000);   // hasta ~14s en lo serio
-  const occasional = rnd() < 0.1 ? 4000 + rnd() * 7000 : 0; // pensada larga rara
-  return Math.round(clamp(base + tank + occasional, POKER_MIN_MS, POKER_MAX_MS));
+export function humanPokerDelayMs(c: { difficulty: number; snap: boolean }, rnd: () => number = Math.random): number {
+  if (c.snap) return Math.round(clamp(350 + rnd() * 750, 300, POKER_MAX_MS)); // 0.35–1.1s
+  const base = 900 + rnd() * 1200;                       // 0.9–2.1s rutina
+  const think = Math.pow(clamp01(c.difficulty), 1.4) * 9000; // hasta ~9s en lo cerrado
+  const occasional = rnd() < 0.06 ? 2200 + rnd() * 3500 : 0; // pensada larga rara
+  return Math.round(clamp(base + think + occasional, 500, POKER_MAX_MS));
 }
 
 interface ChessCtx {

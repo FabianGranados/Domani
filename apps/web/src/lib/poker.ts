@@ -208,6 +208,25 @@ export function legalActions(g: Game): LegalActions {
   };
 }
 
+// Dificultad de la decisión actual para modular el "tiempo de pensar" humano.
+// snap = obvio (basura con apuesta enfrente, o monstruo) -> actúa casi al
+// instante (ya lo había decidido). difficulty alto = mano marginal frente a
+// presión = se tanquea. Manos extremas = fácil = rápido.
+export function decisionTiming(g: Game): { difficulty: number; snap: boolean } {
+  const p = g.players[g.toAct];
+  if (!p) return { difficulty: 0, snap: true };
+  const la = legalActions(g);
+  const facingBet = la.callAmount > 0;
+  const s = strength(g, p) + (g.board.length >= 3 ? drawBonus(g, p) : 0);
+  const potOdds = la.callAmount / (g.pot + la.callAmount + 1);
+  const snap = (facingBet && s < 0.20) || s > 0.92 || (!facingBet && s < 0.25);
+  const mid = 1 - Math.min(1, Math.abs(s - 0.5) * 2); // 1 en la frontera, 0 en extremos
+  const difficulty = facingBet
+    ? Math.max(0, Math.min(1, mid * 0.7 + potOdds * 0.5))
+    : mid * 0.35;
+  return { difficulty, snap };
+}
+
 export type Action =
   | { type: 'fold' }
   | { type: 'check' }

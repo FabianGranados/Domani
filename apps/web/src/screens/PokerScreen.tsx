@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthProvider';
 import { getWallet, listHouses, pokerBuyin, pokerCashout, getPokerCitizens, avatarSrc } from '../lib/api';
 import {
-  startHand, applyAction, legalActions, botAction,
+  startHand, applyAction, legalActions, botAction, decisionTiming, pokerPersonaFromBrain,
   evaluate7, handCategory, HAND_NAME, RANK_LABEL, isRed,
   type Game, type Player, type Card,
 } from '../lib/poker';
+import { fieldArchetype } from '../lib/brains';
 import { humanPokerDelayMs } from '../lib/humanTiming';
 import type { House } from '../lib/types';
 import {
@@ -184,6 +185,9 @@ export function PokerScreen() {
   // Modo pruebas (solo admin): ver las cartas de TODOS, incluso de quien se
   // retira, para analizar qué manos foldean / farolean. No afecta la lógica.
   const [debugReveal, setDebugReveal] = useState(false);
+  // Pre-acción: marcas "pasar/retirarme" mientras los demás piensan y se
+  // ejecuta sola en tu turno (pasa si es gratis, se retira si hay apuesta).
+  const [preCheckFold, setPreCheckFold] = useState(false);
   const foldedRef = useRef<boolean[]>([]);
   const muckSeqRef = useRef(0);
   const isMobile = useIsMobile();
@@ -219,10 +223,18 @@ export function PokerScreen() {
       setFeltPath(feltForTable(t));
       // Sienta CIUDADANOS reales de tu ciudad (con su cara). Si no hay, usa los de respaldo.
       const cits = await getPokerCitizens(house.id, 7).catch(() => []);
-      const styles: Player['style'][] = ['conservador', 'normal', 'agresivo'];
+      // Cada ciudadano hereda un ARQUETIPO (sesgo a pollos) -> campo realista.
+      const seat = (id: string, name: string, avatar: string | undefined): Player => {
+        const arche = fieldArchetype(id);
+        return {
+          id, name, avatar, isBot: true, style: 'normal' as Player['style'],
+          stack, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false,
+          persona: pokerPersonaFromBrain(arche), tiltProne: arche.debilidades.tilt, brainKey: arche.key,
+        };
+      };
       const botPlayers: Player[] = cits.length
-        ? cits.map((c, i) => ({ id: c.id, name: c.alias, avatar: c.avatar_code, isBot: true, style: styles[(i + Math.floor(Math.random() * 3)) % 3], stack, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false }))
-        : BOTS.map((b) => ({ id: b.name, name: b.name, isBot: true, style: b.style, stack, bet: 0, hole: [] as Card[], folded: false, allIn: false, acted: false }));
+        ? cits.map((c) => seat(c.id, c.alias, c.avatar_code))
+        : BOTS.map((b) => seat(b.name, b.name, undefined));
       const players: Player[] = [
         { id: 'you', name: profile?.alias ?? 'Tú', avatar: profile?.avatar_code, isBot: false, style: 'normal', stack, bet: 0, hole: [], folded: false, allIn: false, acted: false },
         ...botPlayers,
@@ -270,6 +282,7 @@ export function PokerScreen() {
     startStackRef.current = game.players.find((p) => p.id === 'you')?.stack ?? 0;
     recordedRef.current = false;
     setYouReveal(false);
+    setPreCheckFold(false);
     setGame(startHand(game.players, nd, activeSB, activeBB));
     setHandKey((k) => k + 1);
   }
@@ -303,11 +316,7 @@ export function PokerScreen() {
     const cur = game.players[game.toAct];
     if (cur.isBot && !cur.folded && !cur.allIn) {
       // Ritmo humano: variable, más lento, se tanquea en spots difíciles.
-      const la = legalActions(game);
-      const wait = humanPokerDelayMs({
-        toCall: la.callAmount, pot: game.pot, stack: cur.stack,
-        street: game.board.length, canCheck: la.canCheck,
-      });
+      const wait = humanPokerDelayMs(decisionTiming(game));
       const t = setTimeout(() => {
         setGame((g) => (g && !g.handOver && g.players[g.toAct].isBot ? applyAction(g, botAction(g)) : g));
       }, wait);
@@ -322,6 +331,14 @@ export function PokerScreen() {
       setTurnLeft(null);
       return;
     }
+    // Pre-acción marcada: pasa si es gratis, se retira si hay apuesta. Inmediato.
+    if (preCheckFold) {
+      const a = legalActions(game);
+      setPreCheckFold(false);
+      setTurnLeft(null);
+      setGame(applyAction(game, a.canCheck ? { type: 'check' } : { type: 'fold' }));
+      return;
+    }
     setTurnLeft(TURN_SECONDS);
     const iv = setInterval(() => setTurnLeft((s) => (s && s > 0 ? s - 1 : 0)), 1000);
     const to = setTimeout(() => {
@@ -332,7 +349,7 @@ export function PokerScreen() {
       });
     }, TURN_SECONDS * 1000);
     return () => { clearInterval(iv); clearTimeout(to); };
-  }, [game, dealing]);
+  }, [game, dealing, preCheckFold]);
 
   // Reparto: al iniciar cada mano, el crupier (arriba-centro) reparte cada
   // carta hacia su asiento, en orden real (CP primero, en sentido horario,
@@ -498,6 +515,18 @@ export function PokerScreen() {
     : null;
   const winnerIdx = game.handOver && game.winners[0] ? game.players.findIndex((p) => p.id === game.winners[0].id) : -1;
 
+  // Casilla de pre-acción: visible cuando NO es tu turno y sigues en la mano.
+  const canPreAct = !game.handOver && !dealing && !you.folded && !you.allIn && game.players[game.toAct].id !== 'you';
+  const preActionBar = () => canPreAct ? (
+    <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
+      color: preCheckFold ? '#ecd9a5' : 'rgba(232,226,212,.7)', borderRadius: 999, padding: '7px 13px',
+      border: `1px solid ${preCheckFold ? 'rgba(201,163,91,.5)' : 'rgba(255,255,255,.14)'}`,
+      background: preCheckFold ? 'rgba(201,163,91,.12)' : 'rgba(255,255,255,.03)' }}>
+      <input type="checkbox" checked={preCheckFold} onChange={(e) => setPreCheckFold(e.target.checked)} style={{ accentColor: '#c9a35b' }} />
+      Pasar / retirarme en mi turno
+    </label>
+  ) : null;
+
   // clamp raise slider
   const minR = la ? la.minRaiseTo : activeBB * 2;
   const maxR = la ? la.maxRaiseTo : activeBB * 2;
@@ -595,8 +624,11 @@ export function PokerScreen() {
       );
     }
     return (
-      <div style={{ textAlign: 'center', width: '100%', color: 'rgba(232,226,212,.5)', fontSize: 14, fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic' }}>
-        {game!.players[game!.toAct].name} está pensando…
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
+        <div style={{ textAlign: 'center', color: 'rgba(232,226,212,.5)', fontSize: 14, fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic' }}>
+          {game!.players[game!.toAct].name} está pensando…
+        </div>
+        {preActionBar()}
       </div>
     );
   }
@@ -911,6 +943,8 @@ export function PokerScreen() {
             </div>
           ) : game.handOver && you.stack <= 0 ? (
             <button className="btn" onClick={levantarse} style={{ flexShrink: 0 }}>Salir</button>
+          ) : canPreAct ? (
+            <div style={{ display: 'flex', justifyContent: 'center', flexShrink: 0 }}>{preActionBar()}</div>
           ) : null}
         </div>
 
