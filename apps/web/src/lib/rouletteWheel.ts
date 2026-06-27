@@ -22,7 +22,12 @@ const W = 1040, H = 780, CX = 520, CY = 360, TILT = 0.78, DEPTH = 122;
 const R_OUT = 356, R_RIM_IN = 296, R_TRACK_IN = 250, R_PK_OUT = 248, R_PAD_IN = 206,
   R_PETAL = 182, R_NUM = 225, R_CONE = 176, CONE_H = 70;
 const SPEED = 0.30, R_BALL_HI = 278, R_BALL_LO = 230;
-const LAUNCH_WV = -8.5;
+// Física de la bola (aterrizaje fluido, desaceleración constante).
+const LAUNCH_V = 12;            // velocidad inicial (sentido opuesto a la rueda)
+const SPIN_FRICTION = 0.12;     // fricción suave mientras orbita la pista
+const MIN_SPIN = 4;             // velocidad mínima de órbita antes de aterrizar
+const LAND_T = 4.8;             // duración del aterrizaje (s)
+const MIN_SWEEP = Math.PI * 3;  // barrido mínimo en el aterrizaje (~1.5 vueltas)
 
 function shade(hex: string, f: number): string {
   const n = parseInt(hex.slice(1), 16);
@@ -46,9 +51,10 @@ function cyl(c: CanvasRenderingContext2D, base: string, lo?: number, hi?: number
 }
 
 interface BallState {
-  phase: 'idle' | 'launch' | 'settle';
-  angle: number; lockedLocal: number; r: number; wv: number; vr: number;
-  landing: boolean; lockOff: number | null; lockTo: number; lockI: number;
+  phase: 'idle' | 'spin' | 'land';
+  angle: number; r: number; wv: number; lockedLocal: number;
+  // plan de aterrizaje (spline de Hermite -> caída fluida y exacta)
+  t: number; T: number; theta0: number; theta1: number; v0: number; v1: number; r0: number;
 }
 
 export type WheelColor = ReturnType<typeof colorOf>;
@@ -61,11 +67,13 @@ export class RouletteWheel {
   private last = 0;
   private wheelAngle = 0;
   private ball: BallState = {
-    phase: 'idle', angle: -Math.PI / 2, lockedLocal: -Math.PI / 2, r: R_BALL_LO,
-    wv: 0, vr: 0, landing: false, lockOff: null, lockTo: 0, lockI: 0,
+    phase: 'idle', angle: -Math.PI / 2, r: R_BALL_LO, wv: 0, lockedLocal: -Math.PI / 2,
+    t: 0, T: LAND_T, theta0: 0, theta1: 0, v0: 0, v1: 0, r0: R_BALL_LO,
   };
   /** índice (en ORDER) del número que el servidor decidió; null = aún no llega */
   private targetIndex: number | null = null;
+  /** se pidió aterrizar (NO VA MÁS); la bola sigue orbitando hasta tener número */
+  private wantLand = false;
   private landedCb: ((n: number) => void) | null = null;
 
   constructor(canvas: HTMLCanvasElement) {
@@ -93,26 +101,23 @@ export class RouletteWheel {
     this.raf = requestAnimationFrame(loop);
   }
 
-  /** Lanza la bola (la rueda ya está girando). */
+  /** Lanza la bola (la rueda ya está girando, en sentido contrario). */
   launch() {
     const b = this.ball;
-    b.phase = 'launch';
-    b.wv = LAUNCH_WV * (0.95 + Math.random() * 0.1);
+    b.phase = 'spin';
+    b.wv = LAUNCH_V * (0.96 + Math.random() * 0.08);
     b.r = R_BALL_HI;
-    b.vr = 0;
-    b.landing = false;
-    b.lockOff = null;
+    this.wantLand = false;
     this.targetIndex = null;
   }
 
-  /** "¡NO VA MÁS!": la bola empieza a caer en espiral. */
+  /**
+   * "¡NO VA MÁS!": pide aterrizar. La bola sigue orbitando y
+   * desacelerando hasta que llegue el número del servidor (lockTo);
+   * recién entonces planifica la caída fluida hacia ese bolsillo.
+   */
   settle() {
-    const b = this.ball;
-    if (b.phase !== 'launch') return;
-    b.phase = 'settle';
-    b.vr = -6;
-    b.landing = false;
-    b.lockOff = null;
+    if (this.ball.phase === 'spin') this.wantLand = true;
   }
 
   /** Fija el número (del servidor) hacia el que la bola debe aterrizar. */
@@ -134,57 +139,98 @@ export class RouletteWheel {
   }
 
   // ---------------------- física de la bola ----------------------
-  private updateBall(now: number, dt: number) {
+  private updateBall(_now: number, dt: number) {
     const b = this.ball;
-    if (b.phase === 'launch') {
+
+    if (b.phase === 'spin') {
+      // Órbita en la pista exterior, desacelerando con fricción suave.
+      // Se mantiene una velocidad mínima para que siga "viva" hasta aterrizar.
+      b.wv -= b.wv * SPIN_FRICTION * dt;
+      if (Math.abs(b.wv) < MIN_SPIN) b.wv = (b.wv < 0 ? -1 : 1) * MIN_SPIN;
       b.angle += b.wv * dt;
-      b.wv += 0.30 * dt;
-      if (b.wv > 0) b.wv = 0; // decelera, nunca acelera
-      b.r = R_BALL_HI + Math.sin(now / 120) * 0.8;
-    } else if (b.phase === 'settle') {
-      b.angle += b.wv * dt;
-      b.wv += 0.55 * dt;
-      if (b.wv > 0) b.wv = 0;
-      if (!b.landing) {
-        b.vr += -24 * dt;
-        if (b.vr > -7) b.vr = -7;
-        if (b.vr < -90) b.vr = -90; // cae con piso de velocidad
-        b.r += b.vr * dt + Math.sin(now / 45) * 0.5; // espiral + leve rebote
-        if (b.r <= R_BALL_LO) {
-          b.r = R_BALL_LO;
-          b.landing = true;
-          b.lockOff = null;
-        }
-      } else {
-        // En la pista esperando el veredicto del servidor.
-        if (this.targetIndex === null) {
-          // flota en el borde, arrastrada por la rueda, hasta que llegue el número
-          b.angle += b.wv * dt;
-          b.r = R_BALL_LO;
-          return;
-        }
-        if (b.lockOff === null) {
-          const i = this.targetIndex;
-          b.lockI = i;
-          const tgt = -Math.PI / 2 + i * SEG;
-          const cur = b.angle - this.wheelAngle;
-          b.lockTo = tgt + Math.round((cur - tgt) / TAU) * TAU;
-          b.lockOff = cur;
-        }
-        b.lockOff += (b.lockTo - b.lockOff) * Math.min(1, 3 * dt);
-        b.r += (R_BALL_LO - b.r) * Math.min(1, 4 * dt);
-        b.angle = this.wheelAngle + b.lockOff;
-        if (Math.abs(b.lockOff - b.lockTo) < 0.004) {
-          b.lockedLocal = -Math.PI / 2 + b.lockI * SEG;
-          b.r = R_BALL_LO;
-          b.phase = 'idle';
-          this.landedCb?.(ORDER[b.lockI]);
-        }
-      }
-    } else {
-      b.angle = this.wheelAngle + b.lockedLocal;
-      b.r = R_BALL_LO;
+      b.r = R_BALL_HI + Math.sin(b.angle * 2) * 1.2; // micro-ondulación de la pista
+      if (this.wantLand && this.targetIndex !== null) this.beginLanding();
+      return;
     }
+
+    if (b.phase === 'land') {
+      b.t += dt;
+      const s = Math.min(1, b.t / b.T);
+      // Spline de Hermite: posición C1-continua de (theta0,v0) a (theta1,v1).
+      // Con theta1 ≈ theta0 + (v0+v1)/2·T el perfil de velocidad es lineal
+      // => desaceleración CONSTANTE (caída completamente fluida).
+      const s2 = s * s, s3 = s2 * s;
+      const h00 = 2 * s3 - 3 * s2 + 1;
+      const h10 = s3 - 2 * s2 + s;
+      const h01 = -2 * s3 + 3 * s2;
+      const h11 = s3 - s2;
+      b.angle = h00 * b.theta0 + h10 * (b.v0 * b.T) + h01 * b.theta1 + h11 * (b.v1 * b.T);
+
+      // Radio: cae de la pista al anillo de números (smootherstep) y se
+      // asienta con un pequeño rebote amortiguado al final.
+      const u = Math.min(1, Math.max(0, (s - 0.08) / 0.86));
+      const drop = u * u * u * (u * (u * 6 - 15) + 10);
+      let r = b.r0 + (R_BALL_LO - b.r0) * drop;
+      if (s > 0.78) {
+        const k = (s - 0.78) / 0.22;
+        r += Math.sin(k * Math.PI) * 3.2 * (1 - k); // un solo rebote suave
+      }
+      b.r = r;
+
+      if (b.t >= b.T) {
+        const idx = this.targetIndex ?? 0;
+        b.phase = 'idle';
+        b.lockedLocal = -Math.PI / 2 + idx * SEG;
+        b.angle = this.wheelAngle + b.lockedLocal;
+        b.r = R_BALL_LO;
+        this.wantLand = false;
+        this.landedCb?.(ORDER[idx]);
+      }
+      return;
+    }
+
+    // idle: la bola descansa en su bolsillo, co-rotando con la rueda.
+    b.angle = this.wheelAngle + b.lockedLocal;
+    b.r = R_BALL_LO;
+  }
+
+  /**
+   * Planifica la caída hacia el bolsillo objetivo: elige theta1 (ángulo
+   * absoluto del bolsillo al terminar) de modo que la velocidad baje de
+   * forma constante de v0 a la velocidad de la rueda, y la bola barra un
+   * número creíble de vueltas. El final co-rota con la rueda (sin saltos).
+   */
+  private beginLanding() {
+    const b = this.ball;
+    const idx = this.targetIndex ?? 0;
+    const targetLocal = -Math.PI / 2 + idx * SEG;
+
+    b.phase = 'land';
+    b.t = 0;
+    b.T = LAND_T;
+    b.theta0 = b.angle;
+    b.v0 = b.wv;
+    b.v1 = -SPEED; // termina moviéndose con la rueda
+    b.r0 = b.r;
+
+    // Ángulo absoluto del bolsillo cuando termine el aterrizaje.
+    const base = (this.wheelAngle - SPEED * b.T) + targetLocal;
+    const avgV = (b.v0 + b.v1) / 2;
+    const thetaIdeal = b.theta0 + avgV * b.T;
+    let m = Math.round((thetaIdeal - base) / TAU);
+    let theta1 = base + m * TAU;
+
+    // Garantizar barrido mínimo y dirección coherente con el movimiento.
+    const dir = avgV < 0 ? -1 : 1;
+    let guard = 0;
+    while (
+      guard++ < 64 &&
+      (Math.abs(theta1 - b.theta0) < MIN_SWEEP || (theta1 - b.theta0) * dir < 0)
+    ) {
+      m += dir;
+      theta1 = base + m * TAU;
+    }
+    b.theta1 = theta1;
   }
 
   // ---------------------- render ----------------------
