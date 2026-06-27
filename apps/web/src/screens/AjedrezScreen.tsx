@@ -5,6 +5,7 @@ import { useAuth } from '../auth/AuthProvider';
 import { getWallet, pokerBuyin, pokerCashout, listHouses, avatarSrc, getChessOpponent } from '../lib/api';
 import type { House } from '../lib/types';
 import { bestMove } from '../lib/chessBot';
+import { humanChessDelayMs } from '../lib/humanTiming';
 import { AjedrezLobby } from '../components/AjedrezLobby';
 
 const GOLD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
@@ -230,8 +231,16 @@ export function AjedrezScreen() {
     const fen = g.fen();
     const started = Date.now();
     const apply = (bm: { from: string; to: string; promotion?: string } | null) => {
-      // Ritmo HUMANO: piensa un tiempo variable (no instantáneo de máquina).
-      const target = 650 + Math.random() * 1600;
+      // Ritmo HUMANO: variable según complejidad de la posición; se tanquea en
+      // posiciones densas o en jaque, con límites. (No instantáneo de máquina.)
+      let pieceCount = 0;
+      for (const row of g.board()) for (const sq of row) if (sq) pieceCount++;
+      const target = humanChessDelayMs({
+        legalMoves: g.moves().length,
+        inCheck: g.inCheck(),
+        pieceCount,
+        level: stake.level,
+      });
       const wait = Math.max(0, target - (Date.now() - started));
       window.setTimeout(() => {
         if (bm) { try { g.move(bm); setLastMove({ from: bm.from, to: bm.to }); } catch { /* ignore */ } }

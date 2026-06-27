@@ -7,6 +7,7 @@ import {
   evaluate7, handCategory, HAND_NAME, RANK_LABEL, isRed,
   type Game, type Player, type Card,
 } from '../lib/poker';
+import { humanPokerDelayMs } from '../lib/humanTiming';
 import type { House } from '../lib/types';
 import {
   STAKE_LADDER, tablesForHouse, seatedCount, tableRoster,
@@ -296,9 +297,15 @@ export function PokerScreen() {
     if (!game || game.handOver || dealing) return;
     const cur = game.players[game.toAct];
     if (cur.isBot && !cur.folded && !cur.allIn) {
+      // Ritmo humano: variable, más lento, se tanquea en spots difíciles.
+      const la = legalActions(game);
+      const wait = humanPokerDelayMs({
+        toCall: la.callAmount, pot: game.pot, stack: cur.stack,
+        street: game.board.length, canCheck: la.canCheck,
+      });
       const t = setTimeout(() => {
         setGame((g) => (g && !g.handOver && g.players[g.toAct].isBot ? applyAction(g, botAction(g)) : g));
-      }, 800 + Math.random() * 650);
+      }, wait);
       return () => clearTimeout(t);
     }
   }, [game, dealing]);
