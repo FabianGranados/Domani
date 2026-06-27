@@ -65,6 +65,24 @@ export async function getChessOpponent(): Promise<ChessOpponent | null> {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+// --- Trofeos de ajedrez (palmarés) ---------------------------------------
+export type ChessTrophy = { challenger: string; wins: number; attempts: number; first_win_at: string | null };
+
+/** Lee los trofeos del usuario (filas existentes; los no jugados no aparecen). */
+export async function getChessTrophies(): Promise<ChessTrophy[]> {
+  const { data, error } = await supabase
+    .from('chess_trophies')
+    .select('challenger, wins, attempts, first_win_at');
+  if (error) throw error;
+  return (data ?? []) as ChessTrophy[];
+}
+
+/** Registra el resultado de una partida contra un retador nombrado. */
+export async function recordChessResult(challenger: string, outcome: 'win' | 'loss' | 'draw'): Promise<void> {
+  const { error } = await supabase.rpc('fn_record_chess_result', { p_challenger: challenger, p_outcome: outcome });
+  if (error) throw error;
+}
+
 // --- Sala de Control (admin) ---------------------------------------------
 export type AppConfig = Record<string, unknown>;
 export async function getAppConfig(): Promise<AppConfig> {

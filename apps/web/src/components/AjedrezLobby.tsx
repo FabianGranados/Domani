@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 // ============================================================
 // Lobby del Salón de Ajedrez — panel de gestión (estilo GTA):
@@ -107,6 +108,7 @@ export function AjedrezLobby({
             <div style={kicker}>El Salón · Juegos de destreza</div>
             <h1 style={lobbyTitle}>Salón de Ajedrez</h1>
             <p style={{ color: 'rgba(232,226,212,.7)', fontStyle: 'italic', margin: '2px 0 0', fontSize: 14 }}>Un movimiento. Una consecuencia.</p>
+            <Link to="/palmares" style={{ display: 'inline-block', marginTop: 8, padding: '6px 14px', borderRadius: 999, border: '1px solid rgba(201,163,91,.4)', background: 'rgba(201,163,91,.1)', color: '#ecd9a5', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>🏆 Mi palmarés</Link>
           </div>
 
           {/* ----- LOS 5 NIVELES ----- */}

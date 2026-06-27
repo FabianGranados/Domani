@@ -2,7 +2,10 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Chess, type Move, type Square } from 'chess.js';
 import { useAuth } from '../auth/AuthProvider';
-import { getWallet, pokerBuyin, pokerCashout, listHouses, avatarSrc, getChessOpponent } from '../lib/api';
+import { getWallet, pokerBuyin, pokerCashout, listHouses, avatarSrc, getChessOpponent, recordChessResult } from '../lib/api';
+
+// Mapea el id del reto (n1..n5) a la clave del retador para los trofeos.
+const CHALLENGER_KEY: Record<string, string> = { n1: 'teo', n2: 'vera', n3: 'severo', n4: 'aurelio', n5: 'encapuchado' };
 import type { House } from '../lib/types';
 import { bestMove } from '../lib/chessBot';
 import { humanChessDelayMs } from '../lib/humanTiming';
@@ -213,6 +216,9 @@ export function AjedrezScreen() {
     if (payout > 0) pokerCashout(payout).then((b) => setBalance(b)).catch(() => {});
     const delta = outcome === 'win' ? s.bet : outcome === 'loss' ? -s.bet : 0;
     setResult({ outcome, delta, reason });
+    // Trofeos: solo cuenta contra los 5 retadores nombrados (no mesa abierta).
+    const ck = CHALLENGER_KEY[s.id];
+    if (ck) recordChessResult(ck, outcome).catch(() => {});
     refreshProfile?.();
   }
 
