@@ -164,7 +164,7 @@ export function LandingScreen() {
       <section
         style={{
           position: 'relative',
-          minHeight: '100vh',
+          minHeight: '100svh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-start',
@@ -317,7 +317,7 @@ export function LandingScreen() {
       <section
         style={{
           position: 'relative',
-          minHeight: '100vh',
+          minHeight: '100svh',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-start',
@@ -525,7 +525,7 @@ export function LandingScreen() {
       </section>
 
       {/* CTA FINAL */}
-      <section style={{ position: 'relative', minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', overflow: 'hidden', padding: '120px 24px' }}>
+      <section style={{ position: 'relative', minHeight: '100svh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', overflow: 'hidden', padding: '120px 24px' }}>
         <picture style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
           <source media="(max-width:768px)" srcSet="/assets/entrada-a.webp" />
           <img src="/assets/entrada-b.webp" alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', animation: 'domKen 26s ease-in-out infinite alternate' }} />

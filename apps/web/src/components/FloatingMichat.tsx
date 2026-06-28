@@ -209,7 +209,7 @@ const panel: React.CSSProperties = {
   right: 'calc(env(safe-area-inset-right) + 16px)',
   bottom: 'calc(env(safe-area-inset-bottom) + 90px)',
   width: 'min(360px, calc(100vw - 28px))',
-  maxHeight: 'min(560px, calc(100vh - 150px))',
+  maxHeight: 'min(560px, calc(100svh - 150px))',
   display: 'flex', flexDirection: 'column', overflow: 'hidden',
   borderRadius: 18, border: '1px solid rgba(46,160,110,.35)',
   background: 'linear-gradient(160deg,#15131c,#100e16)',

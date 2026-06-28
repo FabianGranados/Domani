@@ -63,7 +63,7 @@ export function LoginScreen() {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        minHeight: '100svh',
         display: 'grid',
         placeItems: 'center',
         padding: '32px 20px',

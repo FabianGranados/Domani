@@ -189,7 +189,7 @@ function Stepper({ step }: { step: Step }) {
 
 // ---- estilos ----
 const shell: React.CSSProperties = {
-  minHeight: '100vh', display: 'grid', placeItems: 'center', padding: '32px 20px',
+  minHeight: '100svh', display: 'grid', placeItems: 'center', padding: '32px 20px',
   background: 'radial-gradient(120% 80% at 50% -10%, #181922 0%, #08080a 60%)',
   fontFamily: "'Hanken Grotesk',sans-serif", color: '#ece6d6',
 };
