@@ -41,10 +41,18 @@ export function AjedrezOnlineScreen() {
   // Lobby: retos entrantes + mis partidas.
   useEffect(() => {
     if (!myId) return;
-    chessMyGames().then(setMyGames).catch(() => {});
+    // Al abrir: carga partidas Y retos pendientes (esperando que tú aceptes).
+    chessMyGames().then((games) => {
+      setMyGames(games);
+      const pending = games.filter((m) => m.status === 'waiting' && !m.you_white);
+      if (pending.length) setChallenges((c) => {
+        const have = new Set(c.map((x) => x.id));
+        return [...pending.filter((p) => !have.has(p.id)), ...c];
+      });
+    }).catch(() => {});
     const off = subscribeChallenges(myId, (m) => {
       setChallenges((c) => [m, ...c.filter((x) => x.id !== m.id)]);
-      setNote('¡Te retaron a una partida!');
+      setNote('¡Te retaron a una partida! Acéptalo abajo.');
     });
     return off;
   }, [myId]);
@@ -227,7 +235,7 @@ export function AjedrezOnlineScreen() {
           <div style={{ fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: '#7ee0a6', margin: '20px 0 8px' }}>Te retaron</div>
           {challenges.map((m) => (
             <div key={m.id} style={rowStyle}>
-              <span style={{ color: '#ece6d6' }}>Alguien te retó a jugar</span>
+              <span style={{ color: '#ece6d6' }}>{(m as MyGame).opp_alias ?? 'Alguien'} te retó a jugar ⚔️</span>
               <button onClick={() => accept(m)} style={{ ...btnPrimary, marginLeft: 'auto' }}>Aceptar</button>
             </div>
           ))}
