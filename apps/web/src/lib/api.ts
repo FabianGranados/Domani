@@ -551,3 +551,111 @@ export async function setAvatar(code: string): Promise<SetAvatarResult> {
 export function avatarSrc(code: string | null | undefined): string {
   return `/assets/avatars/${code || 'avatar-1'}.webp`;
 }
+
+// =============================================================================
+// HUMANOS — búsqueda por correo/alias/código + mensajería directa (DM)
+// =============================================================================
+export type FoundUser = { id: string; alias: string; avatar_code: string | null };
+
+/** Busca un humano por correo, alias o código (primeros 8 del id). */
+export async function findUser(query: string): Promise<FoundUser[]> {
+  const { data, error } = await supabase.rpc('find_user', { p_query: query });
+  if (error) throw error;
+  return (data ?? []) as FoundUser[];
+}
+
+export type DM = { id: number; sender_id: string; recipient_id: string; body: string; created_at: string };
+
+export async function dmHistory(partnerId: string): Promise<DM[]> {
+  const me = (await supabase.auth.getUser()).data.user?.id;
+  const { data, error } = await supabase
+    .from('dm_messages')
+    .select('*')
+    .or(`and(sender_id.eq.${me},recipient_id.eq.${partnerId}),and(sender_id.eq.${partnerId},recipient_id.eq.${me})`)
+    .order('created_at', { ascending: true })
+    .limit(300);
+  if (error) throw error;
+  return (data ?? []) as DM[];
+}
+
+export async function dmSend(recipientId: string, body: string): Promise<DM> {
+  const me = (await supabase.auth.getUser()).data.user?.id as string;
+  const { data, error } = await supabase
+    .from('dm_messages')
+    .insert({ sender_id: me, recipient_id: recipientId, body })
+    .select()
+    .single();
+  if (error) throw error;
+  return data as DM;
+}
+
+export type DMThread = { partner_id: string; alias: string; avatar_code: string | null; last_body: string; last_at: string };
+export async function dmThreads(): Promise<DMThread[]> {
+  const { data, error } = await supabase.rpc('dm_threads');
+  if (error) throw error;
+  return (data ?? []) as DMThread[];
+}
+
+/** Suscripción en tiempo real a mensajes entrantes (devuelve función de limpieza). */
+export function subscribeDM(myId: string, onMsg: (m: DM) => void): () => void {
+  const ch = supabase
+    .channel('dm:' + myId)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'dm_messages', filter: `recipient_id=eq.${myId}` },
+      (payload) => onMsg(payload.new as DM))
+    .subscribe();
+  return () => { supabase.removeChannel(ch); };
+}
+
+// =============================================================================
+// AJEDREZ PvP (humano vs humano, tiempo real)
+// =============================================================================
+export type ChessMatch = {
+  id: string; white_id: string; black_id: string | null; status: string;
+  fen: string; turn: string; last_move: string | null; winner_id: string | null; result: string | null;
+};
+export type MyGame = ChessMatch & { opp_alias: string | null; opp_avatar: string | null; you_white: boolean };
+
+export async function chessQuickMatch(): Promise<ChessMatch> {
+  const { data, error } = await supabase.rpc('chess_quick_match');
+  if (error) throw error; return data as ChessMatch;
+}
+export async function chessChallenge(opponentId: string): Promise<ChessMatch> {
+  const { data, error } = await supabase.rpc('chess_challenge', { p_opponent: opponentId });
+  if (error) throw error; return data as ChessMatch;
+}
+export async function chessAccept(matchId: string): Promise<ChessMatch> {
+  const { data, error } = await supabase.rpc('chess_accept', { p_match: matchId });
+  if (error) throw error; return data as ChessMatch;
+}
+export async function chessMove(matchId: string, fen: string, turn: string, lastMove: string, finished = false, winnerId: string | null = null, result: string | null = null): Promise<ChessMatch> {
+  const { data, error } = await supabase.rpc('chess_move', { p_match: matchId, p_fen: fen, p_turn: turn, p_last: lastMove, p_finished: finished, p_winner: winnerId, p_result: result });
+  if (error) throw error; return data as ChessMatch;
+}
+export async function chessResign(matchId: string): Promise<ChessMatch> {
+  const { data, error } = await supabase.rpc('chess_resign', { p_match: matchId });
+  if (error) throw error; return data as ChessMatch;
+}
+export async function chessMyGames(): Promise<MyGame[]> {
+  const { data, error } = await supabase.rpc('chess_my_games');
+  if (error) throw error; return (data ?? []) as MyGame[];
+}
+
+/** Suscripción a una partida concreta (cambios de estado/jugadas). */
+export function subscribeMatch(matchId: string, onUpdate: (m: ChessMatch) => void): () => void {
+  const ch = supabase
+    .channel('match:' + matchId)
+    .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chess_matches', filter: `id=eq.${matchId}` },
+      (payload) => onUpdate(payload.new as ChessMatch))
+    .subscribe();
+  return () => { supabase.removeChannel(ch); };
+}
+
+/** Suscripción a retos entrantes (alguien te reta: eres el negro). */
+export function subscribeChallenges(myId: string, onChallenge: (m: ChessMatch) => void): () => void {
+  const ch = supabase
+    .channel('challenges:' + myId)
+    .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'chess_matches', filter: `black_id=eq.${myId}` },
+      (payload) => onChallenge(payload.new as ChessMatch))
+    .subscribe();
+  return () => { supabase.removeChannel(ch); };
+}

@@ -80,6 +80,7 @@ export function MichatScreen() {
       <div style={{ textAlign: 'center', paddingTop: 'env(safe-area-inset-top)' }}>
         <div style={eyebrow}>Mensajería</div>
         <h1 className="page-title" style={{ margin: '2px 0 0' }}>Michat</h1>
+        <Link to="/mensajes" style={{ display: 'inline-block', marginTop: 8, padding: '7px 16px', borderRadius: 999, border: '1px solid rgba(126,224,166,.45)', background: 'rgba(126,224,166,.12)', color: '#9ff0bf', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>💬 Chatear con un humano →</Link>
       </div>
 
       <div style={twoPane(isDesktop && showChat)}>
