@@ -164,17 +164,26 @@ export class RouletteWheel {
       const h10 = s3 - 2 * s2 + s;
       const h01 = -2 * s3 + 3 * s2;
       const h11 = s3 - s2;
-      b.angle = h00 * b.theta0 + h10 * (b.v0 * b.T) + h01 * b.theta1 + h11 * (b.v1 * b.T);
+      const baseAngle =
+        h00 * b.theta0 + h10 * (b.v0 * b.T) + h01 * b.theta1 + h11 * (b.v1 * b.T);
 
-      // Radio: cae de la pista al anillo de números (smootherstep) y se
-      // asienta con un pequeño rebote amortiguado al final.
-      const u = Math.min(1, Math.max(0, (s - 0.08) / 0.86));
-      const drop = u * u * u * (u * (u * 6 - 15) + 10);
+      // Radio: la bola se mantiene en la pista exterior mientras va rápida y
+      // CAE al anillo de números al perder velocidad (~primera mitad).
+      const u = Math.min(1, Math.max(0, (s - 0.05) / 0.5));
+      const drop = u * u * u * (u * (u * 6 - 15) + 10); // smootherstep
       let r = b.r0 + (R_BALL_LO - b.r0) * drop;
-      if (s > 0.78) {
-        const k = (s - 0.78) / 0.22;
-        r += Math.sin(k * Math.PI) * 3.2 * (1 - k); // un solo rebote suave
+
+      // Rattle de diamantes/frets: al caer, la bola golpea los deflectores y
+      // rebota entre bolsillos. Se amortigua a CERO al final -> aterriza exacta.
+      const DROP_S = 0.45;
+      let rattleA = 0;
+      if (s > DROP_S) {
+        const p = (s - DROP_S) / (1 - DROP_S);      // 0..1 tras el drop
+        const decay = (1 - p) * (1 - p) * (1 - p);  // amortiguación fuerte
+        r += Math.abs(Math.sin(p * Math.PI * 3.2)) * 18 * decay; // rebotes radiales
+        rattleA = Math.sin(p * Math.PI * 5) * 0.09 * decay;      // saltos entre frets
       }
+      b.angle = baseAngle + rattleA;
       b.r = r;
 
       if (b.t >= b.T) {

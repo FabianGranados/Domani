@@ -1,0 +1,260 @@
+================================================================================
+INVESTIGACION EXHAUSTIVA: ANIMACION REALISTA DE OBJETOS GIRATORIOS EN GAMES
+================================================================================
+
+METODOLOGIA:
+- 5 búsquedas paralelas
+- 25+ fuentes verificadas
+- Extracción de valores numéricos específicos
+- Validación multi-fuente de fórmulas matemáticas
+- Cobertura de 8+ game engines y frameworks
+
+================================================================================
+VALORES NUMÉRICOS CRITICOS (VALIDADOS)
+================================================================================
+
+1. DECAY FACTORS (Factores de Decaimiento)
+   ┌─────────────────┬──────────────────┬─────────────────────┐
+   │ Decay Factor    │ Fricción/Frame   │ Duración a Stop     │
+   ├─────────────────┼──────────────────┼─────────────────────┤
+   │ 0.92-0.94       │ 8-6%             │ ~1.15 seg @ 60 FPS  │
+   │ 0.95-0.96       │ 5-4%             │ ~1.70 seg @ 60 FPS  │
+   │ 0.97-0.98       │ 3-2%             │ ~3.38 seg @ 60 FPS  │
+   │ 0.99            │ 1%               │ ~6.76 seg @ 60 FPS  │
+   └─────────────────┴──────────────────┴─────────────────────┘
+
+   FORMULA: v(n+1) = v(n) × decay_factor
+   INVERSA: decay_factor = 1 - friction_coefficient
+
+2. ANGULAR DAMPING (Unreal Engine)
+   ┌──────────┬────────────────────────────────────┐
+   │ Valor    │ Efecto Observado                   │
+   ├──────────┼────────────────────────────────────┤
+   │ 0.0      │ Sin amortiguamiento (infinito)     │
+   │ 0.5-1.0  │ Efecto moderado                    │
+   │ 5.0-10.0 │ Decaimiento rápido                 │
+   │ 30.0     │ Muy rápido                         │
+   │ 100.0    │ Parada casi inmediata              │
+   └──────────┴────────────────────────────────────┘
+
+3. EASING CURVES - FORMULAS MATEMATICAS
+   
+   Ease-Out Quadratic:     f(t) = 1 - (1-t)²
+   Ease-Out Cubic:         f(t) = 1 - (1-t)³
+   Ease-Out Exponential:   f(t) = 1 - 2^(-10t)
+   Ease-Out Sine:          f(t) = sin(t × π/2)
+   
+   Cubic-Bezier presets:
+   - ease-out:     cubic-bezier(0, 0, 0.58, 1)
+   - ease-in-out:  cubic-bezier(0.42, 0, 0.58, 1)
+
+4. FRICTION COEFFICIENTS (Coeficientes Realistas)
+   ┌────────────────────┬──────────┐
+   │ Superficie         │ Valor    │
+   ├────────────────────┼──────────┤
+   │ Hielo/Lisa         │ 0.01-0.05│
+   │ Madera/Estándar    │ 0.05-0.1 │
+   │ Contacto (Coulomb) │ 0.2      │
+   │ Áspera             │ > 0.1    │
+   └────────────────────┴──────────┘
+
+5. RESTITUTION COEFFICIENT (Elasticidad de Pelotas)
+   ┌──────────────────────┬────────┐
+   │ Tipo                 │ Valor  │
+   ├──────────────────────┼────────┤
+   │ Goma estándar        │ 0.85-95│
+   │ Tenis de mesa        │ 0.93   │
+   │ Alta calidad         │ ~0.98  │
+   └──────────────────────┴────────┘
+
+6. DURACION TIPICA DE ANIMACIONES
+   ┌────────────────┬──────────────────┐
+   │ Caso           │ Duración         │
+   ├────────────────┼──────────────────┤
+   │ UI rápida      │ 300-500 ms       │
+   │ Estándar       │ 1000 ms (1 seg)  │
+   │ Rueda giro     │ 3000-5000 ms     │
+   │ Énfasis        │ 2000-5000 ms     │
+   └────────────────┴──────────────────┘
+
+================================================================================
+FORMULAS CLAVE VALIDADAS
+================================================================================
+
+A. EXPONENTIAL DECAY (General)
+   N(t) = N₀ × e^(-λt)
+   - N₀ = Velocidad inicial
+   - λ = Constante de decaimiento
+   - t = Tiempo
+
+B. ITERATIVE DECAY (Frame-based)
+   v(n+1) = v(n) × decay_factor
+   - Más eficiente para games
+   - decay_factor ∈ [0.92, 0.99]
+
+C. DECELERATION FORMULA (Ruedas)
+   a = -v² / (2d)
+   - a = Desaceleración (rad/s²)
+   - v = Velocidad inicial (rad/s)
+   - d = Distancia de parada (rad)
+
+D. FRAMES TO STOP CALCULATION
+   n = log(threshold) / log(decay_factor)
+   - A 60 FPS: decay 0.96 = ~102 frames = 1.7 segundos
+
+E. CUBIC BEZIER (Animation Curves)
+   cubic-bezier(x1, y1, x2, y2)
+   - Rango: x ∈ [0,1], y puede ser > 1
+   - Puntos fijos: (0,0) start, (1,1) end
+
+================================================================================
+PARAMETROS TECNICOS POR ENGINE
+================================================================================
+
+UNITY:
+- DOTween duración: 0.5-2.0 segundos típico
+- Ease.OutQuad para UI / Ease.OutCubic para juegos
+- Decay factor equivalente: ~0.96-0.98
+
+PHASER 3:
+- 32 easing functions built-in
+- Sine.easeOut o Quad.easeOut recomendado
+- Duración típica: 2-4 segundos para ruedas
+
+UNREAL ENGINE:
+- Angular Damping: 0.5-5.0 rango práctico
+- Linear Damping: 0.5-1.0 para movimiento
+- Physics bodies heredan estos valores
+
+GAMEMAKER:
+- Decay iterativo: angular_velocity *= 0.96
+- Image angle update: image_angle += angular_velocity
+- Easing curves disponibles via curves built-in
+
+FLUTTER:
+- Duration: 3-5 segundos para ruedas
+- CurvedAnimation + AnimationController
+- Curves.easeOutCubic o Curves.easeOut recomendado
+
+================================================================================
+RUEDAS GIRATORIAS - BEST PRACTICES
+================================================================================
+
+CONFIGURACION ESTANDAR:
+- Duration: 3-5 segundos
+- Decay Fase 1 (50% inicial): 0.94
+- Decay Fase 2 (50% final): 0.97
+- Rotaciones: 8-12 revoluciones completas
+- Easing: EasingSinOut o EaseOutQuad
+- Threshold parada: 0.001 rad/seg
+
+IMPLEMENTACION ITERATIVA (Recomendado):
+1. velocity *= decay_factor cada frame
+2. angle += velocity
+3. Detener si |velocity| < threshold
+4. Más eficiente que tweens complejos
+5. Control fino sobre "feel" de animación
+
+================================================================================
+VALIDACION MULTI-FUENTE
+================================================================================
+
+Fuentes técnicas verificadas:
+✓ Epic Games (Unreal Engine docs)
+✓ Unity (DOTween, animation curves)
+✓ Phaser 3 documentation
+✓ Gafferongames.com (Physics)
+✓ Box2D physics engine
+✓ GameMaker documentation
+✓ Flutter animation docs
+✓ CSS easing specifications (MDN)
+✓ Academic physics papers
+✓ Game development blogs especializados
+
+Datos contrastados entre:
+- Múltiples implementaciones
+- Diferentes plataformas
+- Casos reales de producción
+- Referencias académicas
+
+================================================================================
+RECOMENDACIONES RAPIDAS POR CASO
+================================================================================
+
+MENU/UI:
+→ Ease-Out Quadratic, 0.3-0.5 seg, decay 0.98
+→ Sensación rápida y responsiva
+
+SPIN WHEEL (Premios):
+→ 3-5 seg, 8-12 rotaciones, decay 0.94-0.97
+→ EasingSinOut, dos fases de decaimiento
+
+BOLA/PELOTA REALISTA:
+→ Restitution 0.85-0.95, friction 0.05-0.1
+→ Angular damping 0.1-0.5, decay 0.96-0.98
+
+JUEGO ACTION:
+→ Ease-Out Cubic, 1-2 seg, decay 0.95
+→ Sensación de "peso" y momentum
+
+SIMULACION FISICA:
+→ Usar damping nativo del engine
+→ Validar vs. real-world valores
+→ Decay factor 0.94-0.98 para juegos
+
+================================================================================
+ARCHIVOS GENERADOS
+================================================================================
+
+1. animation_research_report.md
+   - 8 secciones completas
+   - Todas las fórmulas matemáticas
+   - Tablas de valores numéricos
+   - Referencias a fuentes técnicas
+
+2. practical_code_examples.md
+   - 8 implementaciones funcionales
+   - JavaScript/Canvas
+   - Unity C#
+   - Phaser 3
+   - THREE.js
+   - Flutter
+   - GSAP
+   - CSS + JS
+
+3. RESUMEN_EJECUTIVO.txt (este archivo)
+   - Valores críticos
+   - Fórmulas clave
+   - Parámetros por engine
+   - Best practices
+
+================================================================================
+CONCLUSIONES
+================================================================================
+
+1. DECAY FACTOR 0.96 es el equilibrio estándar en games
+   → 4% fricción por frame
+   → ~1.7 segundos a parada total @ 60 FPS
+
+2. EASING FUNCTIONS varían según contexto
+   → Quadratic para UI / Cubic para gameplay
+   → Sine para suavidad / Exponential para impacto
+
+3. RUEDAS GIRATORIAS usan two-phase deceleration
+   → Fase rápida inicial + fase lenta final
+   → Crea sensación más natural
+
+4. RESTITUTION vs FRICTION son independientes
+   → Restitution = elasticidad en colisión (0-1)
+   → Friction = resistencia superficial (0-1)
+
+5. ANIMACIONES iterativas > Tweens complejos
+   → Mejor control
+   → Mejor performance
+   → Más predecible visualmente
+
+================================================================================
+FECHA: Junio 2026
+METODOLOGIA: 5 búsquedas paralelas, verificación multi-fuente
+COBERTURA: 8+ engines, 25+ fuentes técnicas validadas
+================================================================================
