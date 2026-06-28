@@ -40,6 +40,9 @@ export interface Player {
   brainKey?: string;
   // Edad del ciudadano (variable de sabor; matiza persona/timing al sentarse).
   edad?: number;
+  // Sentado pero FUERA de la mano (mirando): no recibe cartas ni postea ciega.
+  // Útil para que un humano entre a una mesa que ya está en juego.
+  sitOut?: boolean;
 }
 
 export interface Game {
@@ -138,7 +141,7 @@ export function handCategory(score: number): number {
 // ---------- Inicio de mano ----------
 export function startHand(players: Player[], dealer: number, sb: number, bb: number): Game {
   const deck = freshDeck();
-  const p: Player[] = players.map((pl) => ({ ...pl, bet: 0, hole: [] as Card[], folded: pl.stack <= 0, allIn: false, acted: false, lastAction: undefined }));
+  const p: Player[] = players.map((pl) => ({ ...pl, bet: 0, hole: [] as Card[], folded: pl.stack <= 0 || !!pl.sitOut, allIn: false, acted: false, lastAction: undefined }));
   // repartir 2 a cada uno activo
   for (let k = 0; k < 2; k++) for (const pl of p) if (!pl.folded) pl.hole.push(deck.pop()!);
 
