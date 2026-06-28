@@ -22,6 +22,28 @@ const ROLE_BEHAVIOR: Record<string, string> = {
   roca: 'Nit: foldea el ~90%; si ELLA sube, ya perdiste.',
   erratico: 'Impredecible: ritmos raros, jugadas locas.',
 };
+
+// Plan de revelado del board: el FLOP sale como grupo (rápido), turno y river
+// uno a uno. En all-in (runout) se espacia para durar ~5-6s. Devuelve los pasos
+// {at(ms), shown} y la duración total (para sincronizar el cierre de mano).
+function boardRevealPlan(from: number, total: number, runout: boolean): { steps: { at: number; shown: number }[]; totalMs: number } {
+  const steps: { at: number; shown: number }[] = [];
+  let t = 0, cur = from;
+  while (cur < total) {
+    if (cur === 0) {
+      const base = runout ? 450 : 280;          // flop: grupo rápido (seguido)
+      steps.push({ at: base, shown: 1 });
+      steps.push({ at: base + 110, shown: 2 });
+      steps.push({ at: base + 220, shown: 3 });
+      t = base + 220; cur = 3;
+    } else {
+      t += runout ? 2400 : 1400;                 // turno / river uno a uno
+      cur += 1;
+      steps.push({ at: t, shown: cur });
+    }
+  }
+  return { steps, totalMs: t };
+}
 import { humanPokerDelayMs } from '../lib/humanTiming';
 import { unlockSfx, sfxDeal, sfxChips, sfxCheck, sfxYourTurn, sfxTimeWarning, sfxWin } from '../lib/sfx';
 import type { House } from '../lib/types';
@@ -205,20 +227,12 @@ export function PokerScreen() {
   useEffect(() => {
     const total = game?.board.length ?? 0;
     if (total <= boardShown) { if (total < boardShown) { setBoardShown(total); setBoardBusy(false); } return; }
-    const isRunout = !!game?.handOver; // all-in: el motor corrió todo el board
+    const runout = !!game?.handOver; // all-in: el motor corrió todo el board
+    const { steps, totalMs } = boardRevealPlan(boardShown, total, runout);
     setBoardBusy(true);
-    const timers: number[] = [];
-    let t = 0;
-    for (let i = 1; i <= total - boardShown; i++) {
-      let step: number;
-      if (isRunout) step = 6000 / (total - boardShown);            // all-in: ~6s en total
-      else if (boardShown === 0) step = i === 1 ? 700 : 1650;      // flop: 1 carta, luego 2 (~4s)
-      else step = 1300;                                            // turn / river
-      t += step;
-      const shownAt = boardShown + i;
-      timers.push(window.setTimeout(() => { setBoardShown(shownAt); sfxDeal(); }, t));
-    }
-    timers.push(window.setTimeout(() => setBoardBusy(false), t + (isRunout ? 700 : 1000))); // 1s sin apuestas
+    const timers = steps.map((s) => window.setTimeout(() => { setBoardShown(s.shown); sfxDeal(); }, s.at));
+    // tras la última carta, un respiro antes de habilitar apuestas (1s).
+    timers.push(window.setTimeout(() => setBoardBusy(false), totalMs + (runout ? 200 : 1100)));
     return () => timers.forEach(clearTimeout);
   }, [game?.board.length, game?.handOver]); // eslint-disable-line react-hooks/exhaustive-deps
   // Alarma escalada en los últimos 5 segundos de tu turno (beep por segundo).
@@ -556,25 +570,21 @@ export function PokerScreen() {
   }, [phase]);
 
   // Fin de mano: animar fichas al ganador + registrar historial + repartir sola.
-  // Espera a que termine el reveal del board (all-in) antes de resolver.
+  // Dispara SIEMPRE al terminar la mano (robusto, sin cuelgues). Si hay cartas
+  // por revelar (all-in), retrasa el resultado y la siguiente mano lo que dure
+  // el reveal del board.
   useEffect(() => {
     if (!game) return;
-    if (game.handOver && boardShown >= game.board.length && !recordedRef.current && game.winners.length) {
+    if (game.handOver && !recordedRef.current && game.winners.length) {
       recordedRef.current = true;
       const w = game.winners[0];
       const idx = game.players.findIndex((p) => p.id === w.id);
       const total = game.winners.reduce((s, x) => s + x.amount, 0);
-      if (idx >= 0) setFly({ x: POS[idx].x, y: POS[idx].y, fromX: POT_X, fromY: POT_Y, amount: total, key: Date.now() });
       const winner = game.players[idx];
       const youWon = game.winners.some((x) => x.id === 'you');
       const you = game.players.find((p) => p.id === 'you')!;
       const delta = you.stack - startStackRef.current;
       const sub = game.phase === 'showdown' && winner?.lastAction ? winner.lastAction : 'Se llevó el bote';
-      setHistory((h) => [
-        { n: handNoRef.current, title: youWon ? 'Ganaste tú' : `Ganó ${winner?.name ?? '—'}`, sub, delta, youWon },
-        ...h,
-      ].slice(0, 8));
-      // Resultado de la mano AL CHAT (lo ven todos, sin afán).
       const winNames = game.winners.map((x) => {
         const pl = game.players.find((p) => p.id === x.id);
         return pl ? (pl.id === 'you' ? 'Tú' : nameOf(pl)) : '?';
@@ -582,18 +592,22 @@ export function PokerScreen() {
       const showdown = game.phase === 'showdown';
       const handDesc = showdown && winner?.lastAction ? ` con ${winner.lastAction}` : (game.board.length === 0 ? ' (los demás se retiraron)' : '');
       const verb = game.winners.length > 1 ? 'se reparten' : 'gana';
-      setChat((c) => [...c, { id: chatIdRef.current++, who: 'Crupier', mine: false, text: `🏆 ${winNames.join(', ')} ${verb} el bote · ⟡${total.toLocaleString()}${handDesc}` }]);
-      handNoRef.current += 1;
-      const tFly = setTimeout(() => setFly(null), 1300);
-      // El crupier reparte la siguiente mano solo (como en vivo). Si te
-      // quedaste sin fichas, no auto-avanza: se ofrece salir/recargar.
+      // ¿Faltan cartas por revelar? (all-in) -> espera a que termine el board.
+      const revealMs = game.board.length > boardShown ? boardRevealPlan(boardShown, game.board.length, true).totalMs + 350 : 0;
+
+      const tResult = window.setTimeout(() => {
+        if (idx >= 0) setFly({ x: POS[idx].x, y: POS[idx].y, fromX: POT_X, fromY: POT_Y, amount: total, key: Date.now() });
+        setHistory((h) => [{ n: handNoRef.current, title: youWon ? 'Ganaste tú' : `Ganó ${winner?.name ?? '—'}`, sub, delta, youWon }, ...h].slice(0, 8));
+        setChat((c) => [...c, { id: chatIdRef.current++, who: 'Crupier', mine: false, text: `🏆 ${winNames.join(', ')} ${verb} el bote · ⟡${total.toLocaleString()}${handDesc}` }]);
+        handNoRef.current += 1;
+      }, revealMs);
+      const tFly = window.setTimeout(() => setFly(null), revealMs + 1500);
       const youAlive = (game.players.find((p) => p.id === 'you')?.stack ?? 0) > 0;
-      const reveal = game.phase === 'showdown';
-      const tNext = youAlive ? setTimeout(() => nextHand(), reveal ? 4200 : 2400) : undefined;
-      return () => { clearTimeout(tFly); if (tNext) clearTimeout(tNext); };
+      const tNext = youAlive ? window.setTimeout(() => nextHand(), revealMs + (showdown ? 3400 : 2200)) : undefined;
+      return () => { clearTimeout(tResult); clearTimeout(tFly); if (tNext) clearTimeout(tNext); };
     }
     if (!game.handOver) setFly(null);
-  }, [game?.handOver, boardShown]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [game?.handOver]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---------- Lobby: casinos por Casa -> mesas ----------
   if (phase === 'lobby') {
