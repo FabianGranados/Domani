@@ -298,7 +298,7 @@ export function SalonScreen() {
 
 // ---- estilos ----
 const sectionTitle: React.CSSProperties = { fontFamily: "'Cormorant Garamond',serif", fontSize: 30, margin: 0, color: '#ece6d6' };
-const mudOverlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(6,5,9,.72)', backdropFilter: 'blur(4px)', display: 'grid', placeItems: 'center', padding: 20 };
+const mudOverlay: React.CSSProperties = { position: 'fixed', inset: 0, zIndex: 60, background: 'rgba(6,5,9,.72)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)', display: 'grid', placeItems: 'center', padding: 20 };
 const mudCard: React.CSSProperties = { width: '100%', maxWidth: 380, background: 'linear-gradient(180deg,#1a1722,#120f19)', border: '1px solid rgba(201,163,91,.28)', borderRadius: 18, padding: '22px 22px 20px', boxShadow: '0 30px 80px -30px rgba(0,0,0,.9)' };
 const mudGhost: React.CSSProperties = { padding: '11px 16px', borderRadius: 11, border: '1px solid rgba(255,255,255,.14)', background: 'transparent', color: 'rgba(232,226,212,.8)', fontSize: 14, cursor: 'pointer', fontFamily: "'Hanken Grotesk',sans-serif" };
 const ghostBtn: React.CSSProperties = { padding: '10px 18px', borderRadius: 11, border: '1px solid rgba(201,163,91,.45)', background: 'rgba(8,8,10,.35)', color: '#d8b96b', fontSize: 13.5, fontWeight: 600, cursor: 'pointer', fontFamily: "'Hanken Grotesk',sans-serif" };

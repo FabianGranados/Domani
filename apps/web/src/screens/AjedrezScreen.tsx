@@ -606,7 +606,7 @@ const dangerBtn: React.CSSProperties = {
 };
 const overlay: React.CSSProperties = {
   position: 'fixed', inset: 0, zIndex: 20, display: 'grid', placeItems: 'center', padding: 20,
-  background: 'rgba(6,5,9,.78)', backdropFilter: 'blur(4px)',
+  background: 'rgba(6,5,9,.78)', backdropFilter: 'blur(4px)', WebkitBackdropFilter: 'blur(4px)',
 };
 const overlayCard: React.CSSProperties = {
   textAlign: 'center', padding: '28px 26px', borderRadius: 20, width: 'min(360px, 100%)',

@@ -40,7 +40,7 @@ export function HouseSelectScreen() {
   return (
     <div
       style={{
-        minHeight: '100vh',
+        minHeight: '100svh',
         padding: '60px 24px 120px',
         background: 'radial-gradient(120% 70% at 50% -10%, #181922 0%, #08080a 55%)',
         fontFamily: "'Hanken Grotesk',sans-serif",

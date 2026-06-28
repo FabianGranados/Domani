@@ -144,9 +144,13 @@ const FUTURE_TABLES: { flag: string; name: string; sub: string }[] = [
 
 
 function useIsMobile() {
-  const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches);
+  // Detecta por capacidad táctil (pointer grueso) o pantalla chica. Así un
+  // iPhone grande EN HORIZONTAL (>900px) sigue usando el layout móvil y no el
+  // de escritorio, que se ve roto. (iOS no permite forzar rotación/fullscreen.)
+  const q = '(pointer: coarse), (max-width: 1024px)';
+  const [m, setM] = useState(() => typeof window !== 'undefined' && window.matchMedia(q).matches);
   useEffect(() => {
-    const mq = window.matchMedia('(max-width: 900px)');
+    const mq = window.matchMedia(q);
     const h = () => setM(mq.matches);
     mq.addEventListener('change', h);
     return () => mq.removeEventListener('change', h);
