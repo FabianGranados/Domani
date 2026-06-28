@@ -1,7 +1,0 @@
-SEARCH ANGLES FOR SPINNING/ROTATING OBJECT ANIMATION:
-
-1. game development spinning wheel tutorial
-2. exponential decay animation easing
-3. physics-based rotation angular damping friction
-4. realistic ball physics simulation tutorial
-5. ease-out curve animation formula game engine
