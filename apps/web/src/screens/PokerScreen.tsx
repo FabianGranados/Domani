@@ -262,6 +262,8 @@ export function PokerScreen() {
   // identificar a cada jugador por su forma de jugar.
   const [showRoles, setShowRoles] = useState(false);
   const nameOf = (p: Player) => (showRoles && p.brainKey ? (pioneroByKey(p.brainKey)?.nombre ?? p.name) : p.name);
+  // Nombre corto para la placa del asiento (sin la cola "_12345" que desbordaba).
+  const seatName = (p: Player) => { const n = nameOf(p); return n.includes('_') ? n.split('_')[0] : n; };
   const foldedRef = useRef<boolean[]>([]);
   const muckSeqRef = useRef(0);
   const isMobile = useIsMobile();
@@ -944,7 +946,7 @@ export function PokerScreen() {
   // ============================================================
   if (isMobile) {
     return (
-      <div style={{ position: 'fixed', inset: 0, display: 'flex', overflow: 'hidden', background: 'radial-gradient(120% 90% at 40% 42%, #11201a, #0a0a0d 70%)', paddingTop: 'env(safe-area-inset-top)' }}>
+      <div style={{ position: 'fixed', inset: 0, display: 'flex', overflow: 'hidden', background: 'radial-gradient(120% 90% at 40% 42%, #11201a, #0a0a0d 70%)', paddingTop: 'env(safe-area-inset-top)', paddingLeft: 'env(safe-area-inset-left)', paddingRight: 'env(safe-area-inset-right)', paddingBottom: 'env(safe-area-inset-bottom)' }}>
         {/* ===== IZQUIERDA: SOLO la mesa ===== */}
         <div style={{ flex: 1, position: 'relative', minWidth: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px 4px' }}>
           {/* width:100% + aspect-ratio + max-height mantiene la proporción
@@ -1016,7 +1018,7 @@ export function PokerScreen() {
                     {acting && <TimerRing />}
                   </div>
                   <div style={{ marginTop: 3, padding: '3px 6px', borderRadius: 9, background: 'rgba(8,8,10,.72)', border: `1px solid ${isWin ? 'rgba(236,210,142,.55)' : 'rgba(255,255,255,.08)'}`, backdropFilter: 'blur(3px)', display: 'inline-block' }}>
-                    <div style={{ fontSize: 10, color: 'rgba(232,226,212,.85)' }}>{nameOf(p)}</div>
+                    <div style={{ fontSize: 10, color: 'rgba(232,226,212,.85)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 74 }}>{seatName(p)}</div>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3, marginTop: 1 }}>
                       <Chip kind="gold" size={8} />
                       <span style={{ fontSize: 9, color: '#bfa164' }}>{p.stack.toLocaleString()}</span>
@@ -1255,8 +1257,8 @@ export function PokerScreen() {
                   {acting && <TimerRing />}
                 </div>
                 {/* placa */}
-                <div style={{ marginTop: 6, padding: '5px 8px 6px', borderRadius: 11, background: 'rgba(8,8,10,.62)', border: `1px solid ${isWinner ? 'rgba(236,210,142,.55)' : 'rgba(255,255,255,.08)'}`, backdropFilter: 'blur(3px)' }}>
-                  <div style={{ fontSize: 12, fontWeight: 500, color: me ? '#ece6d6' : 'rgba(232,226,212,.85)' }}>{me ? p.name : nameOf(p)}{me && <span style={{ color: 'rgba(232,226,212,.4)' }}> · tú</span>}</div>
+                <div style={{ marginTop: 6, padding: '5px 8px 6px', borderRadius: 11, background: 'rgba(8,8,10,.62)', border: `1px solid ${isWinner ? 'rgba(236,210,142,.55)' : 'rgba(255,255,255,.08)'}`, backdropFilter: 'blur(3px)', WebkitBackdropFilter: 'blur(3px)', maxWidth: 96, marginLeft: 'auto', marginRight: 'auto' }}>
+                  <div style={{ fontSize: 12, fontWeight: 500, color: me ? '#ece6d6' : 'rgba(232,226,212,.85)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{seatName(p)}{me && <span style={{ color: 'rgba(232,226,212,.4)' }}> · tú</span>}</div>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5, marginTop: 2 }}>
                     <Chip kind="gold" size={11} />
                     <span style={{ fontSize: 11, color: '#bfa164' }}>{p.stack.toLocaleString()}</span>
