@@ -108,7 +108,10 @@ export function AjedrezLobby({
             <div style={kicker}>El Salón · Juegos de destreza</div>
             <h1 style={lobbyTitle}>Salón de Ajedrez</h1>
             <p style={{ color: 'rgba(232,226,212,.7)', fontStyle: 'italic', margin: '2px 0 0', fontSize: 14 }}>Un movimiento. Una consecuencia.</p>
-            <Link to="/palmares" style={{ display: 'inline-block', marginTop: 8, padding: '6px 14px', borderRadius: 999, border: '1px solid rgba(201,163,91,.4)', background: 'rgba(201,163,91,.1)', color: '#ecd9a5', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>🏆 Mi palmarés</Link>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 8 }}>
+              <Link to="/palmares" style={{ display: 'inline-block', padding: '6px 14px', borderRadius: 999, border: '1px solid rgba(201,163,91,.4)', background: 'rgba(201,163,91,.1)', color: '#ecd9a5', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>🏆 Mi palmarés</Link>
+              <Link to="/ajedrez-online" style={{ display: 'inline-block', padding: '6px 14px', borderRadius: 999, border: '1px solid rgba(126,224,166,.45)', background: 'rgba(126,224,166,.12)', color: '#9ff0bf', fontSize: 12.5, fontWeight: 700, textDecoration: 'none' }}>🌐 Jugar con un humano</Link>
+            </div>
           </div>
 
           {/* ----- LOS 5 NIVELES ----- */}

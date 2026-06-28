@@ -20,6 +20,8 @@ import { LobbyScreen } from './screens/LobbyScreen';
 import { AdminScreen } from './screens/AdminScreen';
 import { LaboratorioScreen } from './screens/LaboratorioScreen';
 import { PalmaresScreen } from './screens/PalmaresScreen';
+import { MensajesScreen } from './screens/MensajesScreen';
+import { AjedrezOnlineScreen } from './screens/AjedrezOnlineScreen';
 import { IosInstallHint } from './components/IosInstallHint';
 import { FloatingMichat } from './components/FloatingMichat';
 import { FloatingNav } from './components/FloatingNav';
@@ -99,6 +101,8 @@ function AppRoutes({ loading, session, profile }: AppRoutesProps) {
               <Route path="/wallet" element={<WalletScreen />} />
               <Route path="/academia" element={<AcademyScreen />} />
               <Route path="/palmares" element={<PalmaresScreen />} />
+              <Route path="/mensajes" element={<MensajesScreen />} />
+              <Route path="/ajedrez-online" element={<AjedrezOnlineScreen />} />
               <Route path="/ruleta" element={<RouletteScreen />} />
               <Route path="/lobby" element={<LobbyScreen />} />
               {profile.is_admin && <Route path="/admin" element={<AdminScreen />} />}
