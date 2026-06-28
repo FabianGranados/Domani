@@ -314,11 +314,13 @@ export function PokerScreen() {
         ? cits.map((c) => seat(c.id, c.alias, c.avatar_code))
         : BOTS.map((b) => seat(b.name, b.name, undefined));
       const players: Player[] = [
-        { id: 'you', name: profile?.alias ?? 'Tú', avatar: profile?.avatar_code, isBot: false, style: 'normal', stack, bet: 0, hole: [], folded: false, allIn: false, acted: false },
+        // Entras SENTADO PERO FUERA: los bots ya están jugando y tú miras hasta
+        // que decidas entrar (botón "Entrar a la mesa").
+        { id: 'you', name: profile?.alias ?? 'Tú', avatar: profile?.avatar_code, isBot: false, style: 'normal', stack, bet: 0, hole: [], folded: false, allIn: false, acted: false, sitOut: true },
         ...botPlayers,
       ];
       chatIdRef.current = 1;
-      setChat([{ id: 0, who: 'Crupier', mine: false, text: `Bienvenido a la mesa, ${profile?.alias ?? 'jugador'}. Saluda a los presentes.` }]);
+      setChat([{ id: 0, who: 'Crupier', mine: false, text: `Bienvenido, ${profile?.alias ?? 'jugador'}. La mesa está en juego — entra cuando quieras.` }]);
       setYouReveal(false);
       const d = Math.floor(Math.random() * players.length);
       setDealer(d);
@@ -373,6 +375,13 @@ export function PokerScreen() {
     return !!y && y.stack < table.tier.buyin && (game.handOver || y.folded || y.stack <= 0) && (wallet ?? 0) > 0;
   })();
   const rebuyAmt = game && table ? Math.max(0, table.tier.buyin - (game.players.find((p) => p.id === 'you')?.stack ?? 0)) : 0;
+
+  // Entrar a la mesa que ya está en juego: dejas de mirar y entras en la
+  // próxima mano (posteando ciega como manda el reglamento).
+  function entrar() {
+    setGame((g) => g ? { ...g, players: g.players.map((p) => p.id === 'you' ? { ...p, sitOut: false } : p) } : g);
+    setChat((c) => [...c, { id: chatIdRef.current++, who: 'Crupier', mine: false, text: 'Entras en la próxima mano. Posteas ciega para jugar.' }]);
+  }
 
   function nextHand() {
     if (!game) return;
@@ -628,6 +637,7 @@ export function PokerScreen() {
   if (!game) return null;
   const you = game.players.find((p) => p.id === 'you')!;
   const reveal = game.phase === 'showdown' || game.phase === 'done';
+  const youSitOut = !!game.players.find((p) => p.id === 'you')?.sitOut;
   const yourTurn = !game.handOver && game.players[game.toAct].id === 'you';
   const la = yourTurn ? legalActions(game) : null;
   const shownBoard = game.board.slice(0, boardShown);
@@ -682,6 +692,16 @@ export function PokerScreen() {
 
   // Controles (compartidos entre escritorio y móvil)
   function renderControls() {
+    if (youSitOut) {
+      return (
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10, width: '100%' }}>
+          <div style={{ color: 'rgba(232,226,212,.6)', fontSize: 14, fontStyle: 'italic', fontFamily: "'Cormorant Garamond',serif" }}>Estás mirando la mesa…</div>
+          <button onClick={entrar} style={{ padding: '13px 30px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#9ff0bf,#4fbf83)', color: '#16241c', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>
+            Entrar a la mesa →
+          </button>
+        </div>
+      );
+    }
     if (dealing) {
       return (
         <div style={{ textAlign: 'center', width: '100%', color: 'rgba(232,226,212,.55)', fontSize: 14, fontFamily: "'Cormorant Garamond',serif", fontStyle: 'italic', letterSpacing: '.04em' }}>
@@ -1087,7 +1107,9 @@ export function PokerScreen() {
           </div>
 
           {/* acciones (siempre visibles abajo; ocultas durante el reparto) */}
-          {!dealing && !game.handOver && yourTurn && la ? (
+          {youSitOut ? (
+            <button onClick={entrar} style={{ flexShrink: 0, padding: '14px', borderRadius: 12, border: 'none', background: 'linear-gradient(135deg,#9ff0bf,#4fbf83)', color: '#16241c', fontWeight: 700, fontSize: 15, cursor: 'pointer' }}>Entrar a la mesa →</button>
+          ) : !dealing && !game.handOver && yourTurn && la ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 7, flexShrink: 0 }}>
               {la.canRaise && (
                 <button onClick={() => setGame(applyAction(game!, { type: 'raise', to: rAmt }))} style={{ ...actRaise, padding: '14px 8px' }}>
