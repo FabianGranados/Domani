@@ -323,7 +323,7 @@ function ChessDuel() {
             const dark = (r + c) % 2 === 1;
             return (
               <div key={`${r}-${c}`} style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: dark ? '#7d6549' : '#d8c39a', fontSize: 27 }}>
-                {sq && <span style={{ color: sq.color === 'w' ? '#fbf3df' : '#161310', textShadow: sq.color === 'w' ? '0 1px 1px #00000088' : '0 1px 0 #ffffff22' }}>{GLYPH[sq.type]}</span>}
+                {sq && <span style={{ color: sq.color === 'w' ? '#f7f0dc' : '#141210', textShadow: sq.color === 'w' ? '0 0 1px #000, 0 1px 1px #000' : '0 0 1px #d8c39a', fontVariantEmoji: 'text' as React.CSSProperties['fontVariantEmoji'] }}>{GLYPH[sq.type] + '\uFE0E'}</span>}
               </div>
             );
           }))}
