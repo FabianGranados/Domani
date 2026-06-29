@@ -33,7 +33,7 @@ export function FloatingNav() {
   const { profile } = useAuth();
   const [open, setOpen] = useState(false);
 
-  if (location.pathname.startsWith('/poker') || location.pathname.startsWith('/ajedrez')) return null;
+  if (location.pathname.startsWith('/poker') || location.pathname.startsWith('/ajedrez/maquina')) return null;
   const isHome = location.pathname === '/';
   const destinos = profile?.is_admin
     ? [...DESTINOS, { label: 'Sala de Control', to: '/admin', glyph: '⚙' }]

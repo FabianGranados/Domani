@@ -70,7 +70,7 @@ export function FloatingMichat() {
   const conv = conversations.find((c) => c.id === convId) ?? null;
 
   // Oculta en pantallas inmersivas (póker, ajedrez).
-  if (location.pathname.startsWith('/poker') || location.pathname.startsWith('/ajedrez')) return null;
+  if (location.pathname.startsWith('/poker') || location.pathname.startsWith('/ajedrez/maquina')) return null;
 
   function tapQuick(id: string, idx: number, qr: QuickReply) {
     setExtra((prev) => ({

@@ -5,14 +5,15 @@
 // =============================================================================
 
 import { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { Chess, type Move } from 'chess.js';
 import { useAuth } from '../auth/AuthProvider';
 import { ChessPiece } from '../components/ChessPieces';
 import {
   findUser, chessQuickMatch, chessChallenge, chessAccept, chessMove, chessResign,
   chessMyGames, subscribeMatch, subscribeChallenges, avatarSrc,
-  type ChessMatch, type FoundUser, type MyGame,
+  chessCreateLink, chessJoinLink, chessRecentOpponents,
+  type ChessMatch, type FoundUser, type MyGame, type RecentOpponent,
 } from '../lib/api';
 
 const GLYPH: Record<string, string> = { p: '♟', n: '♞', b: '♝', r: '♜', q: '♛', k: '♚' };
@@ -33,16 +34,18 @@ export function AjedrezOnlineScreen() {
   const [results, setResults] = useState<FoundUser[]>([]);
   const [challenges, setChallenges] = useState<ChessMatch[]>([]);
   const [myGames, setMyGames] = useState<MyGame[]>([]);
+  const [recents, setRecents] = useState<RecentOpponent[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
   const [legal, setLegal] = useState<Move[]>([]);
   const [note, setNote] = useState<string | null>(null);
+  const [shareUrl, setShareUrl] = useState<string | null>(null); // enlace de la invitación activa
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const unsubMatchRef = useRef<(() => void) | null>(null);
 
-  // Lobby: retos entrantes + mis partidas.
+  // Lobby: retos entrantes + mis partidas + recientes.
   useEffect(() => {
     if (!myId) return;
-    // Al abrir: carga partidas Y retos pendientes (esperando que tú aceptes).
     chessMyGames().then((games) => {
       setMyGames(games);
       const pending = games.filter((m) => m.status === 'waiting' && !m.you_white);
@@ -51,11 +54,23 @@ export function AjedrezOnlineScreen() {
         return [...pending.filter((p) => !have.has(p.id)), ...c];
       });
     }).catch(() => {});
+    chessRecentOpponents().then(setRecents).catch(() => {});
     const off = subscribeChallenges(myId, (m) => {
       setChallenges((c) => [m, ...c.filter((x) => x.id !== m.id)]);
       setNote('¡Te retaron a una partida! Acéptalo abajo.');
     });
     return off;
+  }, [myId]);
+
+  // ¿Llegamos por un ENLACE de invitación? (?j=<matchId>) -> unirse y a jugar.
+  useEffect(() => {
+    const j = searchParams.get('j');
+    if (!j || !myId) return;
+    chessJoinLink(j)
+      .then((m) => watchMatch(m, m.white_id === myId, 'Tu rival'))
+      .catch(() => setNote('Ese enlace ya no está disponible (la partida se ocupó o expiró).'))
+      .finally(() => { searchParams.delete('j'); setSearchParams(searchParams, { replace: true }); });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [myId]);
 
   useEffect(() => () => { unsubMatchRef.current?.(); }, []);
@@ -71,6 +86,29 @@ export function AjedrezOnlineScreen() {
       if (nm.status === 'active') setMode('playing');
       bump();
     });
+  }
+
+  // Construye el enlace y abre el menú de compartir del teléfono (o copia).
+  async function shareLink(url: string) {
+    const text = `Te reto a una partida de ajedrez en Domani ⚔️\n${url}`;
+    const nav = navigator as Navigator & { share?: (d: { title?: string; text?: string }) => Promise<void> };
+    if (nav.share) {
+      try { await nav.share({ title: 'Domani · Ajedrez', text }); return; } catch { /* canceló */ }
+    }
+    try { await navigator.clipboard.writeText(text); setNote('Enlace copiado. Pégalo en WhatsApp y envíaselo a tu amigo.'); }
+    catch { setNote('Copia este enlace y envíalo: ' + url); }
+  }
+
+  // Retar por ENLACE: crea una partida abierta y comparte el link.
+  async function invitarPorEnlace() {
+    setNote(null);
+    try {
+      const m = await chessCreateLink();
+      const url = `${window.location.origin}/ajedrez-online?j=${m.id}`;
+      setShareUrl(url);
+      watchMatch(m, true, 'tu amigo');
+      await shareLink(url);
+    } catch { setNote('No se pudo crear la invitación.'); }
   }
 
   async function quickMatch() {
@@ -113,8 +151,9 @@ export function AjedrezOnlineScreen() {
 
   function leave() {
     unsubMatchRef.current?.(); unsubMatchRef.current = null;
-    setMatch(null); setMode('lobby'); setSelected(null); setLegal([]);
+    setMatch(null); setMode('lobby'); setSelected(null); setLegal([]); setShareUrl(null);
     chessMyGames().then(setMyGames).catch(() => {});
+    chessRecentOpponents().then(setRecents).catch(() => {});
   }
 
   // ---- Tablero ----
@@ -169,7 +208,9 @@ export function AjedrezOnlineScreen() {
         </div>
 
         <div style={{ textAlign: 'center', marginBottom: 8, fontSize: 14, color: isMyTurn ? '#7ee0a6' : 'rgba(232,226,212,.6)' }}>
-          {mode === 'searching' ? 'Esperando al rival…' : finished ? resultText : isMyTurn ? 'Tu turno' : 'Turno del rival…'}
+          {mode === 'searching'
+            ? (shareUrl ? 'Esperando a que tu amigo entre por el enlace…' : 'Buscando un humano disponible…')
+            : finished ? resultText : isMyTurn ? 'Tu turno' : 'Turno del rival…'}
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', border: '2px solid #3a3327', borderRadius: 6, overflow: 'hidden', maxWidth: 440, margin: '0 auto', aspectRatio: '1', pointerEvents: mode === 'searching' ? 'none' : 'auto' }}>
@@ -193,7 +234,9 @@ export function AjedrezOnlineScreen() {
           }))}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+          {mode === 'searching' && shareUrl && <button onClick={() => shareLink(shareUrl)} style={btnPrimary}>📲 Compartir de nuevo</button>}
+          {mode === 'searching' && <button onClick={leave} style={btnGhost}>Cancelar</button>}
           {!finished && mode === 'playing' && <button onClick={resign} style={btnGhost}>Rendirse</button>}
           {finished && <button onClick={leave} style={btnPrimary}>Volver al lobby</button>}
         </div>
@@ -202,25 +245,74 @@ export function AjedrezOnlineScreen() {
     );
   }
 
-  // ---- LOBBY ----
+  // ---- LOBBY: "Jugar con un amigo" ----
+  const sectionLabel: React.CSSProperties = { fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: '#9c7a3e', margin: '22px 0 8px' };
   return (
-    <div style={{ maxWidth: 620, margin: '0 auto', padding: '8px 10px 40px' }}>
+    <div style={{ maxWidth: 620, margin: '0 auto', padding: '8px 12px 48px' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h1 className="page-title" style={{ margin: 0 }}>Ajedrez en línea</h1>
-        <Link to="/ajedrez" style={{ color: '#a89a7e', fontSize: 13, textDecoration: 'none' }}>vs bots →</Link>
+        <h1 className="page-title" style={{ margin: 0 }}>Jugar con un amigo</h1>
+        <Link to="/ajedrez" style={{ color: '#a89a7e', fontSize: 13, textDecoration: 'none' }}>← Salón</Link>
       </div>
-      <p className="muted" style={{ marginTop: 4 }}>Juega contra otra persona real, en tiempo real.</p>
 
-      {note && <div style={{ color: '#c8a86a', fontSize: 13, margin: '8px 0' }}>{note}</div>}
+      {note && <div style={{ color: '#c8a86a', fontSize: 13, margin: '10px 0', background: 'rgba(201,163,91,.08)', border: '1px solid rgba(201,163,91,.25)', borderRadius: 10, padding: '8px 12px' }}>{note}</div>}
 
-      <button onClick={quickMatch} style={{ ...btnPrimary, width: '100%', padding: '15px', marginTop: 10, fontSize: 16 }}>
-        🎲 Buscar oponente al azar
+      {/* HÉROE: invitar por enlace */}
+      <button onClick={invitarPorEnlace} style={{ width: '100%', padding: '17px', marginTop: 12, borderRadius: 16, border: 'none', cursor: 'pointer', background: 'linear-gradient(135deg,#25D366,#128C7E)', color: '#fff', fontSize: 17, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
+        ⚡ Retar a un amigo (enviar enlace)
+      </button>
+      <div style={{ textAlign: 'center', fontSize: 12, color: 'rgba(232,226,212,.5)', marginTop: 6 }}>
+        Le llega por WhatsApp y entra directo a la partida contigo.
+      </div>
+
+      <button onClick={quickMatch} style={{ ...btnGold, width: '100%', padding: '13px', marginTop: 14, fontSize: 15 }}>
+        🎲 Jugar ya (con quien esté disponible)
       </button>
 
-      <div style={{ fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: '#9c7a3e', margin: '20px 0 8px' }}>Retar a alguien</div>
+      {/* RETOS PARA TI */}
+      {challenges.length > 0 && (
+        <>
+          <div style={{ ...sectionLabel, color: '#7ee0a6' }}>⚔️ Te retaron</div>
+          {challenges.map((m) => (
+            <div key={m.id} style={{ ...rowStyle, borderColor: 'rgba(126,224,166,.35)' }}>
+              <span style={{ color: '#ece6d6' }}>{(m as MyGame).opp_alias ?? 'Alguien'} te reta</span>
+              <button onClick={() => accept(m)} style={{ ...btnPrimary, marginLeft: 'auto' }}>Aceptar</button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* PARTIDAS EN CURSO */}
+      {myGames.filter((m) => m.status === 'active').length > 0 && (
+        <>
+          <div style={sectionLabel}>Partidas en curso</div>
+          {myGames.filter((m) => m.status === 'active').map((m) => (
+            <div key={m.id} style={rowStyle}>
+              <span style={{ color: '#ece6d6' }}>vs {m.opp_alias ?? 'Rival'}</span>
+              <button onClick={() => watchMatch(m, m.you_white, m.opp_alias ?? 'Rival')} style={{ ...btnGold, marginLeft: 'auto' }}>Reanudar →</button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* RECIENTES */}
+      {recents.length > 0 && (
+        <>
+          <div style={sectionLabel}>🕐 Recientes</div>
+          {recents.map((u) => (
+            <div key={u.id} style={rowStyle}>
+              <img src={avatarSrc(u.avatar_code)} alt="" style={avatarStyle} />
+              <span style={{ color: '#ece6d6', fontWeight: 600 }}>{u.alias}</span>
+              <button onClick={() => challenge({ id: u.id, alias: u.alias, avatar_code: u.avatar_code })} style={{ ...btnGold, marginLeft: 'auto' }}>Revancha ⚔️</button>
+            </div>
+          ))}
+        </>
+      )}
+
+      {/* BUSCAR POR ALIAS */}
+      <div style={sectionLabel}>🔎 Buscar a alguien</div>
       <div style={{ display: 'flex', gap: 8 }}>
         <input value={query} onChange={(e) => setQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') doSearch(); }}
-          placeholder="correo / alias / código" style={inputStyle} />
+          placeholder="alias o correo" style={inputStyle} />
         <button onClick={doSearch} style={btnGold}>Buscar</button>
       </div>
       {results.map((u) => (
@@ -230,30 +322,6 @@ export function AjedrezOnlineScreen() {
           <button onClick={() => challenge(u)} style={{ ...btnGold, marginLeft: 'auto' }}>Retar ⚔️</button>
         </div>
       ))}
-
-      {challenges.length > 0 && (
-        <>
-          <div style={{ fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: '#7ee0a6', margin: '20px 0 8px' }}>Te retaron</div>
-          {challenges.map((m) => (
-            <div key={m.id} style={rowStyle}>
-              <span style={{ color: '#ece6d6' }}>{(m as MyGame).opp_alias ?? 'Alguien'} te retó a jugar ⚔️</span>
-              <button onClick={() => accept(m)} style={{ ...btnPrimary, marginLeft: 'auto' }}>Aceptar</button>
-            </div>
-          ))}
-        </>
-      )}
-
-      {myGames.filter((m) => m.status === 'active').length > 0 && (
-        <>
-          <div style={{ fontSize: 11, letterSpacing: '.2em', textTransform: 'uppercase', color: '#9c7a3e', margin: '20px 0 8px' }}>Partidas en curso</div>
-          {myGames.filter((m) => m.status === 'active').map((m) => (
-            <div key={m.id} style={rowStyle}>
-              <span style={{ color: '#ece6d6' }}>vs {m.opp_alias ?? 'Rival'}</span>
-              <button onClick={() => watchMatch(m, m.you_white, m.opp_alias ?? 'Rival')} style={{ ...btnGold, marginLeft: 'auto' }}>Reanudar →</button>
-            </div>
-          ))}
-        </>
-      )}
     </div>
   );
 }
