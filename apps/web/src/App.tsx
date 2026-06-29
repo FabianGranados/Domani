@@ -22,6 +22,7 @@ import { LaboratorioScreen } from './screens/LaboratorioScreen';
 import { PalmaresScreen } from './screens/PalmaresScreen';
 import { MensajesScreen } from './screens/MensajesScreen';
 import { AjedrezOnlineScreen } from './screens/AjedrezOnlineScreen';
+import { AjedrezSalonScreen } from './screens/AjedrezSalonScreen';
 import { IosInstallHint } from './components/IosInstallHint';
 import { FloatingMichat } from './components/FloatingMichat';
 import { FloatingNav } from './components/FloatingNav';
@@ -85,13 +86,14 @@ function AppRoutes({ loading, session, profile }: AppRoutesProps) {
   return (
     <Routes>
       <Route path="/poker" element={<PokerScreen />} />
-      <Route path="/ajedrez" element={<AjedrezScreen />} />
+      <Route path="/ajedrez/maquina" element={<AjedrezScreen />} />
       <Route
         path="*"
         element={
           <Layout>
             <Routes>
               <Route path="/" element={<EscritorioScreen />} />
+              <Route path="/ajedrez" element={<AjedrezSalonScreen />} />
               <Route path="/casas" element={<SalonScreen />} />
               <Route path="/michat" element={<MichatScreen />} />
               <Route path="/banco" element={<DomanibankScreen />} />

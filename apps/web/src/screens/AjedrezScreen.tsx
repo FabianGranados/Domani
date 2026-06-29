@@ -339,7 +339,7 @@ export function AjedrezScreen() {
         houseName={houseName}
         onPlay={(i, ms) => sentarse(STAKES[i], ms)}
         onChallengeCitizen={retarCiudadano}
-        onExit={() => navigate('/')}
+        onExit={() => navigate('/ajedrez')}
       />
     );
   }
@@ -368,7 +368,7 @@ export function AjedrezScreen() {
 
   return (
     <div style={boardWrap}>
-      <button onClick={() => navigate('/')} style={{ ...exitBtn, position: 'absolute', top: 'calc(env(safe-area-inset-top) + 10px)', left: 12 }}>← Salir</button>
+      <button onClick={() => navigate('/ajedrez')} style={{ ...exitBtn, position: 'absolute', top: 'calc(env(safe-area-inset-top) + 10px)', left: 12 }}>← Salir</button>
 
       {/* Rival */}
       <div style={barWithClock}>

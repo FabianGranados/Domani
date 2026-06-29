@@ -659,3 +659,18 @@ export function subscribeChallenges(myId: string, onChallenge: (m: ChessMatch) =
     .subscribe();
   return () => { supabase.removeChannel(ch); };
 }
+
+// --- Ajedrez PvP: invitación por enlace + recientes (Fase 1) ---
+export async function chessCreateLink(): Promise<ChessMatch> {
+  const { data, error } = await supabase.rpc('chess_create_link');
+  if (error) throw error; return data as ChessMatch;
+}
+export async function chessJoinLink(matchId: string): Promise<ChessMatch> {
+  const { data, error } = await supabase.rpc('chess_join_link', { p_match: matchId });
+  if (error) throw error; return data as ChessMatch;
+}
+export type RecentOpponent = { id: string; alias: string; avatar_code: string | null; last_at: string };
+export async function chessRecentOpponents(): Promise<RecentOpponent[]> {
+  const { data, error } = await supabase.rpc('chess_recent_opponents');
+  if (error) throw error; return (data ?? []) as RecentOpponent[];
+}
