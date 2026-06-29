@@ -9,6 +9,7 @@ const CHALLENGER_KEY: Record<string, string> = { n1: 'teo', n2: 'vera', n3: 'sev
 import type { House } from '../lib/types';
 import { bestMove } from '../lib/chessBot';
 import { humanChessDelayMs } from '../lib/humanTiming';
+import { ChessPiece } from '../components/ChessPieces';
 import { AjedrezLobby } from '../components/AjedrezLobby';
 
 const GOLD = 'linear-gradient(135deg,#ecd28e,#c9a35b 55%,#a8843f)';
@@ -404,13 +405,9 @@ export function AjedrezScreen() {
                 >
                   {isLast && <div style={lastDot} />}
                   {cell && (
-                    <span style={{
-                      fontSize: `calc(${boardSize} / 11)`, lineHeight: 1, position: 'relative', zIndex: 2,
-                      color: cell.color === 'w' ? '#f8f1e4' : '#1b1b22',
-                      textShadow: cell.color === 'w'
-                        ? '0 1px 3px rgba(0,0,0,.7), 0 0 2px rgba(0,0,0,.95), 0 0 1px rgba(0,0,0,1)'
-                        : '0 0 5px rgba(255,255,255,.5), 0 0 2px rgba(255,255,255,.85), 0 1px 1px rgba(255,255,255,.9), 0 1px 3px rgba(0,0,0,.55)',
-                    }}>{GLYPH[cell.type]}</span>
+                    <span style={{ position: 'relative', zIndex: 2, width: '84%', height: '84%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <ChessPiece type={cell.type} white={cell.color === 'w'} size="100%" />
+                    </span>
                   )}
                   {isTarget && <div style={cell ? targetRing : targetDot} />}
                 </div>
@@ -490,8 +487,8 @@ function PlayerBar({ name, sub, elo, caps, capColor, you, active, thinking, img 
         </div>
         <div style={{ fontSize: 11.5, color: 'rgba(232,226,212,.55)' }}>{sub}</div>
       </div>
-      <div style={{ display: 'flex', gap: 1, fontSize: 16, color: capColor === 'w' ? '#f8f1e4' : '#1b1b22', textShadow: capColor === 'w' ? '0 1px 2px #000' : '0 0 4px rgba(255,255,255,.6), 0 0 1px rgba(255,255,255,.9), 0 1px 2px rgba(0,0,0,.5)' }}>
-        {caps.slice(0, 8).map((p, i) => <span key={i}>{GLYPH[p]}</span>)}
+      <div style={{ display: 'flex', gap: 1 }}>
+        {caps.slice(0, 8).map((p, i) => <ChessPiece key={i} type={p} white={capColor === 'w'} size={16} />)}
       </div>
     </div>
   );

@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Chess, type Move } from 'chess.js';
 import { useAuth } from '../auth/AuthProvider';
+import { ChessPiece } from '../components/ChessPieces';
 import {
   findUser, chessQuickMatch, chessChallenge, chessAccept, chessMove, chessResign,
   chessMyGames, subscribeMatch, subscribeChallenges, avatarSrc,
@@ -185,15 +186,7 @@ export function AjedrezOnlineScreen() {
                 background: isSel ? '#b9a44e' : isLast ? (dark ? '#9d8a3f' : '#cdb96a') : dark ? '#7d6549' : '#d8c39a',
                 fontSize: 'min(7vw, 30px)', cursor: isMyTurn ? 'pointer' : 'default', position: 'relative',
               }}>
-                {cell && <span style={{
-                  color: cell.color === 'w' ? '#f7f0dc' : '#141210',
-                  // Contorno opuesto para que se distingan en cualquier casilla.
-                  textShadow: cell.color === 'w'
-                    ? '0 0 1px #000, 0 0 2px #000, 0 1px 1px #000'
-                    : '0 0 1px #d8c39a, 0 1px 0 #ffffff44',
-                  // ︎ fuerza render de TEXTO (no emoji) en iOS Safari -> respeta el color.
-                  fontVariantEmoji: 'text' as React.CSSProperties['fontVariantEmoji'],
-                }}>{GLYPH[cell.type] + '\uFE0E'}</span>}
+                {cell && <ChessPiece type={cell.type} white={cell.color === 'w'} size="86%" />}
                 {isTarget && <span style={{ position: 'absolute', width: 12, height: 12, borderRadius: 12, background: 'rgba(40,40,30,.35)' }} />}
               </div>
             );

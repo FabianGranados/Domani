@@ -11,6 +11,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Chess } from 'chess.js';
 import { bestMoveForLevel } from '../lib/chessBot';
+import { ChessPiece } from '../components/ChessPieces';
 import {
   startHand, applyAction, botAction, legalActions, pokerPersonaFromBrain,
   RANK_LABEL, isRed, type Game, type Player, type BotStyle, type Card,
@@ -323,7 +324,7 @@ function ChessDuel() {
             const dark = (r + c) % 2 === 1;
             return (
               <div key={`${r}-${c}`} style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', background: dark ? '#7d6549' : '#d8c39a', fontSize: 27 }}>
-                {sq && <span style={{ color: sq.color === 'w' ? '#f7f0dc' : '#141210', textShadow: sq.color === 'w' ? '0 0 1px #000, 0 1px 1px #000' : '0 0 1px #d8c39a', fontVariantEmoji: 'text' as React.CSSProperties['fontVariantEmoji'] }}>{GLYPH[sq.type] + '\uFE0E'}</span>}
+                {sq && <ChessPiece type={sq.type} white={sq.color === 'w'} size="84%" />}
               </div>
             );
           }))}
